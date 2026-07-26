@@ -1,0 +1,4200 @@
+{
+ "version": 1,
+ "seed": 20260726,
+ "games": 8000,
+ "generator": "gen-puzzles.mjs（引擎自對弈＋solveVcf 最小深度證明）",
+ "puzzles": [
+  {
+   "id": "p001",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhgghgfhhfhihehdgdfcgejhfeeejeiegcgbifghjgkhgfeddejfihjiffefec",
+   "stones": 31,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 11,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p002",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhghfjigfifkdlekeldkckgkhkgjgiglhjhifggmgnihjghm",
+   "stones": 24,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 5,
+     "y": 7
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 4,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p003",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhhgggffiiihjjkkjihijgjhkhkiigfjlgmfmgkghkijifligdhejkjljfkegfgeielj",
+   "stones": 34,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 7,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 9,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p004",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhjfhgifhihjhehfgfiekfihigggfhjdkcjgjehdgcfgidlg",
+   "stones": 24,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 7,
+     "y": 2
+    },
+    {
+     "x": 6,
+     "y": 1
+    },
+    {
+     "x": 9,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p005",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhggfggffhgighihefhifkfiiidieide",
+   "stones": 16,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 4,
+     "y": 7
+    },
+    {
+     "x": 3,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p006",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgggiigkgjghihgfgghhjhkjhgk",
+   "stones": 14,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 8,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p007",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghghehihjgfgjijedghjkeffgfiejifjehfffjfkffjiegejh",
+   "stones": 26,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 6,
+     "y": 8
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 4,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p008",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghghigfiheddchejgkfhdifjfjeghkeie",
+   "stones": 18,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 10,
+     "y": 3
+    },
+    {
+     "x": 11,
+     "y": 2
+    },
+    {
+     "x": 10,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p009",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgghihkijhfiejkfggkkkghikgigjgfgefkffdkekfiejfjhdicfleiimildheggc",
+   "stones": 33,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 5,
+     "y": 7
+    },
+    {
+     "x": 3,
+     "y": 9
+    },
+    {
+     "x": 3,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p010",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhggigghgfgigjifjfjghehgjefg",
+   "stones": 14,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 10,
+     "y": 4
+    },
+    {
+     "x": 11,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p011",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhggihhifhjhigghgfijfgjkklidehdigijfjihg",
+   "stones": 20,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 5,
+     "y": 9
+    },
+    {
+     "x": 4,
+     "y": 10
+    },
+    {
+     "x": 5,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p012",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgiggiififhdfhghjhkjiffdgfgfedecfehghdigfbkcjefbcchgdgeej",
+   "stones": 29,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 3,
+     "y": 7
+    },
+    {
+     "x": 1,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p013",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgighjhhiiihghjkgfhikegdfhegkfgffcgdgehgfefeefeejfi",
+   "stones": 26,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 3,
+     "y": 3
+    },
+    {
+     "x": 6,
+     "y": 6
+    },
+    {
+     "x": 3,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p014",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhhgggffgfgeegfgfihdfdhehcjeieghhfjdkd",
+   "stones": 19,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 9,
+     "y": 1
+    },
+    {
+     "x": 8,
+     "y": 2
+    },
+    {
+     "x": 9,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p015",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhhgggffiikkghgjfhihehdhhfeiiejdgegffehefjkjjiklkihifkfi",
+   "stones": 28,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 9,
+     "y": 7
+    },
+    {
+     "x": 6,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p016",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhighghighihiiifiejgkfhekhgjfkkggdlgmgggkkjjjhkjhjljmjlilhfijkfl",
+   "stones": 32,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 12,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 7
+    },
+    {
+     "x": 12,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p017",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhigihjhhfhehghijikjghgfiffijekdehfhiifkfjfffgkiljefcfgikkjjeidhegekgkdg",
+   "stones": 36,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 8,
+     "y": 12
+    },
+    {
+     "x": 7,
+     "y": 11
+    },
+    {
+     "x": 9,
+     "y": 11
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p018",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhigihkhfhghggdjffeefgfifdfeiijjiehfhgjiijikegdggedhdijhjghiichdjk",
+   "stones": 33,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 9
+    },
+    {
+     "x": 11,
+     "y": 7
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p019",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhigiiggkkfghghihehffhllehghefijjkgfgi",
+   "stones": 19,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 6,
+     "y": 3
+    },
+    {
+     "x": 5,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p020",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhihhgkfhfhihdhejgiigiigifijikkljkjihkkkgkfkgj",
+   "stones": 23,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 9
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p021",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhihhihgjiiiigkeikhjjhjkjfjgkiljgifjhfgeifgfkflffemgjdnhoiiemijeheijgjlikj",
+   "stones": 37,
+   "vcfDepth": 2,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 11,
+     "y": 6
+    },
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p022",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhggfgfhgihfghdjeijdiehifjigcgdhfddldgdkdidndmcieebh",
+   "stones": 26,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 4,
+     "y": 6
+    },
+    {
+     "x": 1,
+     "y": 6
+    },
+    {
+     "x": 4,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p023",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhggghigjghgegfhihjhkflekihihfifkgkhkdkemeidieldlfmcjfhdndoc",
+   "stones": 30,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 13,
+     "y": 5
+    },
+    {
+     "x": 12,
+     "y": 5
+    },
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 12,
+     "y": 8
+    },
+    {
+     "x": 12,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p024",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhgghfheghfheihgfifgigdgegdiehejgejhjfkegfif",
+   "stones": 22,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 4,
+     "y": 5
+    },
+    {
+     "x": 4,
+     "y": 4
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 7,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p025",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhggihghfggfgigdgeigfjfhjgeihikfdjhfieifjfffefgjhghjkghd",
+   "stones": 28,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 12,
+     "y": 8
+    },
+    {
+     "x": 9,
+     "y": 7
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p026",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghggigkhfeighgfihfjdheddceghlehejefecfdeefgdiidhefhfi",
+   "stones": 28,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 6,
+     "y": 3
+    },
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 7,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p027",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghghihfhdghihiffiiikdidkfjgkekgkbkclgjhlfhjgkjfji",
+   "stones": 26,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 9,
+     "y": 3
+    },
+    {
+     "x": 9,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 4
+    },
+    {
+     "x": 11,
+     "y": 1
+    },
+    {
+     "x": 8,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p028",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhggihehigjhiiijjikigijfekfjhjhikjhgifielkmljkfhhffgfi",
+   "stones": 27,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 4,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 6
+    },
+    {
+     "x": 3,
+     "y": 6
+    },
+    {
+     "x": 4,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p029",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhhfjfggfhiejdjcgiigjhjghgdfihghkhlhgffehjik",
+   "stones": 22,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 7,
+     "y": 8
+    },
+    {
+     "x": 7,
+     "y": 10
+    },
+    {
+     "x": 9,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p030",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhighgihhihjhehfiffdgeiiikiejhfcfeghjddejecfedkdjfjg",
+   "stones": 26,
+   "vcfDepth": 3,
+   "difficulty": "easy",
+   "solution": [
+    {
+     "x": 9,
+     "y": 2
+    },
+    {
+     "x": 9,
+     "y": 1
+    },
+    {
+     "x": 6,
+     "y": 5
+    },
+    {
+     "x": 3,
+     "y": 2
+    },
+    {
+     "x": 8,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p031",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhgghghffhghjdgegffeigjegijfdfheieegfjekeeffhddhciifkfcgdgfdfcecdbjgkhfkjidk",
+   "stones": 38,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 7
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 3
+    },
+    {
+     "x": 10,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p032",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhgghihgjgihjiiiijfgeghjkhhklgmfkgmgmhjhkfkeidjekikjieicniojmili",
+   "stones": 32,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 13,
+     "y": 7
+    },
+    {
+     "x": 14,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 9
+    },
+    {
+     "x": 14,
+     "y": 10
+    },
+    {
+     "x": 13,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p033",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhggigkegifjfhghhjikgkdfjhiiihlhkiljhfgehihggjjghkhlgmglifflelfkfmgfgd",
+   "stones": 35,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 11
+    },
+    {
+     "x": 9,
+     "y": 11
+    },
+    {
+     "x": 8,
+     "y": 12
+    },
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 13
+    },
+    {
+     "x": 8,
+     "y": 14
+    },
+    {
+     "x": 7,
+     "y": 12
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p034",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhggigkegifjhfhgihjhfhgheghjgjdfiiiffihiehhkhlkdjeikdgcfefeeejeichbi",
+   "stones": 34,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 6,
+     "y": 3
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 3,
+     "y": 7
+    },
+    {
+     "x": 1,
+     "y": 7
+    },
+    {
+     "x": 6,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p035",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhgighehjhihhiefhghfhjhkfiifgfejegjkiikgkkjjflgkfkfjeiieigki",
+   "stones": 30,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 6,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 6,
+     "y": 3
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 4,
+     "y": 4
+    },
+    {
+     "x": 7,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p036",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhgighfhhjhiiiggjhgkihkhkglfijigikiljjgjkjljkkllgmhllkhkjmji",
+   "stones": 30,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 12,
+     "y": 10
+    },
+    {
+     "x": 9,
+     "y": 11
+    },
+    {
+     "x": 9,
+     "y": 13
+    },
+    {
+     "x": 10,
+     "y": 12
+    },
+    {
+     "x": 11,
+     "y": 13
+    },
+    {
+     "x": 10,
+     "y": 11
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p037",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhhfffeeggiigeeggfgdgighefdfigfjfdjfhgjgfeedfbfcjiihfhfghjifheikhihkkfilijjkgkfigjkjhm",
+   "stones": 43,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 11,
+     "y": 8
+    },
+    {
+     "x": 12,
+     "y": 7
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 12,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 10
+    },
+    {
+     "x": 11,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p038",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhhfgggeffeeiijjjhheiehdhcfdecidgddfgchjicfcjckccgdgfeibihkh",
+   "stones": 30,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 7
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 8
+    },
+    {
+     "x": 7,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p039",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhhijfigihjhfhehhfiffiggfffghgeghdhegfjiefdfkifedgjggd",
+   "stones": 27,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 11,
+     "y": 8
+    },
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 9,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 11,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p040",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhighghffdifihjhkijijgffgfedfhehgjhiiijjkfmdkhkgegjljkdfikil",
+   "stones": 30,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 6,
+     "y": 8
+    },
+    {
+     "x": 7,
+     "y": 9
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 6,
+     "y": 6
+    },
+    {
+     "x": 6,
+     "y": 10
+    },
+    {
+     "x": 6,
+     "y": 11
+    },
+    {
+     "x": 7,
+     "y": 10
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p041",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhigihjhkighhihkgjfkkfjgjiiikgkhgkhfgeifhelimjhgfi",
+   "stones": 25,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 3
+    },
+    {
+     "x": 9,
+     "y": 3
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p042",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhfffhegdhihehghbhchfgcjhegfhfhgfeiejiifjecfiggigg",
+   "stones": 25,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 2,
+     "y": 8
+    },
+    {
+     "x": 2,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 8
+    },
+    {
+     "x": 4,
+     "y": 9
+    },
+    {
+     "x": 4,
+     "y": 8
+    },
+    {
+     "x": 3,
+     "y": 8
+    },
+    {
+     "x": 4,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p043",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhggfhghgiegfifjigkehieihghfhkhjiijigjilgkehefglekfkihifijikkfjgejkhli",
+   "stones": 35,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 6,
+     "y": 3
+    },
+    {
+     "x": 7,
+     "y": 4
+    },
+    {
+     "x": 6,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 9,
+     "y": 7
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p044",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghghfeijdiegfifgegdgighjefdejhefcedddigih",
+   "stones": 22,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 3
+    },
+    {
+     "x": 9,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 11,
+     "y": 6
+    },
+    {
+     "x": 9,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p045",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhhfigifjfgildkeggffdfgfefhgihjekdidheghfiielemdibjchcgdedjdkc",
+   "stones": 31,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 1
+    },
+    {
+     "x": 9,
+     "y": 0
+    },
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 5,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 2
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 7,
+     "y": 1
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p046",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhhgggffghgfihfhkhjhiffgfifefdeddcjgjiigkgehdihfki",
+   "stones": 25,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 7,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 3
+    },
+    {
+     "x": 7,
+     "y": 2
+    },
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 4,
+     "y": 5
+    },
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p047",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhhgjhihjfjgfeigkgiiifikijggfggflhmige",
+   "stones": 19,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 8
+    },
+    {
+     "x": 7,
+     "y": 8
+    },
+    {
+     "x": 6,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p048",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhigghehfghikhihjgijiiggifhelimjjjllhgfijhjihjgk",
+   "stones": 24,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 3
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 9,
+     "y": 3
+    },
+    {
+     "x": 11,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p049",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhighghjihjhiikiljhfgeikjjggkklljlimminhgffejikjfhjklihilhlgiejfilehijglkejejc",
+   "stones": 39,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 6
+    },
+    {
+     "x": 9,
+     "y": 3
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 12,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 8,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p050",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhigihjhhfhgggfhffeeiijjjigffilihigikfjgkgkjegljmjmhjkkimkhjijkl",
+   "stones": 32,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 10
+    },
+    {
+     "x": 8,
+     "y": 11
+    },
+    {
+     "x": 10,
+     "y": 10
+    },
+    {
+     "x": 11,
+     "y": 10
+    },
+    {
+     "x": 7,
+     "y": 10
+    },
+    {
+     "x": 6,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 7
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p051",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhihigjhjfkefjgikhjghihkhghfkfjkgkggjilfkgfheihl",
+   "stones": 24,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 11,
+     "y": 8
+    },
+    {
+     "x": 8,
+     "y": 8
+    },
+    {
+     "x": 12,
+     "y": 8
+    },
+    {
+     "x": 13,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 7
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p052",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhiiihjhjihglfhjgkfhigfjfkgjejgiegikjlijjjekjkjmeiefildlcmkjhmglfognelfgklllcd",
+   "stones": 39,
+   "vcfDepth": 4,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 8
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 7,
+     "y": 8
+    },
+    {
+     "x": 6,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 6
+    },
+    {
+     "x": 3,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p053",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhggghihhihgfgijfhehefdefeffiijikjfilghkgjgdgldgcfgidddicichdjdfdhejbgelekbhdkjg",
+   "stones": 40,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 6,
+     "y": 12
+    },
+    {
+     "x": 5,
+     "y": 11
+    },
+    {
+     "x": 6,
+     "y": 10
+    },
+    {
+     "x": 6,
+     "y": 13
+    },
+    {
+     "x": 2,
+     "y": 10
+    },
+    {
+     "x": 5,
+     "y": 10
+    },
+    {
+     "x": 4,
+     "y": 8
+    },
+    {
+     "x": 1,
+     "y": 11
+    },
+    {
+     "x": 5,
+     "y": 9
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p054",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhgghghfhihkieghgiigiijijheidjijkhglfmhjihlhjgkffkgjfjfliljjkjekifhemjlikikklfgkkgmedn",
+   "stones": 43,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 8,
+     "y": 10
+    },
+    {
+     "x": 9,
+     "y": 11
+    },
+    {
+     "x": 9,
+     "y": 12
+    },
+    {
+     "x": 6,
+     "y": 12
+    },
+    {
+     "x": 6,
+     "y": 13
+    },
+    {
+     "x": 7,
+     "y": 13
+    },
+    {
+     "x": 8,
+     "y": 14
+    },
+    {
+     "x": 8,
+     "y": 12
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p055",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgggiigekjghghedlfjifjejfkfhjhiihikghjhfhehfiejgfjifeedhfffdfegeflgid",
+   "stones": 35,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 12,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 13,
+     "y": 8
+    },
+    {
+     "x": 12,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 9
+    },
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 11,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p056",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgghghfeigfghifjfefffiggeihiihdehieidfhjdjcegcihjhkejekdkfijhkgjgjeflgkjjjidjikfkijgl",
+   "stones": 43,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 11,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 10
+    },
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 11,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p057",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghghighfiehfhhfheihjhjilkkjgfeifgfffjfkjcidejdjegjedgcgcedfhjgjikgigk",
+   "stones": 36,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 4
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 11,
+     "y": 5
+    },
+    {
+     "x": 7,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p058",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhhgggffghihgfgigdgehdegcifdigfhhj",
+   "stones": 17,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 2,
+     "y": 4
+    },
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 1
+    },
+    {
+     "x": 5,
+     "y": 2
+    },
+    {
+     "x": 4,
+     "y": 4
+    },
+    {
+     "x": 3,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p059",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhhgggfhffiieeddgfghjegeefdfifhfeceddeehchfdgd",
+   "stones": 23,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 1,
+     "y": 3
+    },
+    {
+     "x": 2,
+     "y": 3
+    },
+    {
+     "x": 4,
+     "y": 6
+    },
+    {
+     "x": 2,
+     "y": 4
+    },
+    {
+     "x": 9,
+     "y": 7
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 7,
+     "y": 9
+    },
+    {
+     "x": 6,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p060",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhighghjhfheihjijhkhfhghijeiiffegfffjfkfkgeegeggiehdmilhddmejdlg",
+   "stones": 32,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 10,
+     "y": 2
+    },
+    {
+     "x": 11,
+     "y": 1
+    },
+    {
+     "x": 9,
+     "y": 4
+    },
+    {
+     "x": 9,
+     "y": 6
+    },
+    {
+     "x": 9,
+     "y": 2
+    },
+    {
+     "x": 9,
+     "y": 1
+    },
+    {
+     "x": 11,
+     "y": 2
+    },
+    {
+     "x": 10,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p061",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhigifihjghehfjfkhlihgijiighhjhijkfffgjhjjllggkkegdgiefhjdkckdhdkeic",
+   "stones": 34,
+   "vcfDepth": 5,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 9,
+     "y": 4
+    },
+    {
+     "x": 11,
+     "y": 2
+    },
+    {
+     "x": 11,
+     "y": 4
+    },
+    {
+     "x": 12,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 12,
+     "y": 3
+    },
+    {
+     "x": 13,
+     "y": 2
+    },
+    {
+     "x": 11,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p062",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhggfggfghfhgdhfeijdieifjfefffhdgiiggefehififjijgkhl",
+   "stones": 26,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 3,
+     "y": 7
+    },
+    {
+     "x": 2,
+     "y": 6
+    },
+    {
+     "x": 4,
+     "y": 6
+    },
+    {
+     "x": 2,
+     "y": 8
+    },
+    {
+     "x": 6,
+     "y": 9
+    },
+    {
+     "x": 6,
+     "y": 11
+    },
+    {
+     "x": 4,
+     "y": 10
+    },
+    {
+     "x": 3,
+     "y": 11
+    },
+    {
+     "x": 4,
+     "y": 9
+    },
+    {
+     "x": 4,
+     "y": 7
+    },
+    {
+     "x": 3,
+     "y": 9
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p063",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhggjfkegiekigfjdjfhdldkckfifkiehfhgjhkijgjiffejghbmclgf",
+   "stones": 28,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 7
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 7,
+     "y": 8
+    },
+    {
+     "x": 6,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 11,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 5
+    },
+    {
+     "x": 11,
+     "y": 5
+    },
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 8
+    },
+    {
+     "x": 5,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p064",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhihhghikfigieheiikkggffgjgfhfjdeifhfiifehdghkilejdkefeggidhcididj",
+   "stones": 33,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 3,
+     "y": 4
+    },
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 4,
+     "y": 4
+    },
+    {
+     "x": 5,
+     "y": 3
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 2
+    },
+    {
+     "x": 5,
+     "y": 1
+    },
+    {
+     "x": 6,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p065",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhggghhifhehihjheggifiiffjfgflfkdiejekciiiigjghfkigfff",
+   "stones": 27,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 3
+    },
+    {
+     "x": 7,
+     "y": 4
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 5,
+     "y": 3
+    },
+    {
+     "x": 6,
+     "y": 2
+    },
+    {
+     "x": 6,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 2
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 7,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p066",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgggifjghehhghijeifjhihfkjgkfhekhgdfcidkd",
+   "stones": 21,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 1
+    },
+    {
+     "x": 8,
+     "y": 2
+    },
+    {
+     "x": 6,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 6,
+     "y": 2
+    },
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 4,
+     "y": 4
+    },
+    {
+     "x": 7,
+     "y": 2
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p067",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgghghfiefhgheidjifjfejigkegifjgkglfkefekdkhkikhjhikg",
+   "stones": 27,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 5
+    },
+    {
+     "x": 4,
+     "y": 6
+    },
+    {
+     "x": 4,
+     "y": 7
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 8
+    },
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 5,
+     "y": 3
+    },
+    {
+     "x": 3,
+     "y": 6
+    },
+    {
+     "x": 2,
+     "y": 6
+    },
+    {
+     "x": 6,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p068",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhigihfhjhkhjjjiiigglgkkkglfmgnghjgkijkj",
+   "stones": 20,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 6,
+     "y": 9
+    },
+    {
+     "x": 5,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 10
+    },
+    {
+     "x": 8,
+     "y": 11
+    },
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 7,
+     "y": 11
+    },
+    {
+     "x": 6,
+     "y": 12
+    },
+    {
+     "x": 7,
+     "y": 8
+    },
+    {
+     "x": 7,
+     "y": 10
+    },
+    {
+     "x": 9,
+     "y": 6
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p069",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhihhghfgghjiijjigjgeeffegfgfjgiefehedecgfgefedcfdhikf",
+   "stones": 27,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 6,
+     "y": 9
+    },
+    {
+     "x": 5,
+     "y": 10
+    },
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 8
+    },
+    {
+     "x": 9,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 11
+    },
+    {
+     "x": 9,
+     "y": 12
+    },
+    {
+     "x": 8,
+     "y": 10
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p070",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhihhgiihihjhehfijfgjhghjkjilmkllkkiliikkjil",
+   "stones": 22,
+   "vcfDepth": 6,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 12,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 6
+    },
+    {
+     "x": 11,
+     "y": 9
+    },
+    {
+     "x": 11,
+     "y": 11
+    },
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 11,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 7
+    },
+    {
+     "x": 12,
+     "y": 9
+    },
+    {
+     "x": 9,
+     "y": 9
+    },
+    {
+     "x": 13,
+     "y": 10
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p071",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhhfffddjjllggiigeicgdgfegdhdgfgehbeeiejefeechfebiajdeifjfeddcieig",
+   "stones": 33,
+   "vcfDepth": 7,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 8,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 1
+    },
+    {
+     "x": 7,
+     "y": 4
+    },
+    {
+     "x": 9,
+     "y": 2
+    },
+    {
+     "x": 7,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 7
+    },
+    {
+     "x": 7,
+     "y": 2
+    },
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 5,
+     "y": 8
+    },
+    {
+     "x": 9,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 3
+    },
+    {
+     "x": 6,
+     "y": 1
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p072",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhhgggeefhhfdhghhefiejeiehifjebhdigfffkfjfjjiekejgjhfegeigfdjcjdkg",
+   "stones": 33,
+   "vcfDepth": 7,
+   "difficulty": "medium",
+   "solution": [
+    {
+     "x": 4,
+     "y": 2
+    },
+    {
+     "x": 3,
+     "y": 1
+    },
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 2,
+     "y": 6
+    },
+    {
+     "x": 6,
+     "y": 2
+    },
+    {
+     "x": 7,
+     "y": 1
+    },
+    {
+     "x": 6,
+     "y": 3
+    },
+    {
+     "x": 6,
+     "y": 1
+    },
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 3
+    },
+    {
+     "x": 4,
+     "y": 3
+    },
+    {
+     "x": 3,
+     "y": 3
+    },
+    {
+     "x": 4,
+     "y": 1
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p073",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhhggfgiggffgegdiikkfhghifiedjeididkejehfkchglhmfjfidhgjhkefdgdfegcfbffm",
+   "stones": 36,
+   "vcfDepth": 8,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 2,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 0,
+     "y": 6
+    },
+    {
+     "x": 1,
+     "y": 6
+    },
+    {
+     "x": 1,
+     "y": 9
+    },
+    {
+     "x": 2,
+     "y": 9
+    },
+    {
+     "x": 2,
+     "y": 8
+    },
+    {
+     "x": 0,
+     "y": 10
+    },
+    {
+     "x": 4,
+     "y": 10
+    },
+    {
+     "x": 1,
+     "y": 7
+    },
+    {
+     "x": 6,
+     "y": 10
+    },
+    {
+     "x": 8,
+     "y": 10
+    },
+    {
+     "x": 5,
+     "y": 11
+    },
+    {
+     "x": 6,
+     "y": 12
+    },
+    {
+     "x": 7,
+     "y": 9
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p074",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghfhggefdigjhfgjfgfjgjijejdifkdghfihegdkhliidgcgbhcfcfeib",
+   "stones": 30,
+   "vcfDepth": 8,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 3,
+     "y": 6
+    },
+    {
+     "x": 4,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 7
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 9
+    },
+    {
+     "x": 5,
+     "y": 10
+    },
+    {
+     "x": 6,
+     "y": 8
+    },
+    {
+     "x": 4,
+     "y": 10
+    },
+    {
+     "x": 7,
+     "y": 8
+    },
+    {
+     "x": 8,
+     "y": 8
+    },
+    {
+     "x": 3,
+     "y": 8
+    },
+    {
+     "x": 4,
+     "y": 8
+    },
+    {
+     "x": 4,
+     "y": 7
+    },
+    {
+     "x": 2,
+     "y": 9
+    },
+    {
+     "x": 2,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p075",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgghghehihjghihfgijdeeffiejjeiffjfhiigiikegdfeheigdfcjgkhedeefddddcdhdgfegkbfcgbgcejj",
+   "stones": 43,
+   "vcfDepth": 8,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 8,
+     "y": 3
+    },
+    {
+     "x": 7,
+     "y": 3
+    },
+    {
+     "x": 8,
+     "y": 4
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 1
+    },
+    {
+     "x": 8,
+     "y": 2
+    },
+    {
+     "x": 7,
+     "y": 5
+    },
+    {
+     "x": 9,
+     "y": 3
+    },
+    {
+     "x": 6,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 5
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 6,
+     "y": 2
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 1
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p076",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhghhghigijffjekijihjjgjfkfliiggkklljgdjgmljbhfheihlilikjkjhlikjkhifnkmjmklkjihk",
+   "stones": 40,
+   "vcfDepth": 8,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 11,
+     "y": 6
+    },
+    {
+     "x": 12,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 12,
+     "y": 6
+    },
+    {
+     "x": 13,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 12,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 5
+    },
+    {
+     "x": 11,
+     "y": 5
+    },
+    {
+     "x": 11,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 4
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 9,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p077",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhhgigkegifjiiihggjjffeegfghhfefifjfgefdgcgdegfghificidhhdicjdiejikicd",
+   "stones": 35,
+   "vcfDepth": 8,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 5,
+     "y": 7
+    },
+    {
+     "x": 5,
+     "y": 10
+    },
+    {
+     "x": 2,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 7
+    },
+    {
+     "x": 3,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 3,
+     "y": 10
+    },
+    {
+     "x": 4,
+     "y": 9
+    },
+    {
+     "x": 3,
+     "y": 8
+    },
+    {
+     "x": 3,
+     "y": 9
+    },
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 3,
+     "y": 4
+    },
+    {
+     "x": 2,
+     "y": 6
+    },
+    {
+     "x": 1,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p078",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhighghfgejhhjljkihigggfffiidhegddeeifgifighjkedeffhdgchgjeh",
+   "stones": 30,
+   "vcfDepth": 8,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 3,
+     "y": 4
+    },
+    {
+     "x": 1,
+     "y": 5
+    },
+    {
+     "x": 2,
+     "y": 5
+    },
+    {
+     "x": 3,
+     "y": 9
+    },
+    {
+     "x": 3,
+     "y": 8
+    },
+    {
+     "x": 5,
+     "y": 9
+    },
+    {
+     "x": 4,
+     "y": 9
+    },
+    {
+     "x": 4,
+     "y": 8
+    },
+    {
+     "x": 2,
+     "y": 6
+    },
+    {
+     "x": 9,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 7,
+     "y": 11
+    },
+    {
+     "x": 6,
+     "y": 10
+    },
+    {
+     "x": 8,
+     "y": 10
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p079",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhiiihghjhkhhijgifhgigidhfgeljkikfjfkjmjginklifjgffflklllhlgjimljkmh",
+   "stones": 34,
+   "vcfDepth": 8,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 9,
+     "y": 9
+    },
+    {
+     "x": 9,
+     "y": 11
+    },
+    {
+     "x": 7,
+     "y": 9
+    },
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 7,
+     "y": 10
+    },
+    {
+     "x": 7,
+     "y": 11
+    },
+    {
+     "x": 8,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 10
+    },
+    {
+     "x": 5,
+     "y": 10
+    },
+    {
+     "x": 6,
+     "y": 10
+    },
+    {
+     "x": 6,
+     "y": 9
+    },
+    {
+     "x": 4,
+     "y": 11
+    },
+    {
+     "x": 8,
+     "y": 11
+    },
+    {
+     "x": 7,
+     "y": 12
+    },
+    {
+     "x": 5,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p080",
+   "rule": "gomoku",
+   "attacker": "white",
+   "record": "g1:hhighghiihghjigfkjlkggfgefheidjkijjjeheeglhkikilkhlglhjhkikgklkknklijgiilf",
+   "stones": 37,
+   "vcfDepth": 9,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 7,
+     "y": 9
+    },
+    {
+     "x": 6,
+     "y": 10
+    },
+    {
+     "x": 11,
+     "y": 11
+    },
+    {
+     "x": 12,
+     "y": 12
+    },
+    {
+     "x": 7,
+     "y": 12
+    },
+    {
+     "x": 7,
+     "y": 11
+    },
+    {
+     "x": 11,
+     "y": 12
+    },
+    {
+     "x": 11,
+     "y": 9
+    },
+    {
+     "x": 11,
+     "y": 14
+    },
+    {
+     "x": 11,
+     "y": 13
+    },
+    {
+     "x": 9,
+     "y": 12
+    },
+    {
+     "x": 10,
+     "y": 13
+    },
+    {
+     "x": 10,
+     "y": 12
+    },
+    {
+     "x": 8,
+     "y": 12
+    },
+    {
+     "x": 9,
+     "y": 13
+    },
+    {
+     "x": 9,
+     "y": 11
+    },
+    {
+     "x": 12,
+     "y": 10
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p081",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhgghihjiifigjihjjghkkllejdjjikijljkhfljgfheifffnligkfjfmkfgfhlhhgkgmi",
+   "stones": 35,
+   "vcfDepth": 9,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 11,
+     "y": 8
+    },
+    {
+     "x": 11,
+     "y": 10
+    },
+    {
+     "x": 11,
+     "y": 6
+    },
+    {
+     "x": 11,
+     "y": 5
+    },
+    {
+     "x": 12,
+     "y": 6
+    },
+    {
+     "x": 9,
+     "y": 6
+    },
+    {
+     "x": 13,
+     "y": 5
+    },
+    {
+     "x": 14,
+     "y": 4
+    },
+    {
+     "x": 13,
+     "y": 6
+    },
+    {
+     "x": 14,
+     "y": 6
+    },
+    {
+     "x": 12,
+     "y": 7
+    },
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 7
+    },
+    {
+     "x": 14,
+     "y": 7
+    },
+    {
+     "x": 13,
+     "y": 4
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p082",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhghfgfiejgjgidgehekgfdidjeiidhecifjdhegifchfeffhged",
+   "stones": 26,
+   "vcfDepth": 9,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 8,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 8
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 4
+    },
+    {
+     "x": 9,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 4
+    },
+    {
+     "x": 7,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 9,
+     "y": 6
+    },
+    {
+     "x": 6,
+     "y": 6
+    },
+    {
+     "x": 10,
+     "y": 6
+    },
+    {
+     "x": 11,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 8
+    },
+    {
+     "x": 8,
+     "y": 9
+    },
+    {
+     "x": 7,
+     "y": 9
+    },
+    {
+     "x": 7,
+     "y": 8
+    },
+    {
+     "x": 9,
+     "y": 7
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p083",
+   "rule": "gomoku",
+   "attacker": "black",
+   "record": "g1:hhgghghjihjhjigfkjlkhihegiiigkfjlffgidjgehifgdjfhfjdjekhlifhfimhdieilhlggjglckhk",
+   "stones": 40,
+   "vcfDepth": 10,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 3,
+     "y": 6
+    },
+    {
+     "x": 2,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 10
+    },
+    {
+     "x": 4,
+     "y": 11
+    },
+    {
+     "x": 3,
+     "y": 10
+    },
+    {
+     "x": 4,
+     "y": 10
+    },
+    {
+     "x": 3,
+     "y": 9
+    },
+    {
+     "x": 3,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 9
+    },
+    {
+     "x": 6,
+     "y": 7
+    },
+    {
+     "x": 2,
+     "y": 7
+    },
+    {
+     "x": 1,
+     "y": 6
+    },
+    {
+     "x": 4,
+     "y": 5
+    },
+    {
+     "x": 5,
+     "y": 4
+    },
+    {
+     "x": 0,
+     "y": 9
+    },
+    {
+     "x": 1,
+     "y": 8
+    },
+    {
+     "x": 2,
+     "y": 9
+    },
+    {
+     "x": 1,
+     "y": 9
+    },
+    {
+     "x": 2,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p084",
+   "rule": "renju",
+   "attacker": "white",
+   "record": "r1:hhggghihfhdhhgifhjhiiggifkkfleiififjejdkjgjikilghfjhhehdkhdidjeigkcgbfffikhkjj",
+   "stones": 39,
+   "vcfDepth": 10,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 4,
+     "y": 6
+    },
+    {
+     "x": 6,
+     "y": 4
+    },
+    {
+     "x": 3,
+     "y": 6
+    },
+    {
+     "x": 5,
+     "y": 6
+    },
+    {
+     "x": 3,
+     "y": 5
+    },
+    {
+     "x": 3,
+     "y": 4
+    },
+    {
+     "x": 1,
+     "y": 6
+    },
+    {
+     "x": 0,
+     "y": 6
+    },
+    {
+     "x": 2,
+     "y": 8
+    },
+    {
+     "x": 1,
+     "y": 9
+    },
+    {
+     "x": 0,
+     "y": 8
+    },
+    {
+     "x": 1,
+     "y": 8
+    },
+    {
+     "x": 4,
+     "y": 4
+    },
+    {
+     "x": 1,
+     "y": 7
+    },
+    {
+     "x": 2,
+     "y": 2
+    },
+    {
+     "x": 3,
+     "y": 3
+    },
+    {
+     "x": 4,
+     "y": 5
+    },
+    {
+     "x": 4,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 3
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p085",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgiggiihihjkgfhikegdfgkflgjglilfjfkhkfmijffghfg",
+   "stones": 24,
+   "vcfDepth": 10,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 8
+    },
+    {
+     "x": 8,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 7
+    },
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 11
+    },
+    {
+     "x": 10,
+     "y": 10
+    },
+    {
+     "x": 11,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 8
+    },
+    {
+     "x": 10,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 5
+    },
+    {
+     "x": 10,
+     "y": 4
+    },
+    {
+     "x": 9,
+     "y": 6
+    },
+    {
+     "x": 11,
+     "y": 4
+    },
+    {
+     "x": 7,
+     "y": 6
+    },
+    {
+     "x": 8,
+     "y": 6
+    },
+    {
+     "x": 7,
+     "y": 4
+    },
+    {
+     "x": 7,
+     "y": 5
+    },
+    {
+     "x": 8,
+     "y": 5
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  },
+  {
+   "id": "p086",
+   "rule": "renju",
+   "attacker": "black",
+   "record": "r1:hhgghihjhfhegiigiijifieifgfeghijefdeeehggfffjgihlkjjgjljkjglhkehfjekejcjedec",
+   "stones": 38,
+   "vcfDepth": 12,
+   "difficulty": "hard",
+   "solution": [
+    {
+     "x": 3,
+     "y": 10
+    },
+    {
+     "x": 2,
+     "y": 11
+    },
+    {
+     "x": 5,
+     "y": 10
+    },
+    {
+     "x": 5,
+     "y": 7
+    },
+    {
+     "x": 4,
+     "y": 11
+    },
+    {
+     "x": 3,
+     "y": 12
+    },
+    {
+     "x": 8,
+     "y": 11
+    },
+    {
+     "x": 9,
+     "y": 12
+    },
+    {
+     "x": 5,
+     "y": 12
+    },
+    {
+     "x": 5,
+     "y": 11
+    },
+    {
+     "x": 6,
+     "y": 13
+    },
+    {
+     "x": 7,
+     "y": 14
+    },
+    {
+     "x": 9,
+     "y": 10
+    },
+    {
+     "x": 7,
+     "y": 12
+    },
+    {
+     "x": 11,
+     "y": 8
+    },
+    {
+     "x": 12,
+     "y": 7
+    },
+    {
+     "x": 10,
+     "y": 10
+    },
+    {
+     "x": 8,
+     "y": 10
+    },
+    {
+     "x": 13,
+     "y": 10
+    },
+    {
+     "x": 12,
+     "y": 10
+    },
+    {
+     "x": 10,
+     "y": 7
+    },
+    {
+     "x": 12,
+     "y": 9
+    },
+    {
+     "x": 10,
+     "y": 8
+    }
+   ],
+   "verify": {
+    "minDepthProven": true,
+    "maxNodesPerCall": 1500000,
+    "solver": "solveVcf-v1"
+   }
+  }
+ ]
+}
