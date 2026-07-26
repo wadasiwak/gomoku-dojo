@@ -1,6 +1,6 @@
 ---
 name: verify
-description: 驗證 gomoku-dojo（五子棋道場）改動——啟動/測試指令、禁手測資怎麼加、已知雷點。改完引擎或 UI 後使用。
+description: 驗證 gomoku-dojo（五子棋道場）改動——啟動/測試指令、題庫管線、禁手測資怎麼加、已知雷點。改完引擎、UI 或題庫後使用。
 ---
 
 # gomoku-dojo 驗證流程
@@ -8,17 +8,33 @@ description: 驗證 gomoku-dojo（五子棋道場）改動——啟動/測試指
 ## 指令
 
 ```bash
-npm run test      # vitest 全套引擎測試（改引擎必跑，62+ 條）
+npm run test      # vitest 全套（引擎 62＋題庫判定器 8 條；改引擎/judge 必跑）
 npm run build     # tsc -b + vite build（fail-fast：不要 pipe 給 grep）
 npm run lint      # oxlint
 npm run dev       # dev server（port 5310）
+npm run e2e       # 先 build！自起 vite preview :5311、finally kill（scripts/e2e.mjs）
+npm run check     # 題庫全量重驗（solveVcf 重求最小深度，一題不過 exit 1）
+npm run gen:puzzles            # 重產題庫（seed 固定 deterministic，~10 分鐘）
 npx vite preview --port 5312   # 截圖用（e2e 保留 5311）
-node scripts/debug-shot.mjs    # playwright 驅動 debug 頁截圖到 /tmp/gomoku-shots，用 Read 親眼看
+node scripts/shots.mjs         # 桌面+行動版截圖到 /tmp/gomoku-shots，用 Read 親眼看
 ```
 
 ## Port 表
 
 dev/preview 5310、e2e 5311、截圖 5312。
+
+## 題庫管線
+
+- `scripts/gen-puzzles.mjs`（產題）與 `scripts/check-puzzles.mjs`（重驗）共用
+  `scripts/puzzle-verify.mjs`——改驗證邏輯只改這一個檔。
+- node 直接跑 TS 引擎（node ≥23 type stripping；引擎 import 都帶 `.ts` 副檔名，
+  勿改成無副檔名）。
+- **solveVcf 的 truncated 語意雷**：深度預算用盡也會設 `truncated=true`。
+  「深度 ≤ d 內無解」的證明只被**節點上限**打破（`r.nodes >= maxNodes`），
+  不被深度截斷打破——minVcfDepth / judge 都依此判讀，別「修」回去。
+- generator 守方會強制擋成五點與活四點——拿掉會產出滿盤「一手勝」垃圾題。
+- 產題 determinism 前提：solver 全部 `timeLimitMs:1e15`＋固定 maxNodes，
+  控制流不得依賴牆鐘。
 
 ## 禁手測資怎麼加（`src/engine/__tests__/forbidden.test.ts`）
 
@@ -39,8 +55,13 @@ dev/preview 5310、e2e 5311、截圖 5312。
   import 後又用 vite 的 Plugin 型別。
 - **Worker bundle 的版權 banner** 要在 `vite.config.ts` 的 `worker.plugins` 另掛一次。
 - `worker.ts` 用了 `self.onmessage`，**不能在 node 端測試 import**（node 無 self），
-  worker 驗證走 build + debug 頁截圖。
+  worker 驗證走 build + e2e/截圖。judge 測試注入同步版 solveVcf 就不經 worker。
 - 引擎測試裡鋪「白方應手」棋子時注意別讓白棋不小心連五（曾踩過：白應手排成一列）。
 - 搜索/VCF 函式都保證不留盤面副作用；新增搜索路徑時 TimeUp 例外要在 finally 還原落子。
 - `isForbiddenMove` 的遞迴每層都在盤上加假想子、必然終止；`MAX_RECURSION` 只是保險絲，
   觸頂時退回樸素判定（把三當活三）。
+- **e2e 測 AI 對弈**別想用固定點擊鋪局（AI 會攪局）：用 `window.__dojo.loadPlay(record)`
+  測試 hook 直接載入局面（載入後輪到玩家手番就不會觸發 AI）。
+- 對弈頁 AI 觸發用 `pendingRef` key（`gameId:moves.length`）防 StrictMode 雙效應；
+  悔棋前會改 key 使在途結果失效——動 AI effect 時保住這兩個機制。
+- GoatCounter `path()` 只回報 pathname，e2e 有斷言釘住（hash 會含棋譜/題目參數）。

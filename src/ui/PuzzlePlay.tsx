@@ -119,12 +119,15 @@ export default function PuzzlePlay({ id }: { id: string }) {
     }
   }
 
+  /** 重來＝開新一次作答：miss 已在發生當下記錄過，這裡歸零讓
+   *  「重來後無錯通關」能累積連對（錯題本 SRS 的本意）。 */
   const retry = () => {
     setLine([])
     setMsg(null)
     setSolutionStep(null)
-    if (!solved) recordedRef.current = false
     setSolved(false)
+    setMissed(false)
+    recordedRef.current = false
   }
 
   const showSolution = () => {
