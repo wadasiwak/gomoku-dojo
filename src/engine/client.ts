@@ -37,8 +37,13 @@ export class EngineClient {
     return this.call({ type: 'search', board: [...board], color, rule, level })
   }
 
-  vcf(board: Board, color: Color, rule: Rule, maxDepth?: number): Promise<VcfResult> {
-    return this.call({ type: 'vcf', board: [...board], color, rule, maxDepth })
+  vcf(
+    board: Board,
+    color: Color,
+    rule: Rule,
+    opts: { maxDepth?: number; timeLimitMs?: number; maxNodes?: number } = {},
+  ): Promise<VcfResult> {
+    return this.call({ type: 'vcf', board: [...board], color, rule, ...opts })
   }
 
   forbiddenPoints(board: Board): Promise<{ index: number; kind: string }[]> {

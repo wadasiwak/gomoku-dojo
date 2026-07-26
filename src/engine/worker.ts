@@ -20,6 +20,7 @@ export type WorkerRequest =
       rule: Rule
       maxDepth?: number
       timeLimitMs?: number
+      maxNodes?: number
     }
   | { id: number; type: 'forbidden'; board: number[] }
   | { id: number; type: 'ping' }
@@ -41,6 +42,7 @@ function handle(req: WorkerRequest): unknown {
       return solveVcf(b, req.color, req.rule, {
         maxDepth: req.maxDepth,
         timeLimitMs: req.timeLimitMs,
+        maxNodes: req.maxNodes,
       })
     }
     case 'forbidden': {
