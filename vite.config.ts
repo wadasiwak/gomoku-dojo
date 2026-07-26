@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -19,13 +18,11 @@ function copyrightBanner(): Plugin {
 
 export default defineConfig({
   plugins: [react(), copyrightBanner()],
+  // Worker bundle 走獨立的 build pipeline，banner plugin 要另外掛。
+  worker: { plugins: () => [copyrightBanner()] },
   // Relative base so the static build works at any path (GitHub Pages
   // serves it under /gomoku-dojo/).
   base: './',
   server: { port: 5310 },
   preview: { port: 5310 },
-  test: {
-    include: ['src/**/__tests__/**/*.test.ts'],
-    environment: 'node',
-  },
 })

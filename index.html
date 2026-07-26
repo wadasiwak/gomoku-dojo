@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#14121c" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="五子棋道場：連珠規則（禁手）與無禁手雙軌對弈、AI 對手與 VCF 練習。所有計算都在你的瀏覽器完成。"
+    />
+    <meta name="copyright" content="© 2026 wadasiwak. All rights reserved." />
+    <title>五子棋道場 ⚫ 連珠禁手 × AI 對弈</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="五子棋道場 ⚫ 連珠禁手 × AI 對弈" />
+    <meta
+      property="og:description"
+      content="免費線上五子棋／連珠：黑棋禁手判定、四級 AI、VCF 搜索。純前端，免下載免註冊。"
+    />
+    <meta property="og:url" content="https://wadasiwak.github.io/gomoku-dojo/" />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // 匿名流量統計（GoatCounter，無 cookie）。path 只回報 pathname，
+      // hash/query（未來棋譜分享參數）絕不能進 analytics。
+      window.goatcounter = {
+        path: function () {
+          return location.pathname
+        },
+      }
+    </script>
+    <script
+      data-goatcounter="https://wadasiwak.goatcounter.com/count"
+      async
+      src="//gc.zgo.at/count.js"
+    ></script>
+    <script
+      src="https://wadasiwak.github.io/japan-planner/widget.js"
+      data-site="gomoku-dojo"
+      defer
+    ></script>
+  </body>
+</html>

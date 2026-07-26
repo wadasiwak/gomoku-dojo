@@ -2,15 +2,7 @@
 // renju 模式：黑方候選手已在 movegen 濾除禁手（AI 執黑迴避禁手）；
 // 白方則自然利用「黑無法落子的點」（含 VCF 的逼禁手勝）。
 // 搜索前先跑 VCF（依難度），有解直接走主變化第一手。
-import {
-  BLACK,
-  EMPTY,
-  idx,
-  opponent,
-  type Color,
-  type Pos,
-  type Rule,
-} from './types.ts'
+import { EMPTY, idx, opponent, type Color, type Pos, type Rule } from './types.ts'
 import type { Board } from './board.ts'
 import { isWinningMove } from './rules.ts'
 import { evaluate, WIN_SCORE } from './eval.ts'

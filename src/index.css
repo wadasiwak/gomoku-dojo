@@ -1,0 +1,150 @@
+:root {
+  --bg: #14121c;
+  --panel: #1e1b2a;
+  --text: #e8e4f0;
+  --muted: #9a93ad;
+  --accent: #d8a24a;
+  --board: #b98a4e;
+  --line: #6d4f28;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'PingFang TC',
+    'Noto Sans TC',
+    sans-serif;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 1.2rem;
+  color: var(--accent);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.toolbar button,
+.toolbar select {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #3a3450;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.status {
+  margin: 6px 0;
+}
+
+.forbidden-note {
+  color: #ff6b6b;
+}
+
+.board {
+  display: grid;
+  width: min(92vw, 600px);
+  aspect-ratio: 1;
+  background: var(--board);
+  border: 8px solid #8a6234;
+  border-radius: 6px;
+  touch-action: manipulation;
+}
+
+.cell {
+  position: relative;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background:
+    linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat,
+    linear-gradient(var(--line), var(--line)) center / 1px 100% no-repeat;
+  cursor: pointer;
+}
+
+.cell.star::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  transform: translate(-50%, -50%);
+}
+
+.stone {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.stone.black {
+  background: radial-gradient(circle at 35% 30%, #555, #0a0a0a 70%);
+}
+
+.stone.white {
+  background: radial-gradient(circle at 35% 30%, #fff, #cfc9c0 70%);
+}
+
+.stone.last {
+  outline: 2px solid #ff5d5d;
+  outline-offset: -2px;
+}
+
+.fb {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #d61f1f;
+  font-weight: 700;
+  font-size: clamp(10px, 2.2vw, 18px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ai-info {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.record {
+  font-size: 0.85rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+footer {
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}

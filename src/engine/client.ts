@@ -5,6 +5,9 @@ import type { SearchResult } from './search.ts'
 import type { VcfResult } from './vcf.ts'
 import type { WorkerRequest, WorkerResponse } from './worker.ts'
 
+/** Omit 不會分配到 union 的每個成員，這裡手動分配。 */
+type WithoutId<T> = T extends unknown ? Omit<T, 'id'> : never
+
 export class EngineClient {
   private worker: Worker
   private nextId = 1
@@ -22,7 +25,7 @@ export class EngineClient {
     }
   }
 
-  private call<T>(req: Omit<WorkerRequest, 'id'>): Promise<T> {
+  private call<T>(req: WithoutId<WorkerRequest>): Promise<T> {
     const id = this.nextId++
     return new Promise<T>((resolve, reject) => {
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject })
