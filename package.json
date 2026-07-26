@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "vitest run"
+    "check": "node scripts/check-puzzles.mjs",
+    "gen:puzzles": "node scripts/gen-puzzles.mjs",
+    "e2e": "node scripts/e2e.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

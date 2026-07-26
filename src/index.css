@@ -1,11 +1,15 @@
 :root {
   --bg: #14121c;
   --panel: #1e1b2a;
+  --panel-2: #262238;
   --text: #e8e4f0;
   --muted: #9a93ad;
   --accent: #d8a24a;
   --board: #b98a4e;
   --line: #6d4f28;
+  --border: #3a3450;
+  --ok: #4cd47a;
+  --err: #ff6b6b;
   color-scheme: dark;
 }
 
@@ -23,128 +27,487 @@ body {
     'PingFang TC',
     'Noto Sans TC',
     sans-serif;
+  line-height: 1.55;
 }
 
 .app {
-  max-width: 720px;
+  max-width: 1020px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 16px 24px;
 }
 
-h1 {
-  font-size: 1.2rem;
-  color: var(--accent);
-}
-
-.toolbar {
+/* ---- 頂欄 ---- */
+.topbar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
 }
 
-.toolbar button,
-.toolbar select {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid #3a3450;
-  border-radius: 8px;
+.brand {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 4px;
+}
+
+.topbar nav a {
+  color: var(--muted);
+  text-decoration: none;
   padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.topbar nav a.active {
+  color: var(--text);
+  background: var(--panel);
+}
+
+.topbar nav a:hover {
+  color: var(--text);
+}
+
+/* ---- 版面 ---- */
+.page {
+  padding: 18px 0;
+}
+
+.page-head h1 {
+  font-size: 1.35rem;
+  color: var(--accent);
+  margin: 0 0 4px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.play-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+  align-items: start;
+}
+
+.board-col {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .play-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- 棋盤（SVG）---- */
+.goban {
+  display: block;
+  width: min(100%, 600px);
+  height: auto;
+  touch-action: manipulation;
+  user-select: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 6px #8a6234;
+  margin: 4px 0 10px 6px;
+}
+
+.goban .coord text {
+  fill: #7a5a30;
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.goban .stone-n {
+  font-size: 14px;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* ---- 面板 / 控制 ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.panel h2 {
+  font-size: 0.95rem;
+  color: var(--accent);
+  margin: 10px 0 8px;
+}
+
+.panel h2:first-child {
+  margin-top: 0;
+}
+
+.panel label {
+  display: block;
+  margin: 8px 0;
   font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.panel label.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.panel select,
+.panel input[type='range'] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.92rem;
+}
+
+.btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.92rem;
   cursor: pointer;
 }
 
-.toolbar button:disabled {
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.btn:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
+.btn.primary {
+  background: var(--accent);
+  color: #1c1508;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.small-btn {
+  padding: 4px 10px;
+  font-size: 0.82rem;
+}
+
+/* ---- 狀態列 / 訊息 ---- */
 .status {
-  margin: 6px 0;
+  margin: 4px 0 6px;
+  min-height: 1.5em;
 }
 
-.forbidden-note {
-  color: #ff6b6b;
+.status.thinking b {
+  color: var(--accent);
 }
 
-.board {
+.status.final b {
+  color: var(--ok);
+}
+
+.fb-note {
+  color: var(--err);
+  font-size: 0.85rem;
+}
+
+.msg {
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 4px 0;
+  font-size: 0.95rem;
+}
+
+.msg.ok {
+  background: rgba(76, 212, 122, 0.12);
+  color: var(--ok);
+}
+
+.msg.err {
+  background: rgba(255, 107, 107, 0.12);
+  color: var(--err);
+}
+
+.endgame-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.stats-line b {
+  color: var(--accent);
+}
+
+/* ---- 首頁 ---- */
+.home-grid {
   display: grid;
-  width: min(92vw, 600px);
-  aspect-ratio: 1;
-  background: var(--board);
-  border: 8px solid #8a6234;
-  border-radius: 6px;
-  touch-action: manipulation;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
 }
 
-.cell {
-  position: relative;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  background:
-    linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat,
-    linear-gradient(var(--line), var(--line)) center / 1px 100% no-repeat;
+.entry-card {
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.entry-card:hover {
+  border-color: var(--accent);
+}
+
+.entry-card h2 {
+  margin: 8px 0 6px;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.entry-card p {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.entry-icon {
+  font-size: 1.5rem;
+}
+
+.entry-stat {
+  color: var(--text) !important;
+  font-size: 0.88rem !important;
+}
+
+.home-foot {
+  margin-top: 18px;
+}
+
+.home-foot a {
+  color: var(--accent);
+}
+
+/* ---- 題庫 ---- */
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+
+.tab {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
-.cell.star::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--line);
-  transform: translate(-50%, -50%);
+.tab.active {
+  color: #1c1508;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
 }
 
-.stone {
-  position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  z-index: 1;
-}
-
-.stone.black {
-  background: radial-gradient(circle at 35% 30%, #555, #0a0a0a 70%);
-}
-
-.stone.white {
-  background: radial-gradient(circle at 35% 30%, #fff, #cfc9c0 70%);
-}
-
-.stone.last {
-  outline: 2px solid #ff5d5d;
-  outline-offset: -2px;
-}
-
-.fb {
-  position: absolute;
-  inset: 0;
+.puzzle-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: grid;
-  place-items: center;
-  color: #d61f1f;
-  font-weight: 700;
-  font-size: clamp(10px, 2.2vw, 18px);
-  z-index: 1;
-  pointer-events: none;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
 }
 
-.ai-info {
-  color: var(--muted);
-  font-size: 0.85rem;
+.puzzle-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  cursor: pointer;
 }
 
-.record {
-  font-size: 0.85rem;
+.puzzle-card:hover {
+  border-color: var(--accent);
+}
+
+.puzzle-card.done {
+  opacity: 0.75;
+}
+
+.pz-title {
+  font-size: 0.92rem;
+}
+
+.puzzle-card .small {
+  grid-column: 2;
+}
+
+.pz-state {
+  grid-row: 1 / span 2;
+  grid-column: 3;
+  color: var(--ok);
+  font-size: 0.95rem;
+}
+
+.badge {
+  grid-row: 1 / span 2;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge.easy {
+  background: rgba(76, 212, 122, 0.18);
+  color: var(--ok);
+}
+
+.badge.medium {
+  background: rgba(216, 162, 74, 0.18);
+  color: var(--accent);
+}
+
+.badge.hard,
+.badge.loss {
+  background: rgba(255, 107, 107, 0.18);
+  color: var(--err);
+}
+
+.badge.win {
+  background: rgba(76, 212, 122, 0.18);
+  color: var(--ok);
+}
+
+.badge.draw {
+  background: rgba(154, 147, 173, 0.18);
   color: var(--muted);
+}
+
+/* ---- 棋譜庫 ---- */
+.record-list {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.record-open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.record-open:hover {
+  border-color: var(--accent);
+}
+
+.record-open .badge {
+  grid-row: auto;
+}
+
+.record-str code {
   word-break: break-all;
 }
 
+/* ---- 規則科普 ---- */
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.rule-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.rule-card h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 1.05rem;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.rule-card .goban {
+  box-shadow: 0 0 0 4px #8a6234;
+  margin: 2px 0 8px 4px;
+  width: 100%;
+}
+
+/* ---- 頁尾 ---- */
 footer {
-  margin-top: 24px;
+  margin-top: 28px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
 }
