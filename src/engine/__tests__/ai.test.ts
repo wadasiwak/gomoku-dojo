@@ -1,7 +1,7 @@
 // AI sanity 測試：找一手勝、擋衝四、迴避禁手、難度分級在時限內回手。
 import { describe, it, expect } from 'vitest'
 import { parseBoard } from '../testutils.ts'
-import { BLACK, idx } from '../types.ts'
+import { BLACK, WHITE, idx } from '../types.ts'
 import { createBoard } from '../board.ts'
 import { isWinningMove } from '../rules.ts'
 import { isForbiddenMove } from '../forbidden.ts'
@@ -130,5 +130,81 @@ describe('AI sanity', () => {
     const b = createBoard()
     const r = search(b, BLACK, { rule: 'renju', ...LEVELS[1] })
     expect(r.move).toEqual({ x: 7, y: 7 })
+  }, 10000)
+})
+
+describe('衝四紀律（國手回饋：不亂衝四）', () => {
+  // 黑唯一的成四點是 (6,3)：OXXX. 衝四後白擋 (7,3) 該線即死、毫無後續；
+  // 好手是右下發展（黑有 (8,8)(9,8) 活二、白有活二需要牽制）。
+  // 黑無 VCF（引擎驗算過）。修正前的引擎在固定深度 4 會選 (6,3)（horizon
+  // effect：衝四交換把局面推出視野）；forced-reply extension 後任一深度
+  // （1~6 逐一驗算）都不選。
+  const POINTLESS_CHONG = `
+    ...............
+    ...............
+    ...............
+    ..OXXX.........
+    ...............
+    ...............
+    ...............
+    ...............
+    ........XX.....
+    ......OO.......
+    ...............
+  `
+
+  it('L3/L4 不選無意義衝四', () => {
+    const { board } = parseBoard(POINTLESS_CHONG)
+    for (const level of [3, 4] as const) {
+      const r = search(Uint8Array.from(board), BLACK, { rule: 'gomoku', ...LEVELS[level] })
+      expect(r.move, `L${level} 不應衝 (6,3)`).not.toEqual({ x: 6, y: 3 })
+    }
+  }, 30000)
+
+  it('固定深度 4（修正前引擎會衝四的設定）也不選無意義衝四', () => {
+    const { board } = parseBoard(POINTLESS_CHONG)
+    const r = search(Uint8Array.from(board), BLACK, {
+      rule: 'gomoku',
+      maxDepth: 4,
+      timeLimitMs: 30000,
+      width: 14,
+      vcfDepth: 0,
+    })
+    expect(r.move).not.toEqual({ x: 6, y: 3 })
+  }, 40000)
+
+  it('forced extension 開啟後，衝四素材滿盤的局面限時仍準時回手', () => {
+    // 雙方各兩條被單邊擋死的眠三（衝四素材）＋活二；無 VCF、無速勝
+    // （引擎驗算過），深搜必然跑滿時限 → 驗證延伸不破壞時間中斷。
+    const { board } = parseBoard(`
+      ...............
+      ...............
+      OXXX...........
+      ...........O...
+      ...........O...
+      ...........O...
+      .....XX....X...
+      ...............
+      .........X.....
+      .........X.....
+      .....OO..X.....
+      .........O.....
+      XOOO...........
+      ....X..........
+      ...............
+    `)
+    for (const color of [BLACK, WHITE] as const) {
+      const t0 = Date.now()
+      const r = search(Uint8Array.from(board), color, {
+        rule: 'gomoku',
+        maxDepth: 20,
+        timeLimitMs: 600,
+        width: 14,
+        vcfDepth: 0,
+      })
+      const elapsed = Date.now() - t0
+      expect(r.move).not.toBeNull()
+      expect(elapsed).toBeLessThan(3000)
+    }
   }, 10000)
 })

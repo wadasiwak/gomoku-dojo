@@ -6,14 +6,22 @@
 //   - 5 格窗（無對方子）：己方 4 子=四、3 子=三、2 子=二（衝/眠不細分，重複窗自然加權）
 //   - 6 格窗 .XXXX. → 活四；兩端空、中間 4 格含 3 子 → 活三近似
 // 分數 = 己方棋型加權和 − 對方加權和（對方略放大：先擋為上）。
-import { SIZE, EMPTY, idx, opponent, type Color } from './types.ts'
+//
+// 衝四價值校正（國手回饋：AI 習慣性亂衝四）：
+//   衝四逼對方擋一手＝「幫對手多一顆棋子且消耗自己的資源」，除非衝完換到
+//   更多實質，否則不該衝。故 W_FOUR（單成五點的四）必須低於 W_OPEN_THREE：
+//   盤上一個「即將被擋」的四，其價值不得高於一個活三的發展價值——否則搜索
+//   會在視野邊緣偏好無意義衝四（被擋後歸零的交換反而評高分）。
+//   被擋死的四（窗內有對方子）本來就不計分；連珠黑棋「補空成長連」的死四型
+//   （無有效成五點）由 exactFive 檢查歸零，見 scoreColor。
+import { SIZE, EMPTY, BLACK, idx, opponent, type Color, type Rule } from './types.ts'
 import type { Board } from './board.ts'
 
 export const WIN_SCORE = 1_000_000_000
 
 const W_FIVE = 10_000_000
 const W_STRAIGHT_FOUR = 1_000_000
-const W_FOUR = 20_000
+const W_FOUR = 6_000
 const W_OPEN_THREE = 15_000
 const W_THREE = 400
 const W_TWO = 40
@@ -38,7 +46,9 @@ const LINES: number[][] = (() => {
   return lines
 })()
 
-function scoreColor(b: Board, color: Color): number {
+/** exactFive（連珠黑）：四/活四的成五點補上後必須是「恰好五連」——
+ *  窗外緊鄰若是己方子，補完成 >=6 長連＝無效成五點，該四型是死四，不計分。 */
+function scoreColor(b: Board, color: Color, exactFive: boolean): number {
   let score = 0
   for (const line of LINES) {
     const n = line.length
@@ -53,8 +63,14 @@ function scoreColor(b: Board, color: Color): number {
       }
       if (foe > 0 || mine === 0) continue
       if (mine === 5) score += W_FIVE
-      else if (mine === 4) score += W_FOUR
-      else if (mine === 3) score += W_THREE
+      else if (mine === 4) {
+        // 死四歸零：補空後緊鄰窗外有己子 → 長連，對連珠黑無效。
+        if (exactFive) {
+          if (i > 0 && b[line[i - 1]] === color) continue
+          if (i + 5 < n && b[line[i + 5]] === color) continue
+        }
+        score += W_FOUR
+      } else if (mine === 3) score += W_THREE
       else if (mine === 2) score += W_TWO
     }
     // 6 格窗：活四 / 活三近似
@@ -69,17 +85,24 @@ function scoreColor(b: Board, color: Color): number {
       if (foe > 0) continue
       const endsEmpty = b[line[i]] === EMPTY && b[line[i + 5]] === EMPTY
       if (!endsEmpty) continue
-      if (mine === 4) score += W_STRAIGHT_FOUR // .XXXX.
-      else if (mine === 3) score += W_OPEN_THREE // .XXX.. / .X.XX. 等
+      if (mine === 4) {
+        // 連珠黑：窗外緊鄰有己子時，該側成五點是長連＝無效 → 非真活四
+        // （降級為衝四，由 5 格窗的另一側計 W_FOUR），不給活四分。
+        if (exactFive) {
+          if (i > 0 && b[line[i - 1]] === color) continue
+          if (i + 6 < n && b[line[i + 6]] === color) continue
+        }
+        score += W_STRAIGHT_FOUR // .XXXX.
+      } else if (mine === 3) score += W_OPEN_THREE // .XXX.. / .X.XX. 等
     }
   }
   return score
 }
 
-/** 以 color 視角評估盤面（正分 = color 有利）。 */
-export function evaluate(b: Board, color: Color): number {
-  const mine = scoreColor(b, color)
-  const theirs = scoreColor(b, opponent(color))
+/** 以 color 視角評估盤面（正分 = color 有利）。rule 用於連珠黑的死四歸零。 */
+export function evaluate(b: Board, color: Color, rule: Rule): number {
+  const mine = scoreColor(b, color, rule === 'renju' && color === BLACK)
+  const theirs = scoreColor(b, opponent(color), rule === 'renju' && color !== BLACK)
   return mine - Math.round(theirs * 1.05)
 }
 
