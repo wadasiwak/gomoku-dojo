@@ -4,8 +4,9 @@
 //
 // 正確性論證（保守設計）：
 //   - 進攻方每手必須「成五」或「成四」；其他手一律不算 VCF。
-//   - 進攻方出手前若守方已有一手成五點：進攻方只有自己直接成五才能贏
-//     （成四讓半拍，守方先成五）——先檢查再生成。
+//   - 進攻方出手前若守方已有一手成五點：進攻方只能（a）自己直接成五，或
+//     （b）守方五點唯一時，衝四正好佔在該點上（一手兼擋兼攻）；其餘成四
+//     都讓半拍、守方先成五。守方五點 ≥2 個時單手救不完，只剩 (a)。
 //   - 進攻方成「活四」或「一手多個成五點」（雙威脅）：守方單手至多擋一點、
 //     守方又無成五（已檢查），且守方即使反衝四，下一手輪進攻方直接成五 → 勝。
 //   - 進攻方成「衝四」（唯一成五點 E）：守方唯一不敗應手是擋 E（守方反四不擋 E
@@ -133,7 +134,12 @@ function rec(ctx: Ctx, depth: number, line: Pos[]): boolean {
     if (isWinningMove(b, x, y, attacker, rule)) {
       line.push(m) // 成五（含黑恰五豁免），勝
       win = true
-    } else if (defenderFives.length === 0) {
+    } else if (
+      defenderFives.length === 0 ||
+      // 守方有唯一成五點時，攻方衝四若正好佔在該點上＝一手兼擋兼攻，仍是
+      // 合法續攻（守方五點被消除）。守方有兩個以上五點則單手救不完，只能成五。
+      (defenderFives.length === 1 && defenderFives[0] === i)
+    ) {
       const fours = findFoursThrough(b, x, y, attacker, exact)
       if (fours.length > 0) {
         const completions = new Set<number>()
