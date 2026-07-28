@@ -44,11 +44,23 @@ export function generateMoves(
     if (!near[i]) continue
     const x = i % SIZE
     const y = Math.floor(i / SIZE)
-    if (filterForbidden && isForbiddenMove(b, x, y).forbidden) continue
     moves.push({ x, y, score: scoreMoveLocal(b, x, y, color) })
   }
   moves.sort((a, z) => z.score - a.score)
-  if (moves.length > width) moves.length = width
+  if (filterForbidden) {
+    // 禁手掃描貴（含三三/四四的遞迴棋型判定），先排序、由高分往下收滿
+    // width 即停——只掃「會被留下」附近的候選，結果與先濾後截等價。
+    const kept: ScoredMove[] = []
+    for (const m of moves) {
+      if (kept.length >= width) break
+      if (isForbiddenMove(b, m.x, m.y).forbidden) continue
+      kept.push(m)
+    }
+    moves.length = 0
+    moves.push(...kept)
+  } else if (moves.length > width) {
+    moves.length = width
+  }
   if (moves.length === 0 && filterForbidden) {
     // 鄰域全禁手：全盤找任一合法空點（極罕見）。
     for (let i = 0; i < CELLS; i++) {

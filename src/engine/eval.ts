@@ -14,6 +14,14 @@
 //   會在視野邊緣偏好無意義衝四（被擋後歸零的交換反而評高分）。
 //   被擋死的四（窗內有對方子）本來就不計分；連珠黑棋「補空成長連」的死四型
 //   （無有效成五點）由 exactFive 檢查歸零，見 scoreColor。
+//
+// 材料分級（國手框架二輪：資源要按活二/死二/死三/活三/死四分類，
+// 「不要只糾結在四，多個活二也很強」）：
+//   - 死二/死三/死四：所在 5 格窗含對方子即跳過＝歸零（自然成立）；
+//     連珠黑的長連死四由 exactFive 歸零。
+//   - 活二：6 格窗兩端空、中間含 2 子 → 額外加 W_OPEN_TWO。原本只靠
+//     5 格窗重複計數（全開的二約多算 2-3 個窗）分不開活二與半眠二，
+//     活二的「可長成活三」潛力被低估；多個活二靠逐窗累加自然疊加。
 import { SIZE, EMPTY, BLACK, idx, opponent, type Color, type Rule } from './types.ts'
 import type { Board } from './board.ts'
 
@@ -25,6 +33,7 @@ const W_FOUR = 6_000
 const W_OPEN_THREE = 15_000
 const W_THREE = 400
 const W_TWO = 40
+const W_OPEN_TWO = 80
 
 // 預先展開所有線（row/col/兩對角，長度 >=5），存 cell index 序列。
 const LINES: number[][] = (() => {
@@ -94,6 +103,7 @@ function scoreColor(b: Board, color: Color, exactFive: boolean): number {
         }
         score += W_STRAIGHT_FOUR // .XXXX.
       } else if (mine === 3) score += W_OPEN_THREE // .XXX.. / .X.XX. 等
+      else if (mine === 2) score += W_OPEN_TWO // .XX... / .X.X.. 等（活二）
     }
   }
   return score
