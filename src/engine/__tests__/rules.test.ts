@@ -158,7 +158,8 @@ describe('棋譜序列化', () => {
     expect(parseRecord('r1:h')).toBeNull() // 奇數長度
     expect(parseRecord('r1:hp')).toBeNull() // 座標超界（p 不在 a-o）
     expect(parseRecord('r1:hhhh')).toBeNull() // 重複落子
-    expect(parseRecord('r2:hh')).toBeNull() // 版本不符
+    expect(parseRecord('r3:hh')).toBeNull() // 版本不符（v2 已是規約譜合法版本）
+    expect(parseRecord('g2:hh')).toBeNull() // v2 只定義於連珠（RIF 規約）
     expect(parseRecord(serializeRecord({ rule: 'gomoku', moves: [{ x: 0, y: 14 }] }))).toEqual({
       rule: 'gomoku',
       moves: [{ x: 0, y: 14 }],

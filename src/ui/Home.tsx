@@ -28,7 +28,7 @@ export default function Home() {
         <button className="entry-card" onClick={() => navigate('play')}>
           <span className="entry-icon">⚫</span>
           <h2>對弈</h2>
-          <p>四級 AI、規則與先後手自選；連珠模式即時標記黑禁手點。</p>
+          <p>四級 AI、自由對弈或 RIF 正式規約（換邊＋兩打）；即時標記黑禁手點。</p>
           <p className="entry-stat">
             {games > 0 ? (
               <>

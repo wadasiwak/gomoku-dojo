@@ -7,7 +7,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Board from './Board.tsx'
 import { Game } from '../engine/game.ts'
 import { EngineClient } from '../engine/client.ts'
-import { parseRecord } from '../engine/record.ts'
+import { parseRecord, serializeRecord } from '../engine/record.ts'
+import { rifStateFromRecord } from '../rif/protocol.ts'
+import { getOpening } from '../content/openings.ts'
 import { BLACK, type Pos } from '../engine/types.ts'
 import { navigate } from '../router.ts'
 
@@ -25,6 +27,8 @@ export default function Replay({ record }: { record: string }) {
   const parsed = useMemo(() => {
     const rec = parseRecord(record)
     if (!rec) return null
+    // v2（規約譜）加驗規約流程一致性（開局型/換邊/兩打），防竄改連結。
+    if (rec.rif && !rifStateFromRecord(rec)) return null
     const g = Game.fromRecord(rec)
     if (!g) return null
     return { rec, final: g }
@@ -119,6 +123,10 @@ export default function Replay({ record }: { record: string }) {
           <b>{resultText}</b>
           <span className="muted">
             　{parsed.rec.rule === 'renju' ? '連珠' : '無禁手'}
+            {parsed.rec.rif ? '・正式規約' : ''}
+            {parsed.rec.rif?.openingId
+              ? `・開局 ${getOpening(parsed.rec.rif.openingId)?.name ?? ''}`
+              : ''}
             {inTrial ? '　變化不影響原棋譜' : ''}
           </span>
         </p>
@@ -215,7 +223,7 @@ export default function Replay({ record }: { record: string }) {
           </button>
         </div>
         <p className="record-str muted small">
-          棋譜：<code data-record={parsed.final.serialize()}>{record}</code>
+          棋譜：<code data-record={serializeRecord(parsed.rec)}>{record}</code>
         </p>
       </aside>
     </div>

@@ -13,7 +13,8 @@ npm run build     # tsc -b + vite build（fail-fast：不要 pipe 給 grep）
 npm run lint      # oxlint
 npm run dev       # dev server（port 5310）
 npm run e2e       # 先 build！自起 vite preview :5311、finally kill（scripts/e2e.mjs）
-npm run check     # 題庫全量重驗（solveVcf 重求最小深度，一題不過 exit 1）
+npm run check     # 開局 26 珠型完備性＋題庫全量重驗（一項不過 exit 1）
+npm run check:openings         # 只驗 26 開局（秒級，改 openings.ts 先跑這個）
 npm run gen:puzzles            # 重產題庫（seed 固定 deterministic，~10 分鐘）
 npx vite preview --port 5312   # 截圖用（e2e 保留 5311）
 node scripts/shots.mjs         # 桌面+行動版截圖到 /tmp/gomoku-shots，用 Read 親眼看
@@ -89,7 +90,17 @@ dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
 - `isForbiddenMove` 的遞迴每層都在盤上加假想子、必然終止；`MAX_RECURSION` 只是保險絲，
   觸頂時退回樸素判定（把三當活三）。
 - **e2e 測 AI 對弈**別想用固定點擊鋪局（AI 會攪局）：用 `window.__dojo.loadPlay(record)`
-  測試 hook 直接載入局面（載入後輪到玩家手番就不會觸發 AI）。
-- 對弈頁 AI 觸發用 `pendingRef` key（`gameId:moves.length`）防 StrictMode 雙效應；
-  悔棋前會改 key 使在途結果失效——動 AI effect 時保住這兩個機制。
+  測試 hook 直接載入局面（載入後輪到玩家手番就不會觸發 AI）。r2 規約譜可帶
+  `{ player }` 第二參數指定暫定執色；中途規約譜（如 4 手＋兩打）可直接鋪出
+  擇打畫面。AI 連續快速回手（擇打＋下一手）會讓 stone 數一口氣跳兩格——
+  斷言用 `waitStonesAtLeast` 而非恰等於。
+- 對弈頁 AI 觸發用 `pendingRef` key（`gameId:moves.length`；規約決策為
+  `gameId:rif:phase:moves.length`）防 StrictMode 雙效應；悔棋前會改 key 使在途
+  結果失效——動 AI effect 時保住這兩個機制。搜索 effect 與規約決策 effect 以
+  phase 條件互斥，共用同一個 pendingRef，別讓兩者同時成立。
+- **26 開局資料（src/content/openings.ts）動任何座標/名稱前先看檔頭查證來源**；
+  `check-openings.mjs` 裡有 renju.net 官方圖的獨立轉錄對照表，兩份必須同時改。
+- 規約狀態機是純函式（src/rif/protocol.ts）：phase 由 meta＋moves.length 推導，
+  不存第二份狀態；Play.tsx 的 playerColor 在規約模式下由 swapped 推導（換邊會
+  翻轉），undo 有「不可悔穿第 5 手」下限。
 - GoatCounter `path()` 只回報 pathname，e2e 有斷言釘住（hash 會含棋譜/題目參數）。

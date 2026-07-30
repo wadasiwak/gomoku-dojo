@@ -24,11 +24,16 @@ function save(key: string, value: unknown): void {
 }
 
 // ---- 對弈設定 ----------------------------------------------------------
+/** 對弈模式：free＝自由對弈（原行為）、rif＝RIF 正式規約（規則固定連珠）。 */
+export type PlayMode = 'free' | 'rif'
+
 export interface Settings {
   rule: Rule
   level: 1 | 2 | 3 | 4
   player: 'black' | 'white'
   showForbidden: boolean
+  /** 舊資料無此欄位 → load 的 merge fallback 補 'free'，向下相容。 */
+  mode: PlayMode
 }
 const SETTINGS_KEY = 'gomoku-dojo-settings-v1'
 export const loadSettings = (): Settings =>
@@ -37,6 +42,7 @@ export const loadSettings = (): Settings =>
     level: 2,
     player: 'black',
     showForbidden: true,
+    mode: 'free',
   })
 export const saveSettings = (s: Settings): void => save(SETTINGS_KEY, s)
 
@@ -65,10 +71,13 @@ export interface SavedGame {
   ts: number
   rule: Rule
   level: number
+  /** 玩家最終執色（規約換邊後以換完的執色計，戰績同理）。 */
   player: 'black' | 'white'
   outcome: 'win' | 'loss' | 'draw'
   reason: string
   record: string
+  /** 對弈模式（舊資料無此欄位＝自由對弈）。 */
+  mode?: PlayMode
 }
 const RECORDS_KEY = 'gomoku-dojo-records-v1'
 export const loadSavedGames = (): SavedGame[] => load<SavedGame[]>(RECORDS_KEY, [])

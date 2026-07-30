@@ -7,7 +7,9 @@
 //   6. 自由研棋：重播中停在任一手岔出變化＋AI 建議＋回到棋譜
 //   7. 擺譜研究：擺子/清除 → 試下 → AI 建議
 //   8. 開局圖鑑：26 卡片牆 → 詳情 → 用此開局對弈；猜名練習答對計分
-//   9. GoatCounter path 只回報 pathname（無 hash/query）
+//   9. RIF 正式規約：AI 擺開局→換邊決定→白4→兩打→擇打→正常輪替；
+//      r2 棋譜 round-trip／竄改拒絕／悔棋規約下限
+//  10. GoatCounter path 只回報 pathname（無 hash/query）
 //
 //   npm run build && node scripts/e2e.mjs
 import { spawn } from 'node:child_process'
@@ -66,6 +68,14 @@ const stones = () => page.locator('.goban circle.stone').count()
 async function waitStones(n, timeout = 20000) {
   await page.waitForFunction(
     (want) => document.querySelectorAll('.goban circle.stone').length === want,
+    n,
+    { timeout },
+  )
+}
+/** AI 連續快速回手時 count 可能一口氣跳兩格，等「至少 n」而非恰等於 n。 */
+async function waitStonesAtLeast(n, timeout = 25000) {
+  await page.waitForFunction(
+    (want) => document.querySelectorAll('.goban circle.stone').length >= want,
     n,
     { timeout },
   )
@@ -307,7 +317,103 @@ try {
     await page.locator('.guess-opt').first().waitFor({ timeout: 5000 })
   })
 
-  // ---- 9. GoatCounter path ------------------------------------------------
+  // ---- 9. RIF 正式規約 -------------------------------------------------------
+  await step('規約對弈：AI 擺開局→不換邊→白4→AI 兩打→白擇打→正常輪替', async () => {
+    await page.goto(`${BASE}/#/play`)
+    await page.locator('select[aria-label="AI 難度"]').selectOption('1')
+    await page.locator('select[aria-label="對局模式"]').selectOption('rif')
+    await page.locator('select[aria-label="先後手"]').selectOption('white') // 我是暫白
+    await waitStones(3) // AI（暫黑）擺完 26 珠型前三手
+    await page.locator('button', { hasText: '不換邊' }).click()
+    await page.locator('.status', { hasText: '第 4 手' }).waitFor({ timeout: 5000 })
+    await cell(1, 1).click() // 白4 任意空點（遠離中央開局區）
+    await page.locator('.pt-mark').first().waitFor({ timeout: 25000 }) // AI 兩打 A/B
+    const nMarks = await page.locator('.pt-mark').count()
+    if (nMarks !== 2) throw new Error(`兩打標記數 ${nMarks} ≠ 2`)
+    await page.screenshot({ path: `${OUT}/rif-offers.png` })
+    const pos = await page.locator('.pt-mark').first().getAttribute('data-pos')
+    const [mx, my] = pos.split(',').map(Number)
+    await cell(mx, my).click() // 白擇打
+    await waitStones(5)
+    await page.locator('.status', { hasText: '輪到你落子' }).waitFor({ timeout: 5000 })
+    const info = await page.locator('.rif-info').innerText()
+    if (!/開局：/.test(info)) throw new Error(`規約紀錄缺開局名稱：${info}`)
+    if (!/兩打：A/.test(info)) throw new Error(`規約紀錄缺兩打資訊：${info}`)
+    await cell(13, 13).click() // 白6（遠離所有子與兩打候選區）
+    await waitStones(7, 25000) // AI（黑）第 7 手回手
+  })
+
+  await step('規約對弈（暫黑視角）：擺彗星→AI 不換邊→AI 白4→人兩打→AI 擇打', async () => {
+    await page.goto(`${BASE}/#/play`)
+    await page.locator('select[aria-label="先後手"]').selectOption('black') // 我是暫黑
+    await page.locator('select[aria-label="對局模式"]').selectOption('rif')
+    await page.locator('button', { hasText: '重開' }).click()
+    // 擺彗星（i13，主流白大優 → AI 依珠型評價必不換邊，路徑決定性）
+    await cell(7, 7).click()
+    await cell(8, 6).click()
+    await cell(5, 9).click()
+    await waitStones(3)
+    // AI（暫白）決定不換邊 → 直接搜索白 4
+    await page.locator('.rif-info', { hasText: '不換邊' }).waitFor({ timeout: 15000 })
+    await waitStonesAtLeast(4) // AI 白 4
+    // 黑方（我）兩打：挑兩個未被占用的空點
+    await page.locator('.status', { hasText: '兩打' }).waitFor({ timeout: 5000 })
+    const taken = await page.$$eval('.goban circle.stone', (els) =>
+      els.map((c) => [
+        Math.round((Number(c.getAttribute('cx')) - 30) / 36),
+        Math.round((Number(c.getAttribute('cy')) - 30) / 36),
+      ]),
+    )
+    const free = [
+      [6, 8],
+      [9, 9],
+      [4, 4],
+      [10, 4],
+      [4, 10],
+    ].filter(([x, y]) => !taken.some(([tx, ty]) => tx === x && ty === y))
+    await cell(free[0][0], free[0][1]).click()
+    await cell(free[1][0], free[1][1]).click()
+    await page.locator('button', { hasText: '確定兩打' }).click()
+    // AI（白）擇打成立第 5 手後緊接搜索第 6 手，兩步可能連跳 → 等至少 6
+    await waitStonesAtLeast(6)
+    const info = await page.locator('.rif-info').innerText()
+    if (!/彗星/.test(info)) throw new Error(`規約紀錄應含彗星：${info}`)
+    if (!/AI（白）擇/.test(info)) throw new Error(`規約紀錄缺 AI 擇打說明：${info}`)
+  })
+
+  const RIF_REC = 'r2:hhigiijggill:oi7s0tgijj' // 浦月、不換邊、兩打 (6,8)/(9,9) 擇 A，6 手
+  await step('規約棋譜 r2：重播 round-trip＋規約標示', async () => {
+    await page.goto(`${BASE}/#/replay/${RIF_REC}`)
+    await waitStones(6)
+    const rt = await page.locator('[data-record]').getAttribute('data-record')
+    if (rt !== RIF_REC) throw new Error(`round-trip 不一致：${rt}`)
+    await page.locator('.status', { hasText: '正式規約' }).waitFor({ timeout: 5000 })
+    await page.locator('.status', { hasText: '浦月' }).waitFor({ timeout: 5000 })
+  })
+
+  await step('規約棋譜 r2：竄改（開局 id 不符）嚴格拒絕', async () => {
+    await page.goto(`${BASE}/#/replay/r2:hhigiijggill:od4s0tgijj`)
+    await page.locator('.msg.err', { hasText: '無效' }).waitFor({ timeout: 5000 })
+  })
+
+  await step('規約悔棋下限：悔到第 5 手成立點即止', async () => {
+    // 8 手規約譜（我執黑、無換邊）：悔一次 8→6，再悔會穿過第 5 手 → 按鈕停用
+    const rec8 = 'r2:hhigiijggillmmlm:oi7s0tgijj'
+    await page.goto(`${BASE}/#/play`)
+    await page.waitForFunction(() => !!window.__dojo, undefined, { timeout: 10000 })
+    const ok = await page.evaluate(
+      (r) => window.__dojo.loadPlay(r, { player: 'black' }),
+      rec8,
+    )
+    if (!ok) throw new Error('loadPlay 拒絕了合法 r2 棋譜')
+    await waitStones(8)
+    await page.locator('button', { hasText: '悔棋' }).click()
+    await waitStones(6)
+    const disabled = await page.locator('button', { hasText: '悔棋' }).isDisabled()
+    if (!disabled) throw new Error('悔棋應在觸及規約下限（第 5 手）後停用')
+  })
+
+  // ---- 10. GoatCounter path ------------------------------------------------
   await step('GoatCounter path 無 hash/query', async () => {
     await page.goto(`${BASE}/#/replay/r1:hhhgii`)
     const p = await page.evaluate(() => window.goatcounter.path())

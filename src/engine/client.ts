@@ -50,6 +50,21 @@ export class EngineClient {
     return this.call({ type: 'forbidden', board: [...board] })
   }
 
+  /** 靜態評分（color 視角；規約換邊決策用的輕量 eval）。 */
+  evaluate(board: Board, color: Color, rule: Rule): Promise<number> {
+    return this.call({ type: 'evaluate', board: [...board], color, rule })
+  }
+
+  /** 各候選點落子後的靜態評分（color 落子、color 視角；規約兩打/擇打用）。 */
+  evalMoves(
+    board: Board,
+    color: Color,
+    rule: Rule,
+    cells: number[],
+  ): Promise<{ cell: number; score: number }[]> {
+    return this.call({ type: 'evalmoves', board: [...board], color, rule, cells })
+  }
+
   dispose(): void {
     this.worker.terminate()
     this.pending.clear()

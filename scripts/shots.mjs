@@ -62,6 +62,15 @@ for (const [tag, viewport] of [
   await page.waitForSelector('.guess-opt')
   await shot('opening-guess')
 
+  // 規約兩打選點 UI（白方擇打視角：A/B 標記）：載入 4 手＋兩打的中途規約譜
+  await page.goto(`${BASE}/#/play`)
+  await page.waitForFunction(() => !!window.__dojo)
+  await page.evaluate(() =>
+    window.__dojo.loadPlay('r2:hhigiijg:oi7s0tgijj', { player: 'white' }),
+  )
+  await page.waitForSelector('.pt-mark', { timeout: 15000 })
+  await shot('play-rif-choose')
+
   await page.close()
 }
 
