@@ -190,7 +190,10 @@ export default function Play({ record }: { record?: string }) {
       client
         .vcf(game.board, playerColor, rule, { maxDepth: 10, timeLimitMs: 500, maxNodes: 30000 })
         .then((r) => r.found)
-    const viaBook = useBook
+    // 中局書手僅 L4 採用：自對弈實測 L3 帶書 4勝8敗（書引入的尖銳局面
+    // 淺搜撐不住＝書力/搜索力錯配，L4 5勝4敗3和達標）。規約 offer/擇打
+    // 的書「評值」不在此限（那是評估參考，不把局面帶進書路線）。
+    const viaBook = useBook && level === 4
       ? bookMoveWithDiscipline(moves, rule, aiColor, foeHasVcf)
       : Promise.resolve(null)
     viaBook
@@ -744,7 +747,7 @@ export default function Play({ record }: { record?: string }) {
               checked={useBook}
               onChange={(e) => updateSettings({ useBook: e.target.checked }, false)}
             />
-            AI 使用開局書
+            AI 使用開局書（著手僅最高難度生效）
           </label>
         )}
         {mode === 'rif' && phase === 'swap' && tentColor === WHITE && ongoing && (
