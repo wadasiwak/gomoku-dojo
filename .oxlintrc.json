@@ -1,0 +1,5 @@
+{
+  "ignorePatterns": [
+    "public/rapfi/rapfi-single-simd128.js"
+  ]
+}
