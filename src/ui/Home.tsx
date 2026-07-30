@@ -69,6 +69,7 @@ export default function Home() {
       </div>
       <p className="home-foot">
         <a href="#/rules">連珠禁手是什麼？三型速覽 →</a>
+        　<a href="#/resources">連珠資源站介紹 →</a>
       </p>
     </div>
   )

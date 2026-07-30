@@ -52,6 +52,44 @@ dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
   - `rapfi-single-simd128.data`（40MB NNUE 權重）＝懶載入的大頭；首次分析要等下載，
     `preload(onProgress)` 有進度回報。vendored glue 已在 `.oxlintrc.json` 排除 lint。
 
+## 匯入棋譜／資源頁／Rapfi UI（第四波 M4）
+
+- 匯入解析器＝`src/ui/importRecord.ts`（vitest：`src/ui/__tests__/importRecord.test.ts`，
+  14 條容錯全路徑）。支援 r1:/g1:/r2:（自帶規則）與通用座標序列（規則由 UI 選單指定）。
+  座標＝字母列＋數字行、**行 1 在最下**，與 `coordName` 同一慣例——`coordName` 本體
+  已移到 `src/ui/coords.ts`（Replay.tsx 留 re-export 供 Play.tsx 舊匯入點）。
+- `#/replay`（無棋譜參數）＝匯入入口頁；ImportBox 成功後 navigate 到
+  `#/replay|study/<serialized>`，靠 App 的 route key remount 載入。
+- Rapfi 分析 UI＝`src/ui/RapfiPanel.tsx`（Study/Replay 共用）：`positionKey` 變更
+  → 作廢在途結果（**不 terminate**，RapfiClient.analyze 佇列自行消化）；「取消」鍵
+  才呼叫 `stop()`（terminate worker，下次分析重新初始化、artifacts 走 HTTP cache）。
+  不支援 wasm SIMD → 整塊 return null 降級（footer 致謝仍在）。
+- e2e 的 Rapfi 步驟：思考時間選 1 秒、`.rapfi-result` timeout 放寬 120s
+  （本機 preview 40MB 秒級，慢網才吃得到）；`page.goto` 會整頁 reload、
+  Rapfi 單例重載，連續兩步分析屬正常路徑。
+- footer 致謝以 `RAPFI_ATTRIBUTION`（src/analysis/rapfi.ts）為單一真相，
+  App.tsx 只做原始碼網址轉連結——改致謝文字改那個常數。
+
+## 開局書（src/openings/＋scripts/gen-opening-book.mjs）
+
+- **產書**：`npm run gen:book`（Rapfi WASM node 離線深算，預設 10s/局面、全量
+  約 2–3 小時）。**斷點續跑**：進度在 `scratch/opening-book/{entries,cache}.jsonl`
+  （append-only，重跑自動跳過已有 key）；可用 `--openings d1,i7` 切子集平行跑
+  （多進程共用 jsonl 安全），最後跑一次無參數把 book.json 合併齊全＋補 Phase B。
+- **驗書**：`npm run check:book`（結構＋canonical key＋全量合法性雙驗＋26 開局
+  覆蓋；驗證邏輯在 `scripts/check-book-lib.mjs`，generator 產書時同一份先驗過）。
+- **回爐**：`node scripts/gen-opening-book.mjs --recompute keys.txt --deep-ms 30000`
+  （keys.txt 一行一個 canonical key；RIF DB 校驗抓到的偏差局面用這個重算）。
+- **查表雷點**：book 的 key 是 `canonicalMovesKey`（8 對稱歸一），命中後建議手要
+  **反變換**回實際盤方位——變換/反變換只寫在 `src/openings/lookup.ts` 一處，
+  vitest（`src/openings/__tests__/book.test.ts`）8 方位全覆蓋釘住；動對稱程式
+  必跑。書分數＝行棋方視角 Rapfi cp（±M 映射 ±29000+），與本站靜態 eval
+  **尺度不同，不可混排比較**（Play.tsx 兩打/擇打因此書值/靜態二擇一）。
+- **紀律閘門**：AI 走書前先問對手 VCF（`bookMoveWithDiscipline`）——對手有殺
+  一律回退搜索防守模式，別讓書手繞過防守紀律。
+- RIF DB（renju.net）**僅離線校驗**：檔案與比對腳本全在 `scratch/opening-book/`
+  （gitignored），絕不進 repo、內容絕不上站。
+
 ## 題庫管線
 
 - `scripts/gen-puzzles.mjs`（產題）與 `scripts/check-puzzles.mjs`（重驗）共用

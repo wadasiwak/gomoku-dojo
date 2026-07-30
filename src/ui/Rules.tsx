@@ -114,6 +114,9 @@ export default function Rules() {
         活三的「真活性」是遞迴判定的：能延伸成活四的點若本身是禁手，該三不算活三——
         引擎與題庫都依這套嚴格定義。
       </p>
+      <p className="muted small">
+        想讀 RIF 官方規則全文與更多外部資源？看 <a href="#/resources">資源頁</a>。
+      </p>
     </div>
   )
 }

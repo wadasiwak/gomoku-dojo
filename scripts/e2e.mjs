@@ -10,6 +10,9 @@
 //   9. RIF 正式規約：AI 擺開局→換邊決定→白4→兩打→擇打→正常輪替；
 //      r2 棋譜 round-trip／竄改拒絕／悔棋規約下限
 //  10. GoatCounter path 只回報 pathname（無 hash/query）
+//  11. 匯入棋譜：座標序列（容錯分隔）→重播；非法行內指出第幾手；擺譜頁載入
+//  12. 資源頁：三站外連＋關係聲明＋footer Rapfi 致謝
+//  13. Rapfi 分析：載入引擎（40MB 本機快取，timeout 放寬 120s）→建議 hint＋結果
 //
 //   npm run build && node scripts/e2e.mjs
 import { spawn } from 'node:child_process'
@@ -419,6 +422,79 @@ try {
     const p = await page.evaluate(() => window.goatcounter.path())
     if (p !== '/' || p.includes('#') || p.includes('?'))
       throw new Error(`analytics path 洩漏 hash/query：${p}`)
+  })
+
+  // ---- 11. 匯入棋譜 ----------------------------------------------------------
+  await step('匯入棋譜：座標序列（大小寫/逗號/換行容錯）→ 重播', async () => {
+    await page.goto(`${BASE}/#/replay`)
+    await page.locator('.import-box textarea').waitFor({ timeout: 5000 })
+    await page.locator('.import-box textarea').fill('H8, i9\ng9')
+    await page.locator('button', { hasText: '匯入重播' }).click()
+    await waitStones(3)
+    const rt = await page.locator('[data-record]').getAttribute('data-record')
+    if (rt !== 'r1:hhiggg') throw new Error(`匯入序列化不對：${rt}`)
+    await page.screenshot({ path: `${OUT}/import-ok.png` })
+  })
+
+  await step('匯入棋譜：非法（重複落子）行內指出第幾手', async () => {
+    await page.goto(`${BASE}/#/replay`)
+    await page.locator('.import-box textarea').waitFor({ timeout: 5000 })
+    await page.locator('.import-box textarea').fill('h8 i9 h8')
+    await page.locator('button', { hasText: '匯入重播' }).click()
+    await page.locator('.import-err', { hasText: '第 3 手' }).waitFor({ timeout: 5000 })
+    await page.screenshot({ path: `${OUT}/import-err.png` })
+  })
+
+  await step('匯入棋譜：擺譜頁載入 → 盤面鋪好', async () => {
+    await page.goto(`${BASE}/#/study`)
+    await page.locator('.import-box textarea').waitFor({ timeout: 5000 })
+    await page.locator('.import-box textarea').fill('r1:hhhgii')
+    await page.locator('button', { hasText: '載入擺譜' }).click()
+    await waitStones(3)
+    await page.locator('.status', { hasText: '黑 2 子、白 1 子' }).waitFor({ timeout: 5000 })
+  })
+
+  // ---- 12. 資源頁 ------------------------------------------------------------
+  await step('資源頁：nav 入口＋三站外連＋關係聲明', async () => {
+    await page.goto(`${BASE}/#/`)
+    await page.locator('nav a', { hasText: '資源' }).click()
+    await page.locator('.res-card').first().waitFor({ timeout: 5000 })
+    for (const host of ['renju.net', '587.renju.org.tw', 'gomocalc.com']) {
+      const n = await page.locator(`.res-card a[href*="${host}"]`).count()
+      if (n < 1) throw new Error(`缺外連：${host}`)
+    }
+    await page.locator('.res-note', { hasText: '未使用 renju.net' }).waitFor({ timeout: 5000 })
+    await page.screenshot({ path: `${OUT}/resources.png` })
+  })
+
+  await step('footer Rapfi 致謝（GPL-3.0＋原始碼連結）', async () => {
+    await page.locator('.foot-attr', { hasText: 'GPL-3.0' }).waitFor({ timeout: 5000 })
+    await page.locator('.foot-attr a[href*="github.com/dhbloo/rapfi"]').waitFor({ timeout: 5000 })
+  })
+
+  // ---- 13. Rapfi 分析 --------------------------------------------------------
+  await step('Rapfi 分析：載入引擎→建議 hint＋評分/PV（首載 40MB 走本機）', async () => {
+    await page.goto(`${BASE}/#/replay/r1:hhhgii`)
+    await waitStones(3)
+    await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
+    await page.locator('button', { hasText: 'Rapfi 分析' }).click()
+    await page.locator('.rapfi-result').waitFor({ timeout: 120000 })
+    await page.locator('.hint-mark').waitFor({ timeout: 5000 })
+    const txt = await page.locator('.rapfi-result').innerText()
+    if (!/Rapfi 建議：/.test(txt)) throw new Error(`結果缺建議手：${txt}`)
+    await page.screenshot({ path: `${OUT}/rapfi-analysis.png` })
+  })
+
+  await step('Rapfi 分析：擺譜試下也拿得到建議（board 形式輸入）', async () => {
+    await page.goto(`${BASE}/#/study/r1:hhhgii`)
+    await page.locator('button', { hasText: '開始試下' }).click()
+    await page.locator('.status', { hasText: '試下中' }).waitFor({ timeout: 5000 })
+    await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
+    await page.locator('button', { hasText: 'Rapfi 分析' }).click()
+    // 引擎已載入（上一步），這裡只等思考
+    await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
+    await page.locator('.hint-mark').waitFor({ timeout: 5000 })
+    await page.screenshot({ path: `${OUT}/rapfi-study.png` })
   })
 
   await browser.close()

@@ -9,6 +9,8 @@ import Records from './ui/Records.tsx'
 import Study from './ui/Study.tsx'
 import Rules from './ui/Rules.tsx'
 import Openings from './ui/Openings.tsx'
+import Resources from './ui/Resources.tsx'
+import { RAPFI_ATTRIBUTION } from './analysis/rapfi.ts'
 import { useRoute } from './router.ts'
 
 const NAV = [
@@ -19,7 +21,12 @@ const NAV = [
   { hash: 'records', label: '棋譜', match: ['records', 'replay'] },
   { hash: 'study', label: '擺譜', match: ['study'] },
   { hash: 'rules', label: '規則', match: ['rules'] },
+  { hash: 'resources', label: '資源', match: ['resources'] },
 ]
+
+// GPL 合規：RAPFI_ATTRIBUTION（單一真相字串）進 footer，原始碼部分轉成連結。
+const RAPFI_URL = 'github.com/dhbloo/rapfi'
+const [ATTR_TEXT] = RAPFI_ATTRIBUTION.split(RAPFI_URL)
 
 export default function App() {
   const route = useRoute()
@@ -51,12 +58,20 @@ export default function App() {
         {route.name === 'records' && <Records />}
         {route.name === 'study' && <Study key={route.record ?? ''} record={route.record} />}
         {route.name === 'rules' && <Rules />}
+        {route.name === 'resources' && <Resources />}
         {route.name === 'openings' && <Openings sub={route.sub} />}
       </main>
       <footer>
         <p>
-          © 2026 wadasiwak. All rights reserved.　規則引擎與題庫皆為本站原創；
+          © 2026 wadasiwak. All rights reserved.　引擎與題庫為本站原創；
           連珠規則本身為公有領域。
+        </p>
+        <p className="foot-attr">
+          {ATTR_TEXT}
+          <a href={`https://${RAPFI_URL}`} target="_blank" rel="noreferrer">
+            {RAPFI_URL}
+          </a>
+          （未修改，獨立 WASM Worker 掛載）
         </p>
       </footer>
     </div>

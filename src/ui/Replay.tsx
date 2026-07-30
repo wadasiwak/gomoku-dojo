@@ -5,6 +5,9 @@
 // 讓引擎標出目前局面它會下哪（研究「換個方式下是不是就 OK」用）。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Board from './Board.tsx'
+import ImportBox from './ImportBox.tsx'
+import RapfiPanel from './RapfiPanel.tsx'
+import { coordName } from './coords.ts'
 import { Game } from '../engine/game.ts'
 import { EngineClient } from '../engine/client.ts'
 import { parseRecord, serializeRecord } from '../engine/record.ts'
@@ -13,10 +16,8 @@ import { getOpening } from '../content/openings.ts'
 import { BLACK, type Pos } from '../engine/types.ts'
 import { navigate } from '../router.ts'
 
-/** 內部座標 → 連珠慣例座標名（A1 左下）。 */
-export function coordName(p: Pos): string {
-  return `${String.fromCharCode(65 + p.x)}${15 - p.y}`
-}
+// 舊匯入點相容：coordName 本體移到 coords.ts（Play/Study/Openings 由此取用）。
+export { coordName }
 
 export default function Replay({ record }: { record: string }) {
   const clientRef = useRef<EngineClient | null>(null)
@@ -38,6 +39,7 @@ export default function Replay({ record }: { record: string }) {
   const [step, setStep] = useState(total)
   const [trial, setTrial] = useState<Pos[]>([]) // 研棋變化（接在第 step 手之後）
   const [hint, setHint] = useState<Pos | null>(null)
+  const [rapfiMove, setRapfiMove] = useState<Pos | null>(null) // Rapfi 建議（另一顆 hint 圈）
   const [thinking, setThinking] = useState(false)
   const [copied, setCopied] = useState(false)
   const hintReqRef = useRef(0)
@@ -45,6 +47,7 @@ export default function Replay({ record }: { record: string }) {
     setStep(total)
     setTrial([])
     setHint(null)
+    setRapfiMove(null)
   }, [record, total])
 
   /** 換手數＝離開變化：收掉研棋與建議。 */
@@ -52,6 +55,7 @@ export default function Replay({ record }: { record: string }) {
     setStep(n)
     setTrial([])
     setHint(null)
+    setRapfiMove(null)
     hintReqRef.current++ // 使在途建議失效
   }
 
@@ -63,14 +67,27 @@ export default function Replay({ record }: { record: string }) {
     return g
   }, [parsed, step, trial])
 
+  // 無棋譜（#/replay）＝匯入入口頁；有棋譜但無效＝錯誤頁＋就地重貼。
   if (!parsed || !game) {
     return (
       <div className="page">
-        <h1>棋譜重播</h1>
-        <p className="msg err">棋譜連結無效（格式錯誤、座標越界或重複落子）。</p>
-        <button className="btn" onClick={() => navigate('')}>
-          回首頁
-        </button>
+        <div className="page-head">
+          <h1>{record ? '棋譜重播' : '匯入棋譜'}</h1>
+          {record ? (
+            <p className="msg err">棋譜連結無效（格式錯誤、座標越界或重複落子）。</p>
+          ) : (
+            <p className="muted">
+              貼上本站棋譜（r1:/g1:/r2:）或通用座標序列（如 h8 i9 g9），
+              驗證後進入重播與自由研棋。
+            </p>
+          )}
+        </div>
+        <ImportBox target="replay" />
+        {record && (
+          <button className="btn" onClick={() => navigate('')}>
+            回首頁
+          </button>
+        )}
       </div>
     )
   }
@@ -100,6 +117,7 @@ export default function Replay({ record }: { record: string }) {
     if (!ongoing || !game.canPlay(x, y)) return
     setTrial((t) => [...t, { x, y }])
     setHint(null)
+    setRapfiMove(null)
   }
 
   const suggest = () => {
@@ -134,7 +152,7 @@ export default function Replay({ record }: { record: string }) {
           board={game.board}
           lastMove={last}
           numbered={shown}
-          hint={hint}
+          hint={hint ?? rapfiMove}
           onCell={onCell}
           disabled={!ongoing}
         />
@@ -188,6 +206,7 @@ export default function Replay({ record }: { record: string }) {
             onClick={() => {
               setTrial((t) => t.slice(0, -1))
               setHint(null)
+              setRapfiMove(null)
             }}
             disabled={!inTrial}
           >
@@ -198,6 +217,7 @@ export default function Replay({ record }: { record: string }) {
             onClick={() => {
               setTrial([])
               setHint(null)
+              setRapfiMove(null)
             }}
             disabled={!inTrial}
           >
@@ -210,6 +230,14 @@ export default function Replay({ record }: { record: string }) {
             ——點該處即照走
           </p>
         )}
+        <RapfiPanel
+          buildInput={() => ({ moves: shown })}
+          rule={parsed.rec.rule}
+          positionKey={`${record}|${step}|${trial.map((m) => `${m.x},${m.y}`).join(';')}`}
+          toMoveLabel={game.toMove === BLACK ? '黑' : '白'}
+          disabled={!ongoing}
+          onMove={setRapfiMove}
+        />
         <div className="btn-row">
           <button
             className="btn"
@@ -225,6 +253,10 @@ export default function Replay({ record }: { record: string }) {
         <p className="record-str muted small">
           棋譜：<code data-record={serializeRecord(parsed.rec)}>{record}</code>
         </p>
+        <details className="import-details">
+          <summary>匯入其他棋譜</summary>
+          <ImportBox target="replay" />
+        </details>
       </aside>
     </div>
   )

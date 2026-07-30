@@ -11,6 +11,7 @@ export type Route =
   | { name: 'replay'; record: string }
   | { name: 'study'; record?: string }
   | { name: 'rules' }
+  | { name: 'resources' }
   | { name: 'openings'; sub: string | null }
 
 export function parseHash(hash: string): Route {
@@ -31,6 +32,8 @@ export function parseHash(hash: string): Route {
       return rest.length > 0 ? { name: 'study', record: rest.join('/') } : { name: 'study' }
     case 'rules':
       return { name: 'rules' }
+    case 'resources':
+      return { name: 'resources' }
     case 'openings':
       return { name: 'openings', sub: rest[0] ?? null }
     default:

@@ -666,3 +666,162 @@ footer {
   font-size: 0.82rem;
   margin: 4px 0;
 }
+
+/* ---- 匯入棋譜 ---- */
+.import-box textarea {
+  width: 100%;
+  max-width: 560px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.import-box select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.92rem;
+}
+
+.import-err {
+  max-width: 560px;
+}
+
+.import-details {
+  margin-top: 10px;
+}
+
+.import-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.import-details[open] summary {
+  margin-bottom: 8px;
+}
+
+/* ---- Rapfi 分析 ---- */
+.rapfi-box {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.progress {
+  height: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+
+.rapfi-load {
+  margin: 8px 0;
+}
+
+.rapfi-result p {
+  margin: 4px 0;
+}
+
+.rapfi-pv {
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.rapfi-ms {
+  font-size: 0.78rem;
+}
+
+/* ---- 資源頁 ---- */
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.res-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.res-card h2 {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+}
+
+.res-card h2 a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.res-card h2 a:hover {
+  text-decoration: underline;
+}
+
+.res-org {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+}
+
+.res-card p {
+  margin: 6px 0;
+  font-size: 0.92rem;
+}
+
+.res-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.res-note {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px 16px 12px;
+  margin-top: 8px;
+}
+
+.res-note h2 {
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.res-note p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.res-note a {
+  color: var(--accent);
+}
+
+/* ---- footer 致謝 ---- */
+.foot-attr {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.foot-attr a {
+  color: var(--muted);
+}

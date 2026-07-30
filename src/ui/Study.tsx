@@ -4,17 +4,21 @@
 // 全盤禁手點 ✕ 標記。擺子階段不做合法性限制（研究用，任意局面皆可）。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Board from './Board.tsx'
-import { coordName } from './Replay.tsx'
+import ImportBox from './ImportBox.tsx'
+import RapfiPanel from './RapfiPanel.tsx'
+import { coordName } from './coords.ts'
 import { EngineClient } from '../engine/client.ts'
 import { parseRecord } from '../engine/record.ts'
 import { createBoard } from '../engine/board.ts'
 import { isWinningMove } from '../engine/rules.ts'
 import { isForbiddenMove } from '../engine/forbidden.ts'
+import type { RapfiInput } from '../analysis/rapfi.ts'
 import {
   BLACK,
   WHITE,
   EMPTY,
   idx,
+  posOf,
   opponent,
   type Color,
   type Pos,
@@ -56,6 +60,7 @@ export default function Study({ record }: { record?: string }) {
   const [level, setLevel] = useState<1 | 2 | 3 | 4>(3)
   const [showFb, setShowFb] = useState(true)
   const [hint, setHint] = useState<Pos | null>(null)
+  const [rapfiMove, setRapfiMove] = useState<Pos | null>(null) // Rapfi 建議（另一顆 hint 圈）
   const [thinking, setThinking] = useState(false)
   const [forbidden, setForbidden] = useState<{ index: number; kind: string }[]>([])
   const hintReqRef = useRef(0)
@@ -101,8 +106,20 @@ export default function Study({ record }: { record?: string }) {
 
   const clearHint = () => {
     setHint(null)
+    setRapfiMove(null)
     hintReqRef.current++
     setThinking(false)
+  }
+
+  // Rapfi 分析輸入：擺譜是任意局面（手順未必交替）→ 走 board 形式。
+  const buildRapfiInput = (): RapfiInput => {
+    const black: Pos[] = []
+    const white: Pos[] = []
+    for (let i = 0; i < sim.board.length; i++) {
+      if (sim.board[i] === BLACK) black.push(posOf(i))
+      else if (sim.board[i] === WHITE) white.push(posOf(i))
+    }
+    return { board: { black, white, toMove: sim.toMove } }
   }
 
   // renju＋試下＋黑手番＋開關開 → 全盤禁手點標記（走 Worker）。
@@ -185,7 +202,7 @@ export default function Study({ record }: { record?: string }) {
           board={board}
           lastMove={phase === 'play' ? (moves[moves.length - 1] ?? null) : null}
           numbered={phase === 'play' ? moves : undefined}
-          hint={hint}
+          hint={hint ?? rapfiMove}
           forbidden={forbidden.map((f) => ({
             x: f.index % 15,
             y: Math.floor(f.index / 15),
@@ -255,6 +272,11 @@ export default function Study({ record }: { record?: string }) {
                 清空盤面
               </button>
             </div>
+            <h2>匯入棋譜</h2>
+            <p className="muted small">
+              貼上本站棋譜或座標序列（如 h8 i9 g9），驗證後鋪成擺譜初始盤面。
+            </p>
+            <ImportBox target="study" />
           </>
         ) : (
           <>
@@ -305,6 +327,14 @@ export default function Study({ record }: { record?: string }) {
                 AI 建議：<b>{coordName(hint)}</b>（{sim.toMove === BLACK ? '黑' : '白'}）
               </p>
             )}
+            <RapfiPanel
+              buildInput={buildRapfiInput}
+              rule={rule}
+              positionKey={`${first}|${rule}|${moves.map((m) => `${m.x},${m.y}`).join(';')}`}
+              toMoveLabel={sim.toMove === BLACK ? '黑' : '白'}
+              disabled={!ongoing}
+              onMove={setRapfiMove}
+            />
             <div className="btn-row">
               <button className="btn" onClick={backToSetup}>
                 回到擺譜
