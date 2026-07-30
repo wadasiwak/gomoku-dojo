@@ -21,7 +21,35 @@ node scripts/shots.mjs         # 桌面+行動版截圖到 /tmp/gomoku-shots，�
 
 ## Port 表
 
-dev/preview 5310、e2e 5311、截圖 5312。
+dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
+
+## Rapfi 分析引擎（public/rapfi/＋src/analysis/）
+
+- **artifacts 來源**：自行以 emsdk 編譯 dhbloo/rapfi（GPL-3.0），commit/重編 SOP
+  全記在 `public/rapfi/README.md`——版本升級照那份 SOP 重編後覆蓋同名檔即可。
+- **驗證指令**：
+  ```bash
+  node scripts/rapfi-smoke.mjs   # node 直跑 wasm：三個 sanity 案例（空盤/一手成五/禁手）
+  node scripts/rapfi-e2e.mjs     # playwright + vite dev:5313，走真 Worker 路徑同三案例
+  ```
+- **介接雷點**：
+  - 只能用**單執行緒** build（`-single`）：多執行緒要 SharedArrayBuffer＝要
+    COOP/COEP header，GitHub Pages 靜態站設不了。SIMD 版沒問題。
+  - Emscripten glue 是傳統 script（MODULARIZE 全域 `Rapfi` factory），module worker
+    沒有 `importScripts` → 載入 glue 的 worker（`public/rapfi/rapfi.worker.js`）必須是
+    **classic worker**，放 public/ 不走 Vite bundler。
+  - repo 是 `"type": "module"`，node 裡 `require()` 該 glue 會被當 ESM 載而拿不到
+    `module.exports` → smoke script 用 `new Function` 以 CJS 語意執行（見
+    `scripts/rapfi-smoke.mjs` 的 `loadGlueAsCjs`）。
+  - 座標 wire format `x,y`（0-based），輸入輸出同框不翻轉——smoke 案例 2/3 有釘住，
+    別被 config.toml 的 `coord_conversion_mode` 嚇到（那只影響 Yixin GUI 模式）。
+  - 單執行緒引擎 `sendCommand` 是**同步思考**：worker 會阻塞到出手，中止只能
+    terminate worker 重載（`RapfiClient.stop()`）；`analyze()` 內部已佇列化，
+    不要並發呼叫繞過佇列。
+  - 秒殺/定式手不會輸出 `INFO EVAL/BESTLINE`（`evalText`/`winrate` 是 optional），
+    UI 端不可假設必有評分。
+  - `rapfi-single-simd128.data`（40MB NNUE 權重）＝懶載入的大頭；首次分析要等下載，
+    `preload(onProgress)` 有進度回報。vendored glue 已在 `.oxlintrc.json` 排除 lint。
 
 ## 題庫管線
 
