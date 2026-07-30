@@ -34,7 +34,7 @@
 | `threats.ts` | 四（衝四/活四）偵測，禁手與 VCF 共用 |
 | `forbidden.ts` | 連珠禁手判定（含真活三遞迴、全盤禁手點掃描） |
 | `eval.ts` / `movegen.ts` | 棋型計數評估、鄰域候選＋威脅點排序 |
-| `search.ts` | iterative deepening alpha-beta＋Zobrist 置換表＋限時中斷，難度 4 級 |
+| `search.ts` | iterative deepening alpha-beta＋Zobrist 置換表＋限時中斷，難度 4 級；三態出手紀律：VCF 殺著即走／防守模式（對手有殺→候選限縮）／發展模式（雙方無殺→換不到優勢的強迫手降權，囤活二） |
 | `vcf.ts` | VCF 搜索器（可獨立回答「X 方有無 VCF、主變化為何」，題庫驗證器用） |
 | `game.ts` / `record.ts` | 對局狀態機、棋譜序列化（`r1:hhhgii…`，URL 分享用） |
 | `worker.ts` / `client.ts` | Web Worker message protocol 與主執行緒封裝 |
@@ -60,7 +60,7 @@ generator 與 check 共用 `scripts/puzzle-verify.mjs`（單一真相）。
 ```bash
 npm install
 npm run dev      # http://localhost:5310
-npm run test     # vitest：引擎 62 條＋題庫判定器 8 條
+npm run test     # vitest：引擎 77 條＋題庫判定器 8 條
 npm run build    # tsc -b + vite build
 npm run e2e      # 需先 build；自起 vite preview :5311，跑完自動關
 node scripts/shots.mjs   # 桌面+行動版截圖（先起 preview :5312）

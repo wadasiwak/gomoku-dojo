@@ -14,6 +14,17 @@
 //   白右下攻勢成為終局勝線的一員）。詳見 search() 內防守模式段。
 //   VCT（四三接力）快慢比較尚未實作，見 search() 內 TODO。
 //
+// 發展模式（國手第三課：三也逼對手擋、送對手材料，要攻擊了才出三）：
+//   自己無殺、對手也無殺時，root 候選中「做活三/跳三」的手逐一做交換後
+//   比較：模擬對手最佳應（三的窗口擋點中讓我方 eval 最低者），交換後 eval
+//   追不上「最佳安靜手一手後」的基準、交換後又解不出 VCF（≠真轉換）→
+//   root 降權（扣 DEV_PENALTY），引擎自然轉向囤活二累積材料。真攻擊
+//   （雙威脅擋不完、三接四三/連衝、子樹內看得到勝分）免罰或以大優壓過
+//   罰分存活。⚠️ 是降權不是剔除、只審三不審四、罰分要小——三個設計點
+//   都是自對弈校準的教訓，見 DEV_PENALTY 註解。
+//   實戰案例（2026-07-30，AI 執黑輸）：15 I8 / 23 D10 兩記非攻擊期活三，
+//   逼白 16 F11、24 D11——兩顆擋子後來都長進白的終盤勝形。
+//
 // Forced-reply extension（國手回饋：AI 亂衝四＝horizon effect）：
 //   一手成四逼對方應（不擋成五點即輸），這組交換近乎不帶新資訊——
 //   固定限深下每組衝四交換卻吃掉 2 ply，AI 學會用無意義衝四把不利局面推出
@@ -52,6 +63,8 @@ export interface SearchResult {
   viaVcf: boolean
   /** 進了防守模式：對手有 VCF 而自己沒有，候選手已限定為能消解/拖慢該殺的手。 */
   viaDefense: boolean
+  /** 進了發展模式：雙方都無 VCF，root 候選已剔除「換不到優勢」的強迫手（三/四）。 */
+  viaDevelopment: boolean
   timedOut: boolean
 }
 
@@ -347,6 +360,177 @@ function filterDefenseMoves(
   return survivors.length > 0 ? survivors : null
 }
 
+/** 發展模式的安靜基準取樣數。 */
+const DEV_QUIET_K = 6
+
+/** b 已含 (x,y) 的 color 子時：該子做出的活三/跳三（會逼對手擋）的「應點集合」
+ *  ——所有活三 6 格窗內的空點聯集（擋點必在其中；.XXX.. 兩端、跳三的跳點）。
+ *  無活三回 null。近似同 eval 的 6 格窗活三：窗內恰 3 己子、無對方子、兩端空；
+ *  X.X.X 這類假三兩端必有子，自然排除。威脅必經新子，掃經過 (x,y) 的窗即可。 */
+export function forcingThreeReplies(b: Board, x: number, y: number, color: Color): number[] | null {
+  let out: number[] | null = null
+  for (let d = 0; d < DIRS.length; d++) {
+    const [dx, dy] = DIRS[d]
+    for (let s = -5; s <= 0; s++) {
+      let mine = 0
+      let bad = false
+      const empties: number[] = []
+      for (let k = 0; k < 6; k++) {
+        const cx = x + (s + k) * dx
+        const cy = y + (s + k) * dy
+        if (!inBoard(cx, cy)) {
+          bad = true
+          break
+        }
+        const v = b[idx(cx, cy)]
+        if (v === color) mine++
+        else if (v === EMPTY) empties.push(idx(cx, cy))
+        else {
+          bad = true
+          break
+        }
+      }
+      if (bad || mine !== 3) continue
+      if (b[idx(x + s * dx, y + s * dy)] !== EMPTY) continue
+      if (b[idx(x + (s + 5) * dx, y + (s + 5) * dy)] !== EMPTY) continue
+      if (!out) out = []
+      for (const e of empties) if (!out.includes(e)) out.push(e)
+    }
+  }
+  return out
+}
+
+/** 發展模式對「換不到優勢」活三的 root 罰分（降權而非剔除）。
+ *  ⚠️ 迭代教訓（自對弈 vs 26cfc08 校準）：
+ *  1. 硬剔除 → L3 新 3 勝 9 敗大退步：連「三接三→四三」的 VCT 類轉換都砍掉
+ *     （交換後靜態 eval 看不出、VCF-after-exchange 只涵蓋連衝），引擎變純被動。
+ *  2. 罰 6000 → L3 5 勝 7 敗仍退步：實測靜態「交換後 eval − 安靜基準」在
+ *     −650～−2400 窄帶裡擠成一團（敗著 I8=−1582、D10=−654 vs 中性有用的
+ *     搶點四 −1174～−1476），靜態量測分不開「國手說的壞三」與「維持先手權
+ *     的中性強迫手」，重罰＝全面棄先手權，被會衝的舊引擎壓死。
+ *  3. 只罰三、四全免審 → 14 手後立刻改衝 D9 死四（第一課的病回鍋）：
+ *     extension 算穿交換但 tempo 淨帳在 eval 裡仍 +318，四也得審。
+ *  收斂：三與衝四都審，罰分 3000 ＝蓋住實戰敗著的 tempo 幻覺差距
+ *  （I8 +824、D10 +294、D9 +318）再留餘裕，對真有動態價值
+ *  （子樹分差 >3000）的強迫手不擋路。 */
+const DEV_PENALTY = 3_000
+
+export interface DevFilterResult {
+  /** 全部 root 候選（降權者排最後）。 */
+  moves: ScoredMove[]
+  /** 被降權的候選 cell（root 比較時扣 DEV_PENALTY）。 */
+  penalized: Set<number>
+}
+
+/** 發展模式的候選審查（國手第三課）：雙方都無 VCF 時，出三逼對手擋＝送對手
+ *  一顆有連結的子，「換得到優勢」才值得出（只審三，四見上方分類註解）。
+ *
+ *  比較基準（⚠️ 不對稱是刻意的）：安靜基準 = 最佳安靜手「下完一手」的 eval
+ *  ——安靜手把三留在手裡當潛力、不逼對手應。做三的手則要把交換走完
+ *  （對手在三的窗口擋點中取讓我方 eval 最低的應手）再比同一基準：交換的
+ *  淨帳（我的線被擋殘＋對手多一顆有連結的子）必須追得上安靜發展才免罰。
+ *  若改成安靜手也模擬對手自由應手，對手的自由手（做自己的活三）會把基準
+ *  拖爛，強迫手靠「對手被迫浪費一手」的 tempo 幻覺永遠贏得比較——正是要修
+ *  的 horizon 病灶本身。
+ *  真攻擊自然放行：雙三交換後威脅仍在（eval 高過基準）免罰；交換後解得出
+ *  VCF（三接連衝＝四三可見）免罰；更深的轉換（三接三→四三）靠降權後仍算完
+ *  子樹、以勝分/大優壓過罰分存活。
+ *  預算控制：超過 deadline 時剩餘候選不罰（寧漏勿枉）。
+ *  回傳 null = 沒有任何降權對象（不需審查，交回一般搜索）。 */
+export function filterDevelopmentMoves(
+  b: Board,
+  color: Color,
+  opts: SearchOptions,
+  deadline: number,
+): DevFilterResult | null {
+  const cand = generateMoves(b, color, opts.rule, opts.width)
+  if (cand.length <= 1) return null
+  const foe = opponent(color)
+  const foeForbidden = opts.rule === 'renju' && foe === BLACK
+  // 分類：三與衝四都要審（⚠️ 曾試過四免審——「extension 已算穿交換」不夠：
+  // 交換的 tempo 淨帳在 eval 裡仍 +幾百分，14 手後局面立刻改衝 D9 死四，
+  // 第一課的病回鍋）；活四/雙四＝必勝手免審。
+  const forcing: { m: ScoredMove; replies: number[] }[] = []
+  const quiet: ScoredMove[] = []
+  for (const m of cand) {
+    const cell = idx(m.x, m.y)
+    b[cell] = color
+    const comp = fourCompletions(b, m.x, m.y, color, opts.rule)
+    if (comp && comp.length >= 2) {
+      // 活四/雙四：免審（也不進安靜基準）
+    } else if (comp) {
+      forcing.push({ m, replies: comp })
+    } else {
+      const threeReplies = forcingThreeReplies(b, m.x, m.y, color)
+      if (threeReplies) forcing.push({ m, replies: threeReplies })
+      else quiet.push(m)
+    }
+    b[cell] = EMPTY
+  }
+  if (forcing.length === 0 || quiet.length === 0) return null
+
+  // 安靜基準：最佳安靜手下完一手的 eval（三/四留在手裡，不消耗）。
+  let quietBase = -Infinity
+  for (let i = 0; i < quiet.length && i < DEV_QUIET_K; i++) {
+    const cell = idx(quiet[i].x, quiet[i].y)
+    b[cell] = color
+    const e = evaluate(b, color, opts.rule)
+    b[cell] = EMPTY
+    if (e > quietBase) quietBase = e
+  }
+  if (quietBase === -Infinity) return null
+
+  const penalized = new Set<number>()
+  for (const t of forcing) {
+    const now = Date.now()
+    if (now > deadline) continue // 預算用盡：不罰（寧漏勿枉）
+    const cell = idx(t.m.x, t.m.y)
+    b[cell] = color
+    // 對手在擋點集合中取讓我方 eval 最低的應手（對手是連珠黑時跳過禁手擋點）。
+    let keep = false
+    let worst = Infinity
+    let worstCell = -1
+    for (const rc of t.replies) {
+      const rp = posOf(rc)
+      if (foeForbidden && isForbiddenMove(b, rp.x, rp.y).forbidden) continue
+      b[rc] = foe
+      const e = evaluate(b, color, opts.rule)
+      b[rc] = EMPTY
+      if (e < worst) {
+        worst = e
+        worstCell = rc
+      }
+    }
+    if (worstCell < 0) {
+      keep = true // 對手所有擋點都是禁手＝擋不住，勝著
+    } else {
+      keep = worst >= quietBase
+      if (!keep) {
+        // 交換後 eval 不佔優：再驗「三接 VCF」（四三/連衝可見＝真轉換，
+        // VCT-lite 的第一階）。
+        b[worstCell] = foe
+        const v = solveVcf(b, color, opts.rule, {
+          maxDepth: 6,
+          timeLimitMs: Math.max(20, Math.min(80, deadline - now)),
+          maxNodes: 20_000,
+        })
+        b[worstCell] = EMPTY
+        keep = v.found
+      }
+    }
+    b[cell] = EMPTY
+    if (!keep) penalized.add(cell)
+  }
+  if (penalized.size === 0) return null
+  // 全候選保留，降權者排最後（root 迭代仍會逐一算完其子樹）。
+  const moves = [...cand].sort((a, z) => {
+    const pa = penalized.has(idx(a.x, a.y)) ? 1 : 0
+    const pz = penalized.has(idx(z.x, z.y)) ? 1 : 0
+    return pa - pz || z.score - a.score
+  })
+  return { moves, penalized }
+}
+
 /** 找 color 方的最佳著手。不改動傳入盤面。 */
 export function search(b: Board, color: Color, opts: SearchOptions): SearchResult {
   const start = Date.now()
@@ -364,14 +548,20 @@ export function search(b: Board, color: Color, opts: SearchOptions): SearchResul
         nodes: vcf.nodes,
         viaVcf: true,
         viaDefense: false,
+        viaDevelopment: false,
         timedOut: false,
       }
     }
   }
   // 2) 速度判斷：自己沒殺，對手有 → 防守模式，候選限縮成「消解/拖慢對手殺」的手。
   //    TODO（VCT-lite）：目前只比 VCF 的快慢；四三接力（VCT）的淺層互解尚未實作，
-  //    「對手只有 VCT」的局面仍交給一般搜索＋延伸去頂。
+  //    「對手只有 VCT」的局面仍交給一般搜索＋延伸去頂。發展模式審查裡的
+  //    「三接 VCF」免罰檢查（filterDevelopmentMoves）是 VCT 的第一階
+  //    （三→被迫擋→四三/連衝可見），完整的三三接力比速仍待做。
   let rootMoves: ScoredMove[] | null = null
+  let rootPenalized: Set<number> | null = null
+  let viaDefense = false
+  let viaDevelopment = false
   if (opts.vcfDepth > 0) {
     const foeVcf = solveVcf(b, opponent(color), opts.rule, {
       maxDepth: opts.vcfDepth,
@@ -380,6 +570,15 @@ export function search(b: Board, color: Color, opts: SearchOptions): SearchResul
     })
     if (foeVcf.found && foeVcf.line.length > 0) {
       rootMoves = filterDefenseMoves(b, color, opts, foeVcf.line, start + opts.timeLimitMs * 0.7)
+      viaDefense = rootMoves !== null
+    } else {
+      // 2b) 發展模式：雙方都無殺 → 降權「換不到優勢」的強迫手（國手第三課）。
+      const dev = filterDevelopmentMoves(b, color, opts, start + opts.timeLimitMs * 0.3)
+      if (dev) {
+        rootMoves = dev.moves
+        rootPenalized = dev.penalized
+        viaDevelopment = true
+      }
     }
   }
   // 3) iterative deepening alpha-beta
@@ -413,6 +612,12 @@ export function search(b: Board, color: Color, opts: SearchOptions): SearchResul
       }
       for (const m of moves) {
         const cell = idx(m.x, m.y)
+        // depth≤2 的迭代跳過降權手：depth 1 裸 eval 看得到活三 +15000 卻看
+        // 不到對手的擋；depth 2 的對手應手是自由手（常選自己做三而非擋），
+        // 葉節點停在「我方威脅擺上盤、未被叫牌」的瞬間，兩者都給強迫手
+        // 罰分蓋不掉的虛胖分。審查時做過的「強制交換」比較本身就是更可信的
+        // 淺層評估；depth≥3 起搜索才看得到威脅的叫牌與後續，讓降權手帶罰參賽。
+        if (depth <= 2 && rootPenalized && rootPenalized.has(cell)) continue
         b[cell] = color
         xorStone(ctx.hash, cell, color)
         let score: number
@@ -430,6 +635,9 @@ export function search(b: Board, color: Color, opts: SearchOptions): SearchResul
           b[cell] = EMPTY
           xorStone(ctx.hash, cell, color)
         }
+        // 發展模式降權：換不到優勢的強迫手扣名目代價（送對手一顆有連結的子）。
+        // 子樹算出的勝分/大優（真轉換）遠超罰分，不受影響。
+        if (rootPenalized && rootPenalized.has(cell)) score -= DEV_PENALTY
         if (score > alpha || localBest === null) {
           alpha = score
           localBest = { x: m.x, y: m.y }
@@ -455,7 +663,8 @@ export function search(b: Board, color: Color, opts: SearchOptions): SearchResul
     depth: reached,
     nodes: ctx.nodes,
     viaVcf: false,
-    viaDefense: rootMoves !== null,
+    viaDefense,
+    viaDevelopment,
     timedOut,
   }
 }

@@ -1,6 +1,6 @@
 // AI sanity 測試：找一手勝、擋衝四、迴避禁手、難度分級在時限內回手。
 import { describe, it, expect } from 'vitest'
-import { parseBoard } from '../testutils.ts'
+import { boardOfMoves, parseBoard } from '../testutils.ts'
 import { BLACK, WHITE, idx, opponent, type Color, type Pos } from '../types.ts'
 import { createBoard, type Board } from '../board.ts'
 import { isWinningMove } from '../rules.ts'
@@ -146,13 +146,7 @@ const GAME34 =
 const K8: Pos = { x: 10, y: 7 }
 
 function board34(): Board {
-  const b = createBoard()
-  GAME34.split(' ').forEach((s, i) => {
-    const x = s.charCodeAt(0) - 65 // 列字母 A..O → x
-    const y = 15 - parseInt(s.slice(1), 10) // 行數字 → 內部 y（上而下）
-    b[idx(x, y)] = i % 2 === 0 ? BLACK : WHITE
-  })
-  return b
+  return boardOfMoves(GAME34)
 }
 
 /** 走完 move（若是衝四，連同對方的被迫擋子）後，對方的 VCF 是否已消解/拖慢

@@ -5,8 +5,20 @@
 //   *  待測點（必須恰好一個或零個；為空點，回傳其座標）
 // 行數/行寬可少於 15：不足處補空點，錨定在左上角。要測邊界效應時，
 // 請刻意把棋型排在字串的邊緣列/行（即棋盤邊線）。
-import { EMPTY, BLACK, WHITE, SIZE, type Pos } from './types.ts'
+import { EMPTY, BLACK, WHITE, SIZE, idx, type Pos } from './types.ts'
 import { createBoard, set, type Board } from './board.ts'
+
+/** 由「列字母＋行數字」棋譜串建盤（如 'H8 I9 G9'；奇數手黑、偶數手白）。
+ *  列字母 A..O → x=0..14；行數字 → 內部 y = 15 - row（由上而下）。 */
+export function boardOfMoves(game: string): Board {
+  const b = createBoard()
+  game.split(' ').forEach((s, i) => {
+    const x = s.charCodeAt(0) - 65
+    const y = 15 - parseInt(s.slice(1), 10)
+    b[idx(x, y)] = i % 2 === 0 ? BLACK : WHITE
+  })
+  return b
+}
 
 export interface ParsedBoard {
   board: Board
