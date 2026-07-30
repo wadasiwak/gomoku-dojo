@@ -4,20 +4,21 @@ import { useEffect, useState } from 'react'
 
 export type Route =
   | { name: 'home' }
-  | { name: 'play' }
+  | { name: 'play'; record?: string }
   | { name: 'puzzles'; tab: string }
   | { name: 'puzzle'; id: string }
   | { name: 'records' }
   | { name: 'replay'; record: string }
-  | { name: 'study' }
+  | { name: 'study'; record?: string }
   | { name: 'rules' }
+  | { name: 'openings'; sub: string | null }
 
 export function parseHash(hash: string): Route {
   const h = hash.replace(/^#\/?/, '')
   const [head, ...rest] = h.split('/')
   switch (head) {
     case 'play':
-      return { name: 'play' }
+      return rest.length > 0 ? { name: 'play', record: rest.join('/') } : { name: 'play' }
     case 'puzzles':
       return { name: 'puzzles', tab: rest[0] ?? 'all' }
     case 'puzzle':
@@ -27,9 +28,11 @@ export function parseHash(hash: string): Route {
     case 'replay':
       return { name: 'replay', record: rest.join('/') }
     case 'study':
-      return { name: 'study' }
+      return rest.length > 0 ? { name: 'study', record: rest.join('/') } : { name: 'study' }
     case 'rules':
       return { name: 'rules' }
+    case 'openings':
+      return { name: 'openings', sub: rest[0] ?? null }
     default:
       return { name: 'home' }
   }

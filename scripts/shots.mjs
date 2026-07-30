@@ -51,6 +51,17 @@ for (const [tag, viewport] of [
   await page.waitForSelector('.rule-card')
   await shot('rules')
 
+  // 開局圖鑑：卡片牆＋詳情＋猜名
+  await page.goto(`${BASE}/#/openings`)
+  await page.waitForSelector('.opening-card')
+  await shot('openings')
+  await page.goto(`${BASE}/#/openings/i7`)
+  await page.waitForSelector('.opening-detail')
+  await shot('opening-detail')
+  await page.goto(`${BASE}/#/openings/guess`)
+  await page.waitForSelector('.guess-opt')
+  await shot('opening-guess')
+
   await page.close()
 }
 

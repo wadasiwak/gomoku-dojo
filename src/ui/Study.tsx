@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Board from './Board.tsx'
 import { coordName } from './Replay.tsx'
 import { EngineClient } from '../engine/client.ts'
+import { parseRecord } from '../engine/record.ts'
 import { createBoard } from '../engine/board.ts'
 import { isWinningMove } from '../engine/rules.ts'
 import { isForbiddenMove } from '../engine/forbidden.ts'
@@ -28,17 +29,29 @@ const KIND_LABEL: Record<string, string> = {
   'double-three': '三三',
 }
 
-export default function Study() {
+export default function Study({ record }: { record?: string }) {
   const clientRef = useRef<EngineClient | null>(null)
   if (!clientRef.current) clientRef.current = new EngineClient()
   const client = clientRef.current
   useEffect(() => () => clientRef.current?.dispose(), [])
 
-  const [rule, setRule] = useState<Rule>('renju')
+  // #/study/<棋譜>：把棋譜（如開局圖鑑的前三手）鋪成擺譜初始盤面，
+  // 手番接在棋譜之後。非法棋譜靜默忽略（擺譜是研究工具，不設錯誤頁）。
+  const preset = record ? parseRecord(record) : null
+
+  const [rule, setRule] = useState<Rule>(preset?.rule ?? 'renju')
   const [phase, setPhase] = useState<'setup' | 'play'>('setup')
   const [tool, setTool] = useState<Tool>('black')
-  const [setup, setSetup] = useState<number[]>(() => [...createBoard()])
-  const [first, setFirst] = useState<'black' | 'white'>('black')
+  const [setup, setSetup] = useState<number[]>(() => {
+    const b = [...createBoard()]
+    preset?.moves.forEach((m, i) => {
+      b[idx(m.x, m.y)] = i % 2 === 0 ? BLACK : WHITE
+    })
+    return b
+  })
+  const [first, setFirst] = useState<'black' | 'white'>(
+    preset && preset.moves.length % 2 === 1 ? 'white' : 'black',
+  )
   const [moves, setMoves] = useState<Pos[]>([])
   const [level, setLevel] = useState<1 | 2 | 3 | 4>(3)
   const [showFb, setShowFb] = useState(true)

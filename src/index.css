@@ -531,3 +531,138 @@ footer {
   color: var(--muted);
   font-size: 0.78rem;
 }
+
+/* ---- 開局圖鑑 ---- */
+.opening-section {
+  font-size: 1.05rem;
+  color: var(--accent);
+  margin: 22px 0 10px;
+}
+
+.opening-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.opening-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 10px 6px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+
+.opening-card:hover {
+  border-color: var(--accent);
+}
+
+.opening-card .goban {
+  width: 100%;
+  box-shadow: 0 0 0 3px #8a6234;
+  border-radius: 4px;
+}
+
+.opening-card h3 {
+  margin: 8px 0 2px;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.opening-card p {
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.badge.blk {
+  background: rgba(20, 18, 28, 0.7);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.badge.wht {
+  background: rgba(232, 228, 240, 0.85);
+  color: #222;
+}
+
+.badge.even {
+  background: rgba(154, 147, 173, 0.18);
+  color: var(--muted);
+}
+
+.opening-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 14px;
+}
+
+.opening-detail-board {
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.opening-detail-board .goban {
+  width: 100%;
+  box-shadow: 0 0 0 4px #8a6234;
+  border-radius: 4px;
+}
+
+.opening-detail-text {
+  flex: 1 1 300px;
+  max-width: 520px;
+}
+
+.opening-detail-text p {
+  margin-top: 0;
+}
+
+/* ---- 開局猜名 ---- */
+.guess-opts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.guess-opt {
+  font-size: 1rem;
+  padding: 10px 8px;
+}
+
+.guess-opt.right {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.guess-opt.wrong {
+  border-color: var(--err);
+  color: var(--err);
+}
+
+/* ---- 規約（RIF）對弈 ---- */
+.rif-info {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  margin: 8px 0;
+}
+
+.rif-info p {
+  margin: 4px 0;
+}
+
+.rif-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 4px 0;
+}

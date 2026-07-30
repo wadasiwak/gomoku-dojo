@@ -60,6 +60,12 @@ export default function Home() {
           <p>自由擺子建局再試下，隨時按「AI 建議」看引擎這手會下哪。</p>
           <p className="entry-stat">研究工具</p>
         </button>
+        <button className="entry-card" onClick={() => navigate('openings')}>
+          <span className="entry-icon">📖</span>
+          <h2>開局圖鑑</h2>
+          <p>RIF 26 珠型全收錄：直接／間接開局、主流優劣傾向與白話講解。</p>
+          <p className="entry-stat">26 珠型・猜名練習</p>
+        </button>
       </div>
       <p className="home-foot">
         <a href="#/rules">連珠禁手是什麼？三型速覽 →</a>

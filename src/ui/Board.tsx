@@ -22,6 +22,13 @@ export interface BoardMark {
   kind?: string
 }
 
+export interface LabelMark {
+  x: number
+  y: number
+  /** 圈內字母（規約兩打 A/B、圖鑑標點用）。 */
+  label: string
+}
+
 interface Props {
   board: BoardData
   lastMove?: Pos | null
@@ -31,6 +38,8 @@ interface Props {
   numbered?: Pos[]
   /** AI 建議點標記（研棋/擺譜用）：虛線圈提示、不擋點擊。 */
   hint?: Pos | null
+  /** 字母標記點（規約兩打 A/B、圖鑑標點用）：實線圈＋字母、不擋點擊。 */
+  marks?: LabelMark[]
   onCell?: (x: number, y: number) => void
   disabled?: boolean
   /** 只顯示局部（科普例圖用），格座標閉區間。 */
@@ -45,6 +54,7 @@ export default function Board({
   forbidden = [],
   numbered,
   hint,
+  marks = [],
   onCell,
   disabled,
   crop,
@@ -167,6 +177,34 @@ export default function Board({
           <circle cx={cx(hint.x)} cy={cx(hint.y)} r="4.5" fill="#2b8ae2" />
         </g>
       )}
+      {marks.map((m) => (
+        <g
+          key={`k${m.x}-${m.y}`}
+          className="pt-mark"
+          data-mark={m.label}
+          data-pos={`${m.x},${m.y}`}
+          pointerEvents="none"
+        >
+          <circle
+            cx={cx(m.x)}
+            cy={cx(m.y)}
+            r={CELL * 0.42}
+            fill="rgba(224, 163, 54, 0.16)"
+            stroke="#e0a336"
+            strokeWidth="2.5"
+          />
+          <text
+            x={cx(m.x)}
+            y={cx(m.y) + 6}
+            textAnchor="middle"
+            fill="#e0a336"
+            fontSize="17"
+            fontWeight="700"
+          >
+            {m.label}
+          </text>
+        </g>
+      ))}
       {forbidden.map((m) => (
         <g
           key={`f${m.x}-${m.y}`}

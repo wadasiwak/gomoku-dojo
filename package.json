@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "node scripts/check-puzzles.mjs",
+    "check": "node scripts/check-openings.mjs && node scripts/check-puzzles.mjs",
+    "check:openings": "node scripts/check-openings.mjs",
     "gen:puzzles": "node scripts/gen-puzzles.mjs",
     "e2e": "node scripts/e2e.mjs"
   },

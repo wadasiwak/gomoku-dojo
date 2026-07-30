@@ -25,12 +25,17 @@ const KIND_LABEL: Record<string, string> = {
 
 declare global {
   interface Window {
-    /** e2e 測試 hook：載入棋譜到對弈頁（會依棋譜切規則、不觸發 AI 手番以外的行為）。 */
-    __dojo?: { loadPlay: (record: string) => boolean }
+    /** e2e 測試 hook（各頁掛自己的方法，unmount 時移除）。 */
+    __dojo?: {
+      /** 載入棋譜到對弈頁（依棋譜切規則/模式、不觸發 AI 手番以外的行為）。 */
+      loadPlay?: (record: string, opts?: { player?: 'black' | 'white' }) => boolean
+      /** 開局猜名：回報本題正解名稱。 */
+      guessAnswer?: () => string
+    }
   }
 }
 
-export default function Play() {
+export default function Play({ record }: { record?: string }) {
   const clientRef = useRef<EngineClient | null>(null)
   if (!clientRef.current) clientRef.current = new EngineClient()
   const client = clientRef.current
@@ -131,27 +136,39 @@ export default function Play() {
     setStatsBump((n) => n + 1) // 戰績列即時刷新
   }, [result, moves.length, rule, level, player, playerColor, game])
 
+  /** 載入棋譜（#/play/<棋譜> 路由與 e2e hook 共用）：只用 setter、不讀 state。 */
+  const loadRecord = (recordStr: string, opts?: { player?: 'black' | 'white' }): boolean => {
+    const rec = parseRecord(recordStr)
+    if (!rec) return false
+    const g = Game.fromRecord(rec)
+    if (!g) return false
+    const next: Settings = {
+      ...loadSettings(),
+      rule: rec.rule,
+      ...(opts?.player ? { player: opts.player } : {}),
+    }
+    setSettings(next)
+    setMoves(rec.moves)
+    setResigned(false)
+    recordedRef.current = false
+    pendingRef.current = ''
+    setGameId((n) => n + 1)
+    return true
+  }
+
+  // #/play/<棋譜>：路由帶譜（開局圖鑑「用此開局對弈」）。
+  useEffect(() => {
+    if (record) loadRecord(record)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record])
+
   // e2e 測試 hook。
   useEffect(() => {
-    window.__dojo = {
-      loadPlay: (recordStr: string) => {
-        const rec = parseRecord(recordStr)
-        if (!rec) return false
-        const g = Game.fromRecord(rec)
-        if (!g) return false
-        const next = { ...loadSettings(), rule: rec.rule }
-        setSettings(next)
-        setMoves(rec.moves)
-        setResigned(false)
-        recordedRef.current = false
-        pendingRef.current = ''
-        setGameId((n) => n + 1)
-        return true
-      },
-    }
+    window.__dojo = { ...window.__dojo, loadPlay: loadRecord }
     return () => {
-      delete window.__dojo
+      if (window.__dojo) delete window.__dojo.loadPlay
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const onCell = (x: number, y: number) => {

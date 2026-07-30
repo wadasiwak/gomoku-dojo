@@ -6,7 +6,8 @@
 //   5. 棋譜分享 URL 還原一致（round-trip）＋非法棋譜嚴格拒絕
 //   6. 自由研棋：重播中停在任一手岔出變化＋AI 建議＋回到棋譜
 //   7. 擺譜研究：擺子/清除 → 試下 → AI 建議
-//   8. GoatCounter path 只回報 pathname（無 hash/query）
+//   8. 開局圖鑑：26 卡片牆 → 詳情 → 用此開局對弈；猜名練習答對計分
+//   9. GoatCounter path 只回報 pathname（無 hash/query）
 //
 //   npm run build && node scripts/e2e.mjs
 import { spawn } from 'node:child_process'
@@ -124,9 +125,9 @@ try {
   page = await browser.newPage({ viewport: { width: 1280, height: 960 } })
 
   // ---- 1. 首頁 -----------------------------------------------------------
-  await step('首頁四入口', async () => {
+  await step('首頁五入口', async () => {
     await page.goto(`${BASE}/#/`)
-    for (const label of ['對弈', '題庫闖關', '棋譜重播', '擺譜研究']) {
+    for (const label of ['對弈', '題庫闖關', '棋譜重播', '擺譜研究', '開局圖鑑']) {
       await page.locator('.entry-card h2', { hasText: label }).waitFor({ timeout: 10000 })
     }
   })
@@ -271,7 +272,42 @@ try {
     await waitStones(2)
   })
 
-  // ---- 8. GoatCounter path ------------------------------------------------
+  // ---- 8. 開局圖鑑 ----------------------------------------------------------
+  await step('開局圖鑑：26 卡片→詳情→用此開局對弈', async () => {
+    await page.goto(`${BASE}/#/openings`)
+    await page.locator('.opening-card').first().waitFor({ timeout: 10000 })
+    const n = await page.locator('.opening-card').count()
+    if (n !== 26) throw new Error(`卡片數 ${n} ≠ 26`)
+    for (const name of ['寒星', '浦月', '彗星']) {
+      if (!(await page.locator('.opening-card h3', { hasText: name }).isVisible()))
+        throw new Error(`找不到珠型卡片：${name}`)
+    }
+    await page.locator('.opening-card h3', { hasText: '浦月' }).click()
+    await page.locator('.opening-detail').waitFor({ timeout: 5000 })
+    await page.screenshot({ path: `${OUT}/opening-detail.png` })
+    await page.locator('button', { hasText: '用此開局對弈' }).click()
+    // 前三手已鋪上對弈盤；白手番輪 AI、可能很快補上第 4 手 → 用 >=3 斷言
+    await page.waitForFunction(
+      () => document.querySelectorAll('.goban circle.stone').length >= 3,
+      undefined,
+      { timeout: 20000 },
+    )
+  })
+
+  await step('開局猜名：答對計分→下一題', async () => {
+    await page.goto(`${BASE}/#/openings/guess`)
+    await page.locator('.guess-opt').first().waitFor({ timeout: 10000 })
+    const nOpt = await page.locator('.guess-opt').count()
+    if (nOpt !== 4) throw new Error(`選項數 ${nOpt} ≠ 4`)
+    const answer = await page.evaluate(() => window.__dojo.guessAnswer())
+    await page.locator('.guess-opt', { hasText: answer }).click()
+    await page.locator('.msg.ok', { hasText: '答對' }).waitFor({ timeout: 5000 })
+    await page.locator('.page-head', { hasText: '1 / 1' }).waitFor({ timeout: 5000 })
+    await page.locator('button', { hasText: '下一題' }).click()
+    await page.locator('.guess-opt').first().waitFor({ timeout: 5000 })
+  })
+
+  // ---- 9. GoatCounter path ------------------------------------------------
   await step('GoatCounter path 無 hash/query', async () => {
     await page.goto(`${BASE}/#/replay/r1:hhhgii`)
     const p = await page.evaluate(() => window.goatcounter.path())
