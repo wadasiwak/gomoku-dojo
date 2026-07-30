@@ -43,6 +43,7 @@ import {
   OPENING_KIND_LABEL,
 } from '../content/openings.ts'
 import { SYMMETRIES, canonicalBoardKey } from '../engine/symmetry.ts'
+import { bookMoveWithDiscipline, bookOfferValue } from '../openings/index.ts'
 import {
   loadSettings,
   saveSettings,
@@ -109,13 +110,14 @@ export default function Play({ record }: { record?: string }) {
   const [resigned, setResigned] = useState(false)
   const [gameId, setGameId] = useState(1)
   const [forbidden, setForbidden] = useState<{ index: number; kind: string }[]>([])
+  const [aiBook, setAiBook] = useState(false)
   const [copied, setCopied] = useState(false)
   const [, setStatsBump] = useState(0)
   const recordedRef = useRef(false)
   const pendingRef = useRef<string>('')
   const aiOpeningRef = useRef<{ gameId: number; moves: Pos[]; name: string } | null>(null)
 
-  const { level, player, showForbidden, mode } = settings
+  const { level, player, showForbidden, mode, useBook } = settings
   const rule: Rule = mode === 'rif' ? 'renju' : settings.rule
   /** 規約模式下 player＝「暫定執色」；最終執色由換邊決定推導。 */
   const tentColor: Color = player === 'black' ? BLACK : WHITE
@@ -153,6 +155,7 @@ export default function Play({ record }: { record?: string }) {
     setResigned(false)
     setThinking(false)
     setCopied(false)
+    setAiBook(false)
     recordedRef.current = false
     pendingRef.current = ''
     aiOpeningRef.current = null
@@ -174,6 +177,8 @@ export default function Play({ record }: { record?: string }) {
 
   // AI 手番（自由模式全程；規約模式的白 4 與正常輪替）：
   // pendingRef 防 StrictMode 重複觸發。
+  // 先查開局書（8 對稱歸一命中＋紀律閘門：對手有殺不走書、回退搜索防守模式），
+  // 未命中回退正常搜索。書手在 UI 標「開局書」來源。
   useEffect(() => {
     if (!ongoing || game.toMove !== aiColor) return
     if (mode === 'rif' && phase !== 'move4' && phase !== 'normal') return
@@ -181,17 +186,32 @@ export default function Play({ record }: { record?: string }) {
     if (pendingRef.current === key) return
     pendingRef.current = key
     setThinking(true)
-    client
-      .search(game.board, aiColor, rule, level)
-      .then((r) => {
-        if (pendingRef.current !== key || !r.move) return
-        const m = r.move
-        setMoves((prev) => [...prev, { x: m.x, y: m.y }])
+    const foeHasVcf = () =>
+      client
+        .vcf(game.board, playerColor, rule, { maxDepth: 10, timeLimitMs: 500, maxNodes: 30000 })
+        .then((r) => r.found)
+    const viaBook = useBook
+      ? bookMoveWithDiscipline(moves, rule, aiColor, foeHasVcf)
+      : Promise.resolve(null)
+    viaBook
+      .then((hit) => {
+        if (pendingRef.current !== key) return
+        if (hit) {
+          setAiBook(true)
+          setMoves((prev) => [...prev, hit.move])
+          return
+        }
+        return client.search(game.board, aiColor, rule, level).then((r) => {
+          if (pendingRef.current !== key || !r.move) return
+          const m = r.move
+          setAiBook(false)
+          setMoves((prev) => [...prev, { x: m.x, y: m.y }])
+        })
       })
       .finally(() => {
         if (pendingRef.current === key) setThinking(false)
       })
-  }, [client, ongoing, game, aiColor, rule, level, moves.length, gameId, mode, phase])
+  }, [client, ongoing, game, aiColor, playerColor, rule, level, moves, gameId, mode, phase, useBook])
 
   // 規約流程的 AI 決策（擺開局/換邊/兩打/擇打）。與上面的搜索 effect 互斥
   // （phase 條件不重疊），共用 pendingRef 防雙觸發。
@@ -275,39 +295,61 @@ export default function Play({ record }: { record?: string }) {
     }
     if (phase === 'offer5') {
       // 黑兩打：白會擇「對黑較差」點 → 黑提保底最高的一對＝最強兩個互不等價點。
+      // 開局書有值（Rapfi 深算）優先；書內互不等價點不足兩個才回退輕量靜態 eval。
       setThinking(true)
       const board = game.board
+      const keyWith = (cell: number): string => {
+        const b = Uint8Array.from(board)
+        b[cell] = BLACK
+        return canonicalBoardKey(b)
+      }
+      const pickPair = (
+        scored: { cell: number; score: number }[],
+      ): { a: { cell: number; score: number }; b: { cell: number; score: number } } | null => {
+        const a = scored[0]
+        if (!a) return null
+        const aKey = keyWith(a.cell)
+        for (let i = 1; i < scored.length; i++) {
+          if (keyWith(scored[i].cell) !== aKey) return { a, b: scored[i] }
+        }
+        return null
+      }
+      const offerNote = (
+        tag: string,
+        a: { cell: number; score: number },
+        b: { cell: number; score: number },
+      ) => {
+        const pa = posOf(a.cell)
+        const pb = posOf(b.cell)
+        if (dispatch({ type: 'offer', a: pa, b: pb }))
+          setAiNotes((n) => [
+            ...n,
+            `AI（黑）兩打${tag}：A ${coordName(pa)}（${fmtScore(a.score)}）／B ${coordName(pb)}（${fmtScore(b.score)}）`,
+          ])
+      }
       client
         .forbiddenPoints(board)
         .then((fps) => {
           const bad = new Set(fps.map((f) => f.index))
           const cells = candidateCells(board).filter((c) => !bad.has(c))
+          if (useBook) {
+            const fromBook = cells
+              .map((cell) => ({ cell, score: bookOfferValue(moves, posOf(cell)) }))
+              .filter((s): s is { cell: number; score: number } => s.score !== null)
+              .sort((a, z) => z.score - a.score || a.cell - z.cell)
+            const pair = pickPair(fromBook)
+            if (pair) {
+              if (pendingRef.current === key) offerNote('（開局書）', pair.a, pair.b)
+              return null
+            }
+          }
           return client.evalMoves(board, BLACK, 'renju', cells)
         })
         .then((scored) => {
-          if (pendingRef.current !== key) return
+          if (!scored || pendingRef.current !== key) return
           scored.sort((a, z) => z.score - a.score)
-          const keyWith = (cell: number): string => {
-            const b = Uint8Array.from(board)
-            b[cell] = BLACK
-            return canonicalBoardKey(b)
-          }
-          const a = scored[0]
-          const aKey = keyWith(a.cell)
-          let b = scored[1]
-          for (let i = 1; i < scored.length; i++) {
-            if (keyWith(scored[i].cell) !== aKey) {
-              b = scored[i]
-              break
-            }
-          }
-          const pa = posOf(a.cell)
-          const pb = posOf(b.cell)
-          if (dispatch({ type: 'offer', a: pa, b: pb }))
-            setAiNotes((n) => [
-              ...n,
-              `AI（黑）兩打：A ${coordName(pa)}（${fmtScore(a.score)}）／B ${coordName(pb)}（${fmtScore(b.score)}）`,
-            ])
+          const pair = pickPair(scored) ?? { a: scored[0], b: scored[1] }
+          offerNote('', pair.a, pair.b)
         })
         .finally(() => {
           if (pendingRef.current === key) setThinking(false)
@@ -315,23 +357,36 @@ export default function Play({ record }: { record?: string }) {
       return
     }
     if (phase === 'choose5') {
-      // 白擇打：兩點各試落黑子後取「對黑較差」點。
+      // 白擇打：兩點各評「落黑子後」局面，取「對黑較差」點。書值（Rapfi 深算）
+      // 兩點皆有才用，否則回退靜態 eval（兩制分數尺度不同，不可混排）。
       setThinking(true)
       const [a, b] = rifMeta.offers!
+      const chooseNote = (pickA: boolean, low: number, high: number, tag: string) => {
+        const pick = pickA ? a : b
+        if (dispatch({ type: 'choose', pos: pick }))
+          setAiNotes((n) => [
+            ...n,
+            `AI（白）擇 ${coordName(pick)}${tag}：黑方評分 ${fmtScore(low)}（棄 ${coordName(pickA ? b : a)} ${fmtScore(high)}）`,
+          ])
+      }
+      const va = useBook ? bookOfferValue(moves, a) : null
+      const vb = useBook ? bookOfferValue(moves, b) : null
+      if (va !== null && vb !== null) {
+        setTimeout(() => {
+          if (pendingRef.current !== key) return
+          const pickA = va <= vb
+          chooseNote(pickA, Math.min(va, vb), Math.max(va, vb), '（開局書）')
+          setThinking(false)
+        }, 300)
+        return
+      }
       client
         .evalMoves(game.board, BLACK, 'renju', [idx(a.x, a.y), idx(b.x, b.y)])
         .then((scored) => {
           if (pendingRef.current !== key || scored.length < 2) return
           const [ra, rb] = scored
           const pickA = ra.score <= rb.score
-          const pick = pickA ? a : b
-          const low = pickA ? ra.score : rb.score
-          const high = pickA ? rb.score : ra.score
-          if (dispatch({ type: 'choose', pos: pick }))
-            setAiNotes((n) => [
-              ...n,
-              `AI（白）擇 ${coordName(pick)}：黑方評分 ${fmtScore(low)}（棄 ${coordName(pickA ? b : a)} ${fmtScore(high)}）`,
-            ])
+          chooseNote(pickA, Math.min(ra.score, rb.score), Math.max(ra.score, rb.score), '')
         })
         .finally(() => {
           if (pendingRef.current === key) setThinking(false)
@@ -339,7 +394,7 @@ export default function Play({ record }: { record?: string }) {
       return
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, ongoing, phase, tentColor, aiColor, moves, gameId, client, game, rifMeta])
+  }, [mode, ongoing, phase, tentColor, aiColor, moves, gameId, client, game, rifMeta, useBook])
 
   // renju＋黑手番＋開關開 → 全盤禁手點標記（走 Worker）。
   useEffect(() => {
@@ -405,6 +460,7 @@ export default function Play({ record }: { record?: string }) {
     setRifError(null)
     setAiNotes([])
     setResigned(false)
+    setAiBook(false)
     recordedRef.current = false
     pendingRef.current = ''
     aiOpeningRef.current = null
@@ -483,6 +539,7 @@ export default function Play({ record }: { record?: string }) {
   const undo = () => {
     if (!canUndo) return
     pendingRef.current = `${gameId}:undo:${moves.length}` // 使在途 AI 結果失效
+    setAiBook(false)
     setMoves((prev) => prev.slice(0, undoTarget))
   }
 
@@ -575,6 +632,7 @@ export default function Play({ record }: { record?: string }) {
         <p className={`status${thinking ? ' thinking' : ''}${!ongoing ? ' final' : ''}`}>
           <b>{statusText}</b>
           <span className="muted">　第 {moves.length} 手</span>
+          {aiBook && <span className="muted">　AI 上一手：開局書</span>}
           {rule === 'renju' && forbidden.length > 0 && (
             <span className="fb-note">　✕ 黑禁手點</span>
           )}
@@ -677,6 +735,16 @@ export default function Play({ record }: { record?: string }) {
               onChange={(e) => updateSettings({ showForbidden: e.target.checked }, false)}
             />
             顯示黑禁手點 ✕
+          </label>
+        )}
+        {rule === 'renju' && (
+          <label className="row">
+            <input
+              type="checkbox"
+              checked={useBook}
+              onChange={(e) => updateSettings({ useBook: e.target.checked }, false)}
+            />
+            AI 使用開局書
           </label>
         )}
         {mode === 'rif' && phase === 'swap' && tentColor === WHITE && ongoing && (

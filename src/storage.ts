@@ -34,6 +34,8 @@ export interface Settings {
   showForbidden: boolean
   /** 舊資料無此欄位 → load 的 merge fallback 補 'free'，向下相容。 */
   mode: PlayMode
+  /** AI 使用開局書（預設開；舊資料無此欄位由 merge fallback 補 true）。 */
+  useBook: boolean
 }
 const SETTINGS_KEY = 'gomoku-dojo-settings-v1'
 export const loadSettings = (): Settings =>
@@ -43,6 +45,7 @@ export const loadSettings = (): Settings =>
     player: 'black',
     showForbidden: true,
     mode: 'free',
+    useBook: true,
   })
 export const saveSettings = (s: Settings): void => save(SETTINGS_KEY, s)
 
