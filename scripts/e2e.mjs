@@ -1,10 +1,12 @@
 // e2e（playwright + vite preview:5311，finally kill）：
-//   1. 首頁三入口
+//   1. 首頁四入口
 //   2. 對弈完整流程：落子 → AI 回手 → 悔棋 → 認輸 → 戰績入庫＋棋譜自動存檔
 //   3. renju 禁手點標記出現（__dojo.loadPlay 測試 hook 鋪雙活三前置）
 //   4. 題庫：答錯 → 錯題本；答對（引擎判定）→ 通關；重練 → 連對 1
 //   5. 棋譜分享 URL 還原一致（round-trip）＋非法棋譜嚴格拒絕
-//   6. GoatCounter path 只回報 pathname（無 hash/query）
+//   6. 自由研棋：重播中停在任一手岔出變化＋AI 建議＋回到棋譜
+//   7. 擺譜研究：擺子/清除 → 試下 → AI 建議
+//   8. GoatCounter path 只回報 pathname（無 hash/query）
 //
 //   npm run build && node scripts/e2e.mjs
 import { spawn } from 'node:child_process'
@@ -122,9 +124,9 @@ try {
   page = await browser.newPage({ viewport: { width: 1280, height: 960 } })
 
   // ---- 1. 首頁 -----------------------------------------------------------
-  await step('首頁三入口', async () => {
+  await step('首頁四入口', async () => {
     await page.goto(`${BASE}/#/`)
-    for (const label of ['對弈', '題庫闖關', '棋譜重播']) {
+    for (const label of ['對弈', '題庫闖關', '棋譜重播', '擺譜研究']) {
       await page.locator('.entry-card h2', { hasText: label }).waitFor({ timeout: 10000 })
     }
   })
@@ -228,7 +230,48 @@ try {
     await page.locator('.msg.err', { hasText: '無效' }).waitFor({ timeout: 5000 })
   })
 
-  // ---- 6. GoatCounter path ------------------------------------------------
+  // ---- 6. 自由研棋 ---------------------------------------------------------
+  await step('自由研棋：重播停在任一手→岔出變化→AI 建議→回到棋譜', async () => {
+    await page.goto(`${BASE}/#/replay/r1:hhhgii`)
+    await waitStones(3)
+    await page.locator('button', { hasText: '◀' }).click()
+    await waitStones(2) // 停在第 2 手，輪黑
+    await cell(0, 0).click() // 岔出變化
+    await waitStones(3)
+    await page.locator('.status', { hasText: '研棋中' }).waitFor({ timeout: 5000 })
+    await page.locator('button', { hasText: 'AI 建議' }).click()
+    await page.locator('.hint-mark').waitFor({ timeout: 20000 })
+    await page.screenshot({ path: `${OUT}/replay-trial.png` })
+    await page.locator('button', { hasText: '回到棋譜' }).click()
+    await waitStones(2) // 變化收掉、回到純重播
+    const rt = await page.locator('[data-record]').getAttribute('data-record')
+    if (rt !== 'r1:hhhgii') throw new Error(`研棋污染了原棋譜：${rt}`)
+  })
+
+  // ---- 7. 擺譜研究 ---------------------------------------------------------
+  await step('擺譜研究：擺子/清除→試下→AI 建議', async () => {
+    await page.goto(`${BASE}/#/study`)
+    await page.locator('.goban').waitFor()
+    await cell(7, 7).click() // 黑子
+    await page.locator('button', { hasText: '白子' }).click()
+    await cell(8, 8).click() // 白子
+    await cell(9, 9).click() // 白子（待清除）
+    await waitStones(3)
+    await page.locator('button', { hasText: '清除' }).click()
+    await cell(9, 9).click()
+    await waitStones(2)
+    await page.locator('button', { hasText: '開始試下' }).click()
+    await page.locator('.status', { hasText: '試下中' }).waitFor({ timeout: 5000 })
+    await cell(7, 8).click() // 試下第 1 手（黑）
+    await waitStones(3)
+    await page.locator('button', { hasText: 'AI 建議' }).click()
+    await page.locator('.hint-mark').waitFor({ timeout: 20000 })
+    await page.screenshot({ path: `${OUT}/study-hint.png` })
+    await page.locator('button', { hasText: '悔一手' }).click()
+    await waitStones(2)
+  })
+
+  // ---- 8. GoatCounter path ------------------------------------------------
   await step('GoatCounter path 無 hash/query', async () => {
     await page.goto(`${BASE}/#/replay/r1:hhhgii`)
     const p = await page.evaluate(() => window.goatcounter.path())

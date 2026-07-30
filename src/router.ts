@@ -9,6 +9,7 @@ export type Route =
   | { name: 'puzzle'; id: string }
   | { name: 'records' }
   | { name: 'replay'; record: string }
+  | { name: 'study' }
   | { name: 'rules' }
 
 export function parseHash(hash: string): Route {
@@ -25,6 +26,8 @@ export function parseHash(hash: string): Route {
       return { name: 'records' }
     case 'replay':
       return { name: 'replay', record: rest.join('/') }
+    case 'study':
+      return { name: 'study' }
     case 'rules':
       return { name: 'rules' }
     default:

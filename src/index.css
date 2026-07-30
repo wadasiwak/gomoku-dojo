@@ -472,6 +472,26 @@ body {
   word-break: break-all;
 }
 
+/* ---- 研棋 / 擺譜 ---- */
+.hint-mark {
+  animation: hint-pulse 1.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes hint-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.hint-line {
+  margin-top: 10px;
+}
+
 /* ---- 規則科普 ---- */
 .rules-grid {
   display: grid;

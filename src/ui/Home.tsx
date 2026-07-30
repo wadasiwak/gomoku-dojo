@@ -51,8 +51,14 @@ export default function Home() {
         <button className="entry-card" onClick={() => navigate('records')}>
           <span className="entry-icon">📜</span>
           <h2>棋譜重播</h2>
-          <p>對局自動存檔，前進後退逐手看；連結一貼就能分享。</p>
+          <p>對局自動存檔，前進後退逐手看；停在任一手可岔出變化自由研棋。</p>
           <p className="entry-stat">已存 {savedCount} 局</p>
+        </button>
+        <button className="entry-card" onClick={() => navigate('study')}>
+          <span className="entry-icon">🔬</span>
+          <h2>擺譜研究</h2>
+          <p>自由擺子建局再試下，隨時按「AI 建議」看引擎這手會下哪。</p>
+          <p className="entry-stat">研究工具</p>
         </button>
       </div>
       <p className="home-foot">

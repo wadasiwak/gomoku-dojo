@@ -6,6 +6,7 @@ import Puzzles from './ui/Puzzles.tsx'
 import PuzzlePlay from './ui/PuzzlePlay.tsx'
 import Replay from './ui/Replay.tsx'
 import Records from './ui/Records.tsx'
+import Study from './ui/Study.tsx'
 import Rules from './ui/Rules.tsx'
 import { useRoute } from './router.ts'
 
@@ -14,6 +15,7 @@ const NAV = [
   { hash: 'play', label: '對弈', match: ['play'] },
   { hash: 'puzzles', label: '題庫', match: ['puzzles', 'puzzle'] },
   { hash: 'records', label: '棋譜', match: ['records', 'replay'] },
+  { hash: 'study', label: '擺譜', match: ['study'] },
   { hash: 'rules', label: '規則', match: ['rules'] },
 ]
 
@@ -45,6 +47,7 @@ export default function App() {
         {route.name === 'puzzle' && <PuzzlePlay id={route.id} key={route.id} />}
         {route.name === 'replay' && <Replay record={route.record} />}
         {route.name === 'records' && <Records />}
+        {route.name === 'study' && <Study />}
         {route.name === 'rules' && <Rules />}
       </main>
       <footer>

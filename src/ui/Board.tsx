@@ -29,6 +29,8 @@ interface Props {
   forbidden?: BoardMark[]
   /** 手順編號（重播/解答用）：依序為第 1、2、… 手的座標。 */
   numbered?: Pos[]
+  /** AI 建議點標記（研棋/擺譜用）：虛線圈提示、不擋點擊。 */
+  hint?: Pos | null
   onCell?: (x: number, y: number) => void
   disabled?: boolean
   /** 只顯示局部（科普例圖用），格座標閉區間。 */
@@ -42,6 +44,7 @@ export default function Board({
   lastMove,
   forbidden = [],
   numbered,
+  hint,
   onCell,
   disabled,
   crop,
@@ -149,6 +152,21 @@ export default function Board({
           </g>
         )
       })}
+      {hint && (
+        <g className="hint-mark" data-hint={`${hint.x},${hint.y}`} pointerEvents="none">
+          <title>AI 建議</title>
+          <circle
+            cx={cx(hint.x)}
+            cy={cx(hint.y)}
+            r={CELL * 0.4}
+            fill="none"
+            stroke="#2b8ae2"
+            strokeWidth="3"
+            strokeDasharray="6 5"
+          />
+          <circle cx={cx(hint.x)} cy={cx(hint.y)} r="4.5" fill="#2b8ae2" />
+        </g>
+      )}
       {forbidden.map((m) => (
         <g
           key={`f${m.x}-${m.y}`}
