@@ -51,7 +51,7 @@ import {
 } from '../content/openings.ts'
 import { SYMMETRIES } from '../engine/symmetry.ts'
 import { candidateCells, pickInequivalentPair, selectOfferPair } from '../engine/offer.ts'
-import { bookMoveWithDiscipline, bookOfferValue } from '../openings/index.ts'
+import { BOOK_EARLY_PLIES, bookMoveWithDiscipline, bookOfferValue } from '../openings/index.ts'
 import { getRapfi, isRapfiSupported } from '../analysis/rapfi.ts'
 import { evalTextToScore } from '../analysis/protocol.ts'
 import {
@@ -190,11 +190,14 @@ export default function Play({ record }: { record?: string }) {
       client
         .vcf(game.board, playerColor, rule, { maxDepth: 10, timeLimitMs: 500, maxNodes: 30000 })
         .then((r) => r.found)
-    // 中局書手僅 L4 採用：自對弈實測 L3 帶書 4勝8敗（書引入的尖銳局面
-    // 淺搜撐不住＝書力/搜索力錯配，L4 5勝4敗3和達標）。規約 offer/擇打
-    // 的書「評值」不在此限（那是評估參考，不把局面帶進書路線）。
-    const viaBook = useBook && level === 4
-      ? bookMoveWithDiscipline(moves, rule, aiColor, foeHasVcf)
+    // 開局階段（< BOOK_EARLY_PLIES 手）全難度查書：L1-L3 走穩健線偏好
+    // （分數接近時取 |score| 最小的書手），避開先前 L3 帶書自對弈 4勝8敗的
+    // 書力/搜索力錯配（書把淺搜帶進尖銳線）；L4 全程照舊取最佳線。
+    // 國手實戰教訓（2026-07-31，白 13 手敗定）：書原本只在 L4 生效且缺
+    // 「黑先第 1 手之後」的白 2 條目，白 2 落到裸搜索選出飄遠的 F10。
+    // 規約 offer/擇打的書「評值」不在此限（那是評估參考，不把局面帶進書路線）。
+    const viaBook = useBook && (level === 4 || moves.length < BOOK_EARLY_PLIES)
+      ? bookMoveWithDiscipline(moves, rule, aiColor, foeHasVcf, level < 4)
       : Promise.resolve(null)
     viaBook
       .then((hit) => {
@@ -823,7 +826,7 @@ export default function Play({ record }: { record?: string }) {
               checked={useBook}
               onChange={(e) => updateSettings({ useBook: e.target.checked }, false)}
             />
-            AI 使用開局書（著手僅最高難度生效）
+            AI 使用開局書（開局階段全難度；中局著手僅最高難度）
           </label>
         )}
         {mode === 'rif' && phase === 'swap' && tentColor === WHITE && ongoing && (

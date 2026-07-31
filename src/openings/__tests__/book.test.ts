@@ -3,7 +3,7 @@
 // check-opening-book.mjs 保證的資料不變量，測試可倚賴）。
 import { describe, expect, it } from 'vitest'
 import { bookLookup, bookMoveWithDiscipline, bookOfferValue, BOOK_SIZE } from '../index.ts'
-import { INVERSE_SYMMETRY, lookupIn, strToMove, type BookEntry } from '../lookup.ts'
+import { INVERSE_SYMMETRY, STABLE_MARGIN, lookupIn, lookupStableIn, strToMove, type BookEntry } from '../lookup.ts'
 import { OPENINGS, openingMoves } from '../../content/openings.ts'
 import { SYMMETRIES, canonicalBoardKey } from '../../engine/symmetry.ts'
 import { BLACK, WHITE, SIZE, idx, type Pos } from '../../engine/types.ts'
@@ -61,7 +61,14 @@ describe('命中／未命中', () => {
   })
 
   it('不在書內的手順回 null（角落怪手順）', () => {
-    expect(bookLookup([{ x: 0, y: 0 }])).toBeNull()
+    // ⚠️ 單一黑 1 手順現在全盤 225 點皆有書（白 2 全覆蓋，見下方「自由模式白 2」節），
+    // miss 案例要用 2 手以上的怪手順。
+    expect(
+      bookLookup([
+        { x: 0, y: 0 },
+        { x: 14, y: 14 },
+      ]),
+    ).toBeNull()
     expect(
       bookLookup([
         { x: 0, y: 0 },
@@ -106,6 +113,90 @@ describe('兩打/擇打書值', () => {
       { x: 0, y: 14 },
     ]
     expect(bookOfferValue(m4, { x: 7, y: 8 })).toBeNull()
+  })
+})
+
+describe('自由模式白 2 覆蓋（國手實戰迴歸：書缺白 2 條目、白 2 落到裸搜索）', () => {
+  it('黑 1 天元之後白 2 有書，且是貼身手（Chebyshev ≤1）', () => {
+    const hit = bookLookup([{ x: 7, y: 7 }])
+    expect(hit).not.toBeNull()
+    expect(Math.max(Math.abs(hit!.move.x - 7), Math.abs(hit!.move.y - 7))).toBeLessThanOrEqual(1)
+  })
+
+  it('黑 1 全盤 225 點皆有白 2 書手（36 個 canonical 條目覆蓋）', () => {
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++) {
+        const hit = bookLookup([{ x, y }])
+        expect(hit, `黑1=(${x},${y}) 白 2 應有書`).not.toBeNull()
+        expect(hit!.move.x === x && hit!.move.y === y).toBe(false)
+      }
+  })
+
+  it('黑 1 落在中央 7×7 時白 2 貼身（≤2）——邊角黑 1 允許往中央走', () => {
+    for (let y = 4; y <= 10; y++)
+      for (let x = 4; x <= 10; x++) {
+        const hit = bookLookup([{ x, y }])!
+        expect(
+          Math.max(Math.abs(hit.move.x - x), Math.abs(hit.move.y - y)),
+          `黑1=(${x},${y}) 白2=${JSON.stringify(hit.move)} 應貼身`,
+        ).toBeLessThanOrEqual(2)
+      }
+  })
+
+  it('白 2 書手之後，黑 3 走中央 5×5 任一點白 4 都有書（鏈到 26 開局條目）', () => {
+    const w2 = bookLookup([{ x: 7, y: 7 }])!.move
+    for (let x = 5; x <= 9; x++)
+      for (let y = 5; y <= 9; y++) {
+        if ((x === 7 && y === 7) || (x === w2.x && y === w2.y)) continue
+        const hit = bookLookup([{ x: 7, y: 7 }, w2, { x, y }])
+        expect(hit, `黑3=(${x},${y}) 白4 應有書`).not.toBeNull()
+      }
+  })
+})
+
+describe('穩健線查表（lookupStableIn，L1-L3 開局用）', () => {
+  it('分數接近（等價帶內）時偏好 |score| 最小的均衡線而非最尖銳線', () => {
+    // 合成書：直接條目最佳線尖銳（+500），子局面提供均衡替代（對手視角 -450 → 我方 +450，
+    // 帶內 |450|<|500|…用不對稱的例子更嚴：我方 +410（帶內）vs +500。
+    const e: Record<string, BookEntry> = {
+      hh: { move: 'gh', score: 500, depth: 20 }, // 最佳線 (6,7)
+      // 子局面 [hh, gg]：對手視角 -410 → 走 gg 的我方視角 +410，帶內且 |410| 較小
+      hhgg: { move: 'ii', score: -410, depth: 18 },
+    }
+    const stable = lookupStableIn(e, [{ x: 7, y: 7 }])
+    expect(stable).not.toBeNull()
+    expect(stable!.move).toEqual({ x: 6, y: 6 })
+    expect(stable!.score).toBe(410)
+    // 對照：最佳線查表仍取直接條目
+    expect(lookupIn(e, [{ x: 7, y: 7 }])!.move).toEqual({ x: 6, y: 7 })
+  })
+
+  it('等價帶外（分差 > STABLE_MARGIN）不為求穩放棄明顯較優的線', () => {
+    const e: Record<string, BookEntry> = {
+      hh: { move: 'gh', score: 500, depth: 20 },
+      hhgg: { move: 'ii', score: -(500 - STABLE_MARGIN - 1), depth: 18 }, // 帶外均衡線
+    }
+    const stable = lookupStableIn(e, [{ x: 7, y: 7 }])
+    expect(stable!.move).toEqual({ x: 6, y: 7 }) // 仍取最佳線
+  })
+
+  it('真書：黑 1 天元後穩健線與最佳線都命中、皆為貼身手；穩健線 |score| ≤ 最佳線', () => {
+    const stable = lookupStableIn(entries, [{ x: 7, y: 7 }])
+    const best = lookupIn(entries, [{ x: 7, y: 7 }])
+    expect(stable).not.toBeNull()
+    expect(best).not.toBeNull()
+    expect(Math.max(Math.abs(stable!.move.x - 7), Math.abs(stable!.move.y - 7))).toBeLessThanOrEqual(1)
+    expect(Math.abs(stable!.score)).toBeLessThanOrEqual(Math.abs(best!.score))
+  })
+
+  it('書外局面回 null', () => {
+    expect(lookupStableIn(entries, [{ x: 0, y: 0 }, { x: 14, y: 14 }])).toBeNull()
+  })
+
+  it('紀律閘門 preferStable=true 走穩健線', async () => {
+    const viaGate = await bookMoveWithDiscipline([{ x: 7, y: 7 }], 'renju', WHITE, async () => false, true)
+    const stable = lookupStableIn(entries, [{ x: 7, y: 7 }])
+    expect(viaGate).toEqual(stable)
   })
 })
 

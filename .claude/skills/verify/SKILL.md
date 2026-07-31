@@ -87,6 +87,14 @@ dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
   **尺度不同，不可混排比較**（Play.tsx 兩打/擇打因此書值/靜態二擇一）。
 - **紀律閘門**：AI 走書前先問對手 VCF（`bookMoveWithDiscipline`）——對手有殺
   一律回退搜索防守模式，別讓書手繞過防守紀律。
+- **難度閘門（2026-07-31 國手實戰後改）**：`moves.length < BOOK_EARLY_PLIES`（10）的
+  開局階段**全難度**查書，L1-L3 走 `lookupStableIn`（等價帶 STABLE_MARGIN=120cp 內
+  偏好 |score| 最小的穩健線，避開「書把淺搜帶進尖銳線」的錯配）；中局仍僅 L4 用書。
+- **白 2 全覆蓋**：黑 1 的 36 個 canonical 位置各有一筆長度 1 條目（`--recompute` 30s
+  補算）——自由模式人類執黑時白 2 才不會落到裸搜索（實戰飄遠手 F10 的根因）。
+  改書後 miss 案例測試要用 2 手以上手順（單一黑 1 現在必命中）。
+- 開局質量迴歸在 `src/engine/__tests__/opening-quality.test.ts`（長同步搜索獨立檔，
+  勿併回 ai.test.ts）：實戰 6 個白手節點 × L1-L4，驗接觸度或 Rapfi 等價帶。
 - RIF DB（renju.net）**僅離線校驗**：檔案與比對腳本全在 `scratch/opening-book/`
   （gitignored），絕不進 repo、內容絕不上站。
 

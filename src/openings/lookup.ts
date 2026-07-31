@@ -8,7 +8,7 @@
 // 盤面上與書手完全同構；若局面本身有對稱（多個 t 並列最小），任一 t 的反變換
 // 互為對稱像、等價合法（vitest 8 方位全覆蓋釘住這件事）。
 import { SYMMETRIES } from '../engine/symmetry.ts'
-import type { Pos } from '../engine/types.ts'
+import { SIZE, type Pos } from '../engine/types.ts'
 
 /** SYMMETRIES[i] 的逆變換 index（前 6 個自逆；旋轉 90°/270° 互逆）。 */
 export const INVERSE_SYMMETRY: readonly number[] = [0, 1, 2, 3, 4, 5, 7, 6]
@@ -71,4 +71,63 @@ export function lookupIn(
   // 防呆：建議手必須落在空點（key 相等已保證，此檢查擋壞資料）。
   if (moves.some((m) => m.x === p.x && m.y === p.y)) return null
   return { move: p, score: e.score, depth: e.depth }
+}
+
+/** 穩健線的分數等價帶（cp）：與最佳候選分差在此以內視為「分數接近」。 */
+export const STABLE_MARGIN = 120
+
+/**
+ * 穩健線查表（L1-L3 開局用）：除了本局面的直接條目（最佳線），也枚舉
+ * 「下完某手後的子局面」在書中的條目作為候選（子局面分數是對手視角，
+ * 取負＝該手的行棋方視角價值）。與最佳候選分差 ≤ STABLE_MARGIN 的等價帶內
+ * **偏好 |score| 最小的均衡線**——先前 L3 直接吃書的最佳線 4勝8敗（書力/
+ * 搜索力錯配：書引入的尖銳局面淺搜跟不住），分數接近時選穩健線避開錯配；
+ * 等價帶外仍取最佳（明顯較優的線不因求穩放棄）。
+ * 平手 tie-break：depth 大者優先，再取 cell index 小者（確定性）。
+ */
+export function lookupStableIn(
+  entries: Readonly<Record<string, BookEntry>>,
+  moves: readonly Pos[],
+): BookHit | null {
+  const direct = lookupIn(entries, moves)
+  // 候選＝鄰域（既有子 Chebyshev ≤2）空點中「子局面在書裡」的手；空盤只有直接條目。
+  const pool = new Map<number, BookHit>()
+  if (moves.length > 0) {
+    const occupied = new Set(moves.map((m) => m.y * SIZE + m.x))
+    const seen = new Set<number>()
+    for (const s of moves) {
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const x = s.x + dx
+          const y = s.y + dy
+          if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) continue
+          const cell = y * SIZE + x
+          if (occupied.has(cell) || seen.has(cell)) continue
+          seen.add(cell)
+          const child = lookupIn(entries, [...moves, { x, y }])
+          if (child) pool.set(cell, { move: { x, y }, score: -child.score, depth: child.depth })
+        }
+      }
+    }
+  }
+  // 直接條目對「它自己的手」是更權威的分數（本局面深算），覆蓋子局面推導值。
+  if (direct) pool.set(direct.move.y * SIZE + direct.move.x, direct)
+  if (pool.size === 0) return null
+  let best = -Infinity
+  for (const c of pool.values()) if (c.score > best) best = c.score
+  let picked: BookHit | null = null
+  let pickedCell = -1
+  for (const [cell, c] of pool) {
+    if (c.score < best - STABLE_MARGIN) continue
+    if (
+      picked === null ||
+      Math.abs(c.score) < Math.abs(picked.score) ||
+      (Math.abs(c.score) === Math.abs(picked.score) &&
+        (c.depth > picked.depth || (c.depth === picked.depth && cell < pickedCell)))
+    ) {
+      picked = c
+      pickedCell = cell
+    }
+  }
+  return picked
 }

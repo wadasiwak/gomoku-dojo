@@ -2,11 +2,16 @@
 // （每筆經本站引擎合法性雙驗；scripts/check-opening-book.mjs 可全量重驗）。
 // 查表核心（8 對稱歸一＋建議手反變換）在 lookup.ts，此檔只綁定資料與便利 API。
 import data from './book.json'
-import { lookupIn, type BookEntry, type BookHit } from './lookup.ts'
+import { lookupIn, lookupStableIn, type BookEntry, type BookHit } from './lookup.ts'
 import type { Color, Pos, Rule } from '../engine/types.ts'
 import { BLACK, WHITE } from '../engine/types.ts'
 
 export type { BookHit } from './lookup.ts'
+
+/** 開局書全難度啟用的手數上界：moves.length 小於此值時 L1-L3 也查書
+ *  （超出後僅 L4 用書——先前 L3 帶書自對弈 4勝8敗的書力/搜索力錯配教訓，
+ *  開局階段以穩健線偏好緩解，中局仍不讓淺搜吃書）。 */
+export const BOOK_EARLY_PLIES = 10
 
 interface BookData {
   version: number
@@ -38,6 +43,8 @@ export function bookOfferValue(moves4: readonly Pos[], candidate: Pos): number |
  * AI 手番查書（含紀律檢查閘門）：
  *   - 書僅涵蓋 renju（規約與自由連珠）；gomoku 一律不查。
  *   - 手順奇偶必須輪到 aiColor（防呆）。
+ *   - preferStable=true（L1-L3 開局）走穩健線查表：分數接近的等價候選中
+ *     偏好 |score| 最小的均衡線（見 lookupStableIn）；false（L4）取最佳線。
  *   - 命中後先問「對手是否有殺」（呼叫端注入 VCF 檢查，走既有 Worker）——
  *     對手有殺就不走書，回退搜索讓防守模式接手（防守紀律優先於書）。
  * 未命中／被閘門擋下回 null，呼叫端回退正常搜索。
@@ -47,11 +54,12 @@ export async function bookMoveWithDiscipline(
   rule: Rule,
   aiColor: Color,
   foeHasVcf: () => Promise<boolean>,
+  preferStable = false,
 ): Promise<BookHit | null> {
   if (rule !== 'renju') return null
   const toMove = moves.length % 2 === 0 ? BLACK : WHITE
   if (toMove !== aiColor) return null
-  const hit = bookLookup(moves)
+  const hit = preferStable ? lookupStableIn(BOOK.entries, moves) : bookLookup(moves)
   if (!hit) return null
   if (await foeHasVcf()) return null
   return hit
