@@ -1,12 +1,11 @@
-// 擺譜研究：自由擺子建局（黑/白/清除，不限手順），再切「試下」從指定
-// 手番開始黑白輪替試招，隨時按「AI 建議」讓引擎標出它會下哪。
+// 擺譜研究：自由擺子建局（預設輪流一黑一白；單色/清除工具保留），再切
+// 「試下」黑白輪替試招。分析統一走 Rapfi（擺子與試下階段皆可分析）。
 // 規則面：試下每手即時判五連/長連勝負；連珠模式黑踩禁手判負、可開
 // 全盤禁手點 ✕ 標記。擺子階段不做合法性限制（研究用，任意局面皆可）。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Board from './Board.tsx'
 import ImportBox from './ImportBox.tsx'
 import RapfiPanel from './RapfiPanel.tsx'
-import { coordName } from './coords.ts'
 import { EngineClient } from '../engine/client.ts'
 import { parseRecord } from '../engine/record.ts'
 import { createBoard } from '../engine/board.ts'
@@ -57,13 +56,9 @@ export default function Study({ record }: { record?: string }) {
     preset && preset.moves.length % 2 === 1 ? 'white' : 'black',
   )
   const [moves, setMoves] = useState<Pos[]>([])
-  const [level, setLevel] = useState<1 | 2 | 3 | 4>(3)
   const [showFb, setShowFb] = useState(true)
-  const [hint, setHint] = useState<Pos | null>(null)
-  const [rapfiMove, setRapfiMove] = useState<Pos | null>(null) // Rapfi 建議（另一顆 hint 圈）
-  const [thinking, setThinking] = useState(false)
+  const [rapfiMove, setRapfiMove] = useState<Pos | null>(null) // Rapfi 建議（hint 圈）
   const [forbidden, setForbidden] = useState<{ index: number; kind: string }[]>([])
-  const hintReqRef = useRef(0)
 
   // 試下模擬：從擺好的盤面起、依 first 輪替重放 moves，逐手判勝負/禁手。
   const sim = useMemo(() => {
@@ -105,10 +100,7 @@ export default function Study({ record }: { record?: string }) {
   }, [board])
 
   const clearHint = () => {
-    setHint(null)
     setRapfiMove(null)
-    hintReqRef.current++
-    setThinking(false)
   }
 
   // Rapfi 分析輸入：擺譜是任意局面（手順未必交替）→ 走 board 形式。
@@ -140,6 +132,7 @@ export default function Study({ record }: { record?: string }) {
   const onCell = (x: number, y: number) => {
     const cell = idx(x, y)
     if (phase === 'setup') {
+      clearHint() // 盤面變了，舊的 Rapfi 建議圈作廢
       setSetup((prev) => {
         const next = [...prev]
         if (tool === 'erase') next[cell] = EMPTY
@@ -167,20 +160,6 @@ export default function Study({ record }: { record?: string }) {
     clearHint()
   }
 
-  const suggest = () => {
-    if (!ongoing || thinking) return
-    const id = ++hintReqRef.current
-    setThinking(true)
-    client
-      .search(sim.board, sim.toMove, rule, level)
-      .then((r) => {
-        if (hintReqRef.current === id && r.move) setHint(r.move)
-      })
-      .finally(() => {
-        if (hintReqRef.current === id) setThinking(false)
-      })
-  }
-
   const startPlay = () => {
     setPhase('play')
     setMoves([])
@@ -197,14 +176,12 @@ export default function Study({ record }: { record?: string }) {
       ? `擺譜中：黑 ${stoneCount.black} 子、白 ${stoneCount.white} 子`
       : sim.over
         ? `試下結束：${sim.over}`
-        : thinking
-          ? 'AI 思考中…'
-          : `試下中：輪${sim.toMove === BLACK ? '黑' : '白'}（第 ${moves.length + 1} 手）`
+        : `試下中：輪${sim.toMove === BLACK ? '黑' : '白'}（第 ${moves.length + 1} 手）`
 
   return (
     <div className="page play-page">
       <div className="board-col">
-        <p className={`status${thinking ? ' thinking' : ''}${sim.over && phase === 'play' ? ' final' : ''}`}>
+        <p className={`status${sim.over && phase === 'play' ? ' final' : ''}`}>
           <b>{statusText}</b>
           <span className="muted">　{rule === 'renju' ? '連珠' : '無禁手'}</span>
           {phase === 'play' && rule === 'renju' && forbidden.length > 0 && (
@@ -215,7 +192,7 @@ export default function Study({ record }: { record?: string }) {
           board={board}
           lastMove={phase === 'play' ? (moves[moves.length - 1] ?? null) : null}
           numbered={phase === 'play' ? moves : undefined}
-          hint={hint ?? rapfiMove}
+          hint={rapfiMove}
           forbidden={forbidden.map((f) => ({
             x: f.index % 15,
             y: Math.floor(f.index / 15),
@@ -296,21 +273,8 @@ export default function Study({ record }: { record?: string }) {
           <>
             <h2>試下</h2>
             <p className="muted small">
-              黑白輪替落子；「AI 建議」標出引擎這手會下哪，點該處即照走。
+              黑白輪替落子；「Rapfi 分析」標出建議手，點該處即照走。
             </p>
-            <label>
-              AI 難度
-              <select
-                value={level}
-                onChange={(e) => setLevel(Number(e.target.value) as 1 | 2 | 3 | 4)}
-                aria-label="AI 難度"
-              >
-                <option value={1}>1 入門</option>
-                <option value={2}>2 進階</option>
-                <option value={3}>3 高手</option>
-                <option value={4}>4 最強</option>
-              </select>
-            </label>
             {rule === 'renju' && (
               <label className="row">
                 <input
@@ -322,9 +286,6 @@ export default function Study({ record }: { record?: string }) {
               </label>
             )}
             <div className="btn-row">
-              <button className="btn primary" onClick={suggest} disabled={!ongoing || thinking}>
-                {thinking ? 'AI 思考中…' : 'AI 建議'}
-              </button>
               <button
                 className="btn"
                 onClick={() => {
@@ -335,21 +296,6 @@ export default function Study({ record }: { record?: string }) {
               >
                 悔一手
               </button>
-            </div>
-            {hint && (
-              <p className="msg ok hint-line">
-                AI 建議：<b>{coordName(hint)}</b>（{sim.toMove === BLACK ? '黑' : '白'}）
-              </p>
-            )}
-            <RapfiPanel
-              buildInput={buildRapfiInput}
-              rule={rule}
-              positionKey={`${first}|${rule}|${moves.map((m) => `${m.x},${m.y}`).join(';')}`}
-              toMoveLabel={sim.toMove === BLACK ? '黑' : '白'}
-              disabled={!ongoing}
-              onMove={setRapfiMove}
-            />
-            <div className="btn-row">
               <button className="btn" onClick={backToSetup}>
                 回到擺譜
               </button>
@@ -357,6 +303,14 @@ export default function Study({ record }: { record?: string }) {
             <p className="muted small">試下 {moves.length} 手（回到擺譜會收掉試下）</p>
           </>
         )}
+        <RapfiPanel
+          buildInput={buildRapfiInput}
+          rule={rule}
+          positionKey={`${phase}|${rule}|${sim.toMove}|${Array.from(sim.board).join('')}`}
+          toMoveLabel={sim.toMove === BLACK ? '黑' : '白'}
+          disabled={phase === 'play' && !ongoing}
+          onMove={setRapfiMove}
+        />
       </aside>
     </div>
   )

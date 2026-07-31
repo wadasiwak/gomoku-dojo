@@ -825,3 +825,18 @@ footer {
 .foot-attr a {
   color: var(--muted);
 }
+
+/* 開局書檢視（隱藏頁 #/book） */
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 12px 0 20px;
+}
+.book-item svg {
+  width: 100%;
+  height: auto;
+}
+.book-item p {
+  margin: 6px 0 0;
+}

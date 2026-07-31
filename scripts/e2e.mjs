@@ -5,7 +5,7 @@
 //   4. 題庫：答錯 → 錯題本；答對（引擎判定）→ 通關；重練 → 連對 1
 //   5. 棋譜分享 URL 還原一致（round-trip）＋非法棋譜嚴格拒絕
 //   6. 自由研棋：重播中停在任一手岔出變化＋AI 建議＋回到棋譜
-//   7. 擺譜研究：擺子/清除 → 試下 → AI 建議
+//   7. 擺譜研究：擺子（輪流預設）/清除 → 試下（分析統一走 Rapfi）
 //   8. 開局圖鑑：26 卡片牆 → 詳情 → 用此開局對弈；猜名練習答對計分
 //   9. RIF 正式規約：AI 擺開局→換邊決定→白4→兩打→擇打→正常輪替；
 //      r2 棋譜 round-trip／竄改拒絕／悔棋規約下限
@@ -289,11 +289,11 @@ try {
     await page.locator('.status', { hasText: '試下中' }).waitFor({ timeout: 5000 })
     await cell(7, 8).click() // 試下第 1 手（黑）
     await waitStones(3)
-    await page.locator('button', { hasText: 'AI 建議' }).click()
-    await page.locator('.hint-mark').waitFor({ timeout: 20000 })
-    await page.screenshot({ path: `${OUT}/study-hint.png` })
     await page.locator('button', { hasText: '悔一手' }).click()
     await waitStones(2)
+    // 分析統一走 Rapfi（見 Rapfi 分析測項）；本站 AI 建議已自擺譜頁移除
+    if ((await page.locator('button', { hasText: 'AI 建議' }).count()) !== 0)
+      throw new Error('擺譜頁不應再有本站 AI 建議鍵')
   })
 
   // ---- 8. 開局圖鑑 ----------------------------------------------------------

@@ -13,6 +13,7 @@ export type Route =
   | { name: 'rules' }
   | { name: 'resources' }
   | { name: 'openings'; sub: string | null }
+  | { name: 'book' }
 
 export function parseHash(hash: string): Route {
   const h = hash.replace(/^#\/?/, '')
@@ -36,6 +37,8 @@ export function parseHash(hash: string): Route {
       return { name: 'resources' }
     case 'openings':
       return { name: 'openings', sub: rest[0] ?? null }
+    case 'book': // 隱藏頁：開局書檢視（不進導覽列）
+      return { name: 'book' }
     default:
       return { name: 'home' }
   }

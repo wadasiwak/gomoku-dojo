@@ -10,6 +10,7 @@ import Study from './ui/Study.tsx'
 import Rules from './ui/Rules.tsx'
 import Openings from './ui/Openings.tsx'
 import Resources from './ui/Resources.tsx'
+import BookExplorer from './ui/BookExplorer.tsx'
 import { RAPFI_ATTRIBUTION } from './analysis/rapfi.ts'
 import { useRoute } from './router.ts'
 
@@ -60,6 +61,7 @@ export default function App() {
         {route.name === 'rules' && <Rules />}
         {route.name === 'resources' && <Resources />}
         {route.name === 'openings' && <Openings sub={route.sub} />}
+        {route.name === 'book' && <BookExplorer />}
       </main>
       <footer>
         <p>

@@ -18,6 +18,8 @@ const BOOK = data as unknown as BookData
 
 export const BOOK_SOURCE = BOOK.source
 export const BOOK_SIZE = Object.keys(BOOK.entries).length
+/** 全部書條目（隱藏頁 #/book 檢視用；一般查表請走 bookLookup）。 */
+export const BOOK_ENTRIES = BOOK.entries
 
 /** 查書：手順（任意方位）→ 建議手（已反變換回實際盤方位）＋行棋方視角分數。
  *  書以連珠規則產生，僅在 renju 對局查。未命中回 null。 */
