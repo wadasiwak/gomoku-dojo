@@ -25,7 +25,7 @@ import {
   type Rule,
 } from '../engine/types.ts'
 
-type Tool = 'black' | 'white' | 'erase'
+type Tool = 'alternate' | 'black' | 'white' | 'erase'
 
 const KIND_LABEL: Record<string, string> = {
   overline: '長連',
@@ -45,7 +45,7 @@ export default function Study({ record }: { record?: string }) {
 
   const [rule, setRule] = useState<Rule>(preset?.rule ?? 'renju')
   const [phase, setPhase] = useState<'setup' | 'play'>('setup')
-  const [tool, setTool] = useState<Tool>('black')
+  const [tool, setTool] = useState<Tool>('alternate')
   const [setup, setSetup] = useState<number[]>(() => {
     const b = [...createBoard()]
     preset?.moves.forEach((m, i) => {
@@ -143,7 +143,20 @@ export default function Study({ record }: { record?: string }) {
       setSetup((prev) => {
         const next = [...prev]
         if (tool === 'erase') next[cell] = EMPTY
-        else if (tool === 'black') next[cell] = next[cell] === BLACK ? EMPTY : BLACK
+        else if (tool === 'alternate') {
+          // 輪流擺（預設）：依盤上子數決定下一顆顏色（黑≤白→黑），
+          // 點已有子則拿掉——拿掉後子數變了，下一顆顏色自動跟著對。
+          if (next[cell] !== EMPTY) next[cell] = EMPTY
+          else {
+            let nb = 0
+            let nw = 0
+            for (const v of next) {
+              if (v === BLACK) nb++
+              else if (v === WHITE) nw++
+            }
+            next[cell] = nb <= nw ? BLACK : WHITE
+          }
+        } else if (tool === 'black') next[cell] = next[cell] === BLACK ? EMPTY : BLACK
         else next[cell] = next[cell] === WHITE ? EMPTY : WHITE
         return next
       })
@@ -218,11 +231,12 @@ export default function Study({ record }: { record?: string }) {
           <>
             <h2>擺子</h2>
             <p className="muted small">
-              點交點放子／再點一次拿掉，不限手順；擺好後開始試下。
+              點交點放子／再點一次拿掉；「輪流」自動一黑一白，擺好後開始試下。
             </p>
             <div className="btn-row" role="group" aria-label="擺子工具">
               {(
                 [
+                  ['alternate', '⚫⚪ 輪流'],
                   ['black', '⚫ 黑子'],
                   ['white', '⚪ 白子'],
                   ['erase', '✕ 清除'],

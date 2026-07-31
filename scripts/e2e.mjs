@@ -266,7 +266,18 @@ try {
   await step('擺譜研究：擺子/清除→試下→AI 建議', async () => {
     await page.goto(`${BASE}/#/study`)
     await page.locator('.goban').waitFor()
-    await cell(7, 7).click() // 黑子
+    // 預設「輪流」：自動一黑一白；再點一次拿掉後子數重算
+    await cell(7, 7).click() // 輪流 → 黑
+    await cell(6, 6).click() // 輪流 → 白
+    if ((await page.locator('.stone.white').count()) !== 1)
+      throw new Error('輪流模式第二顆應為白子')
+    await cell(6, 6).click() // 再點拿掉
+    await waitStones(1)
+    await cell(6, 6).click() // 拿掉後重算 → 仍是白
+    if ((await page.locator('.stone.white').count()) !== 1)
+      throw new Error('輪流模式拿掉重擺應為白子')
+    await cell(6, 6).click() // 清掉，回到單黑，接原有單色工具流程
+    await waitStones(1)
     await page.locator('button', { hasText: '白子' }).click()
     await cell(8, 8).click() // 白子
     await cell(9, 9).click() // 白子（待清除）
