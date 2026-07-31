@@ -52,9 +52,9 @@ export default function Study({ record }: { record?: string }) {
     })
     return b
   })
-  const [first, setFirst] = useState<'black' | 'white'>(
-    preset && preset.moves.length % 2 === 1 ? 'white' : 'black',
-  )
+  // 手番預設「自動」＝依盤上子數（黑多一顆→輪白、一樣多→輪黑；輪流擺子
+  // 天然吻合）。擺出非交替局面（如淨多兩顆黑）或想強制手番時再手動指定。
+  const [first, setFirst] = useState<'auto' | 'black' | 'white'>('auto')
   const [moves, setMoves] = useState<Pos[]>([])
   const [showFb, setShowFb] = useState(true)
   const [rapfiMove, setRapfiMove] = useState<Pos | null>(null) // Rapfi 建議（hint 圈）
@@ -63,7 +63,18 @@ export default function Study({ record }: { record?: string }) {
   // 試下模擬：從擺好的盤面起、依 first 輪替重放 moves，逐手判勝負/禁手。
   const sim = useMemo(() => {
     const b = Uint8Array.from(setup)
-    let toMove: Color = first === 'black' ? BLACK : WHITE
+    let toMove: Color
+    if (first === 'auto') {
+      let nb = 0
+      let nw = 0
+      for (const v of setup) {
+        if (v === BLACK) nb++
+        else if (v === WHITE) nw++
+      }
+      toMove = nb > nw ? WHITE : BLACK
+    } else {
+      toMove = first === 'black' ? BLACK : WHITE
+    }
     let over: string | null = null
     for (const m of moves) {
       const color = toMove
@@ -244,9 +255,12 @@ export default function Study({ record }: { record?: string }) {
               接下來輪誰
               <select
                 value={first}
-                onChange={(e) => setFirst(e.target.value as 'black' | 'white')}
+                onChange={(e) => setFirst(e.target.value as 'auto' | 'black' | 'white')}
                 aria-label="接下來輪誰"
               >
+                <option value="auto">
+                  自動（依子數：輪{sim.toMove === BLACK ? '黑' : '白'}）
+                </option>
                 <option value="black">黑先</option>
                 <option value="white">白先</option>
               </select>
