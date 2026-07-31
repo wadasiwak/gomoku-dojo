@@ -3,6 +3,7 @@ import type { Color, Rule } from './types.ts'
 import type { Board } from './board.ts'
 import type { SearchResult } from './search.ts'
 import type { VcfResult } from './vcf.ts'
+import type { OfferCandidateScore } from './offer.ts'
 import type { WorkerRequest, WorkerResponse } from './worker.ts'
 
 /** Omit 不會分配到 union 的每個成員，這裡手動分配。 */
@@ -55,7 +56,8 @@ export class EngineClient {
     return this.call({ type: 'evaluate', board: [...board], color, rule })
   }
 
-  /** 各候選點落子後的靜態評分（color 落子、color 視角；規約兩打/擇打用）。 */
+  /** 各候選點落子後的靜態評分（color 落子、color 視角）。⚠️ 工具 API——靜態 eval
+   *  分不出「小虧」與「被殺穿」，規約兩打/擇打決策已改走 offerScan，勿再用於決策。 */
   evalMoves(
     board: Board,
     color: Color,
@@ -63,6 +65,17 @@ export class EngineClient {
     cells: number[],
   ): Promise<{ cell: number; score: number }[]> {
     return this.call({ type: 'evalmoves', board: [...board], color, rule, cells })
+  }
+
+  /** 規約兩打/擇打的引擎回退決策：各候選「落子後對手最佳應」淺搜評分＋
+   *  對手 VCF 安全篩（見 engine/offer.ts）。回傳已排序（安全優先、分數降冪）。 */
+  offerScan(
+    board: Board,
+    color: Color,
+    rule: Rule,
+    cells: number[],
+  ): Promise<OfferCandidateScore[]> {
+    return this.call({ type: 'offerscan', board: [...board], color, rule, cells })
   }
 
   dispose(): void {

@@ -5,9 +5,17 @@
 //     （playerColor 因此是由 swapped 推導的動態值），戰績按最終執色計。
 // AI 走 Web Worker 不卡 UI；AI 手番觸發用 pendingRef key 防 StrictMode 雙效應，
 // 悔棋前改 key 使在途結果失效（verify skill 鐵則，兩機制都要保住）。
-// 規約的 AI 決策在 UI 層編排 client API：換邊＝eval 前三手取優側；黑兩打＝
-// 最強兩個互不等價點（白會挑對黑較差的 → 黑提保底最高的一對）；白擇打＝
-// 取對黑較差點。決策附評分顯示。
+// 規約的 AI 決策在 UI 層編排：換邊＝eval 前三手取優側；黑兩打＝最強兩個互不
+// 等價點（白會挑對黑較差的 → 黑提保底最高的一對）；白擇打＝取對黑較差點。
+// 兩打/擇打走三層 fallback 鏈（決策附評分與來源標示）：
+//   1. 開局書命中 → 書值（Rapfi 離線深算）。
+//   2. 書 miss → Rapfi 即時決策（主力）：兩打＝YXNBEST 多 PV 取前兩個互不等價點、
+//      擇打＝兩點各短 think 取對黑較差者。首次要載 40MB 引擎，status 列顯示
+//      文字進度「載入分析引擎中…」。
+//   3. Rapfi 不可用（不支援 wasm SIMD／載入失敗）→ 本站引擎搜索回退
+//      （engine/offer.ts：對手最佳應淺搜＋VCF 安全篩）。
+// ⚠️ 靜態 evalMoves 已從決策路徑移除——它分不出「小虧」與「被殺穿」（2026-07
+// 國手實戰：名月+I10 書外局面，靜態把 −M19 的 H7 提進兩打，漏掉 +M50 的 G9）。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Board from './Board.tsx'
 import { coordName } from './Replay.tsx'
@@ -18,7 +26,6 @@ import {
   BLACK,
   WHITE,
   EMPTY,
-  SIZE,
   idx,
   posOf,
   opponent,
@@ -42,8 +49,11 @@ import {
   BALANCED_POOL,
   OPENING_KIND_LABEL,
 } from '../content/openings.ts'
-import { SYMMETRIES, canonicalBoardKey } from '../engine/symmetry.ts'
+import { SYMMETRIES } from '../engine/symmetry.ts'
+import { candidateCells, pickInequivalentPair, selectOfferPair } from '../engine/offer.ts'
 import { bookMoveWithDiscipline, bookOfferValue } from '../openings/index.ts'
+import { getRapfi, isRapfiSupported } from '../analysis/rapfi.ts'
+import { evalTextToScore } from '../analysis/protocol.ts'
 import {
   loadSettings,
   saveSettings,
@@ -75,24 +85,11 @@ declare global {
 
 const fmtScore = (s: number): string => `${s > 0 ? '+' : ''}${Math.round(s)}`
 
-/** 空點且 Chebyshev 距離 ≤2 內有任一子 → 兩打候選格。 */
-function candidateCells(board: Uint8Array | ArrayLike<number>): number[] {
-  const out: number[] = []
-  for (let y = 0; y < SIZE; y++)
-    for (let x = 0; x < SIZE; x++) {
-      if (board[idx(x, y)] !== EMPTY) continue
-      let near = false
-      for (let dy = -2; dy <= 2 && !near; dy++)
-        for (let dx = -2; dx <= 2 && !near; dx++) {
-          const nx = x + dx
-          const ny = y + dy
-          if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) continue
-          if (board[idx(nx, ny)] !== EMPTY) near = true
-        }
-      if (near) out.push(idx(x, y))
-    }
-  return out
-}
+/** 規約 Rapfi 決策的思考時間：兩打（多 PV 一次想）／擇打（兩點各短想）。 */
+const RIF_OFFER_THINK_MS = 2500
+const RIF_CHOOSE_THINK_MS = 2000
+/** 兩打要的 PV 數：前兩個互不對稱等價點通常在前 2~3 個裡，多要一點當備援。 */
+const RIF_NBEST = 4
 
 export default function Play({ record }: { record?: string }) {
   const clientRef = useRef<EngineClient | null>(null)
@@ -107,6 +104,8 @@ export default function Play({ record }: { record?: string }) {
   const [rifError, setRifError] = useState<string | null>(null)
   const [aiNotes, setAiNotes] = useState<string[]>([])
   const [thinking, setThinking] = useState(false)
+  /** 規約 Rapfi 決策首次載入引擎（40MB）的文字進度（%）；非載入中＝null。 */
+  const [rapfiLoad, setRapfiLoad] = useState<number | null>(null)
   const [resigned, setResigned] = useState(false)
   const [gameId, setGameId] = useState(1)
   const [forbidden, setForbidden] = useState<{ index: number; kind: string }[]>([])
@@ -154,6 +153,7 @@ export default function Play({ record }: { record?: string }) {
     setAiNotes([])
     setResigned(false)
     setThinking(false)
+    setRapfiLoad(null)
     setCopied(false)
     setAiBook(false)
     recordedRef.current = false
@@ -298,70 +298,97 @@ export default function Play({ record }: { record?: string }) {
     }
     if (phase === 'offer5') {
       // 黑兩打：白會擇「對黑較差」點 → 黑提保底最高的一對＝最強兩個互不等價點。
-      // 開局書有值（Rapfi 深算）優先；書內互不等價點不足兩個才回退輕量靜態 eval。
+      // 三層 fallback 鏈：開局書 → Rapfi 多 PV → 本站引擎搜索（見檔頭）。
       setThinking(true)
       const board = game.board
-      const keyWith = (cell: number): string => {
-        const b = Uint8Array.from(board)
-        b[cell] = BLACK
-        return canonicalBoardKey(b)
-      }
-      const pickPair = (
-        scored: { cell: number; score: number }[],
-      ): { a: { cell: number; score: number }; b: { cell: number; score: number } } | null => {
-        const a = scored[0]
-        if (!a) return null
-        const aKey = keyWith(a.cell)
-        for (let i = 1; i < scored.length; i++) {
-          if (keyWith(scored[i].cell) !== aKey) return { a, b: scored[i] }
-        }
-        return null
-      }
       const offerNote = (
         tag: string,
-        a: { cell: number; score: number },
-        b: { cell: number; score: number },
+        a: { cell: number; text: string },
+        b: { cell: number; text: string },
       ) => {
         const pa = posOf(a.cell)
         const pb = posOf(b.cell)
         if (dispatch({ type: 'offer', a: pa, b: pb }))
           setAiNotes((n) => [
             ...n,
-            `AI（黑）兩打${tag}：A ${coordName(pa)}（${fmtScore(a.score)}）／B ${coordName(pb)}（${fmtScore(b.score)}）`,
+            `AI（黑）兩打（${tag}）：A ${coordName(pa)}（${a.text}）／B ${coordName(pb)}（${b.text}）`,
           ])
       }
-      client
-        .forbiddenPoints(board)
-        .then((fps) => {
-          const bad = new Set(fps.map((f) => f.index))
-          const cells = candidateCells(board).filter((c) => !bad.has(c))
-          if (useBook) {
-            const fromBook = cells
-              .map((cell) => ({ cell, score: bookOfferValue(moves, posOf(cell)) }))
-              .filter((s): s is { cell: number; score: number } => s.score !== null)
-              .sort((a, z) => z.score - a.score || a.cell - z.cell)
-            const pair = pickPair(fromBook)
-            if (pair) {
-              if (pendingRef.current === key) offerNote('（開局書）', pair.a, pair.b)
-              return null
-            }
+      const run = async () => {
+        const fps = await client.forbiddenPoints(board)
+        if (pendingRef.current !== key) return
+        const bad = new Set(fps.map((f) => f.index))
+        const cells = candidateCells(board).filter((c) => !bad.has(c))
+        // 1) 開局書：互不等價點足兩個才用。
+        if (useBook) {
+          const fromBook = cells
+            .map((cell) => ({ cell, score: bookOfferValue(moves, posOf(cell)) }))
+            .filter((s): s is { cell: number; score: number } => s.score !== null)
+            .sort((a, z) => z.score - a.score || a.cell - z.cell)
+          const pair = pickInequivalentPair(board, BLACK, fromBook)
+          if (pair) {
+            offerNote(
+              '開局書',
+              { cell: pair.a.cell, text: fmtScore(pair.a.score) },
+              { cell: pair.b.cell, text: fmtScore(pair.b.score) },
+            )
+            return
           }
-          return client.evalMoves(board, BLACK, 'renju', cells)
-        })
-        .then((scored) => {
-          if (!scored || pendingRef.current !== key) return
-          scored.sort((a, z) => z.score - a.score)
-          const pair = pickPair(scored) ?? { a: scored[0], b: scored[1] }
-          offerNote('', pair.a, pair.b)
-        })
+        }
+        // 2) Rapfi 即時決策（主力）：多 PV（YXNBEST）取前兩個互不等價點。
+        if (isRapfiSupported()) {
+          try {
+            await getRapfi().preload((p) => {
+              if (pendingRef.current === key) setRapfiLoad(Math.round(p.progress * 100))
+            })
+            if (pendingRef.current !== key) return
+            setRapfiLoad(null)
+            const res = await getRapfi().analyzeNBest(
+              { moves },
+              'renju',
+              RIF_NBEST,
+              RIF_OFFER_THINK_MS,
+            )
+            if (pendingRef.current !== key) return
+            const scored = res.lines
+              .map((l) => ({ cell: idx(l.move.x, l.move.y), text: l.evalText ?? '—' }))
+              .filter((s) => board[s.cell] === EMPTY && !bad.has(s.cell))
+            const pair = pickInequivalentPair(board, BLACK, scored)
+            if (pair) {
+              offerNote('Rapfi', pair.a, pair.b)
+              return
+            }
+          } catch {
+            // 載入失敗/思考異常 → 第 3 層
+          } finally {
+            if (pendingRef.current === key) setRapfiLoad(null)
+          }
+        }
+        if (pendingRef.current !== key) return
+        // 3) 本站引擎搜索回退：對手最佳應淺搜＋VCF 安全篩（靜態 eval 不再決策）。
+        const scan = await client.offerScan(board, BLACK, 'renju', cells)
+        if (pendingRef.current !== key) return
+        const sel = selectOfferPair(board, BLACK, scan)
+        if (!sel) return
+        offerNote(
+          sel.unsafeCount > 0 ? '引擎搜索，無安全打點' : '引擎搜索',
+          { cell: sel.a.cell, text: fmtScore(sel.a.score) },
+          { cell: sel.b.cell, text: fmtScore(sel.b.score) },
+        )
+      }
+      run()
+        .catch(() => {})
         .finally(() => {
-          if (pendingRef.current === key) setThinking(false)
+          if (pendingRef.current === key) {
+            setThinking(false)
+            setRapfiLoad(null)
+          }
         })
       return
     }
     if (phase === 'choose5') {
-      // 白擇打：兩點各評「落黑子後」局面，取「對黑較差」點。書值（Rapfi 深算）
-      // 兩點皆有才用，否則回退靜態 eval（兩制分數尺度不同，不可混排）。
+      // 白擇打：兩點各評「落黑子後」局面，取「對黑較差」點。三層 fallback 鏈
+      // 同兩打（各層分數尺度不同，不可混排——同層兩點齊備才用該層）。
       setThinking(true)
       const [a, b] = rifMeta.offers!
       const chooseNote = (pickA: boolean, low: number, high: number, tag: string) => {
@@ -369,30 +396,76 @@ export default function Play({ record }: { record?: string }) {
         if (dispatch({ type: 'choose', pos: pick }))
           setAiNotes((n) => [
             ...n,
-            `AI（白）擇 ${coordName(pick)}${tag}：黑方評分 ${fmtScore(low)}（棄 ${coordName(pickA ? b : a)} ${fmtScore(high)}）`,
+            `AI（白）擇 ${coordName(pick)}（${tag}）：黑方評分 ${fmtScore(low)}（棄 ${coordName(pickA ? b : a)} ${fmtScore(high)}）`,
           ])
       }
-      const va = useBook ? bookOfferValue(moves, a) : null
-      const vb = useBook ? bookOfferValue(moves, b) : null
-      if (va !== null && vb !== null) {
-        setTimeout(() => {
+      const run = async () => {
+        // 1) 開局書：兩點皆有書值才用。
+        const va = useBook ? bookOfferValue(moves, a) : null
+        const vb = useBook ? bookOfferValue(moves, b) : null
+        if (va !== null && vb !== null) {
+          await new Promise((r) => setTimeout(r, 300))
           if (pendingRef.current !== key) return
-          const pickA = va <= vb
-          chooseNote(pickA, Math.min(va, vb), Math.max(va, vb), '（開局書）')
-          setThinking(false)
-        }, 300)
-        return
+          chooseNote(va <= vb, Math.min(va, vb), Math.max(va, vb), '開局書')
+          return
+        }
+        // 2) Rapfi：兩點各短 think（落黑子後白手番）→ 黑視角＝白視角取負。
+        if (isRapfiSupported()) {
+          try {
+            await getRapfi().preload((p) => {
+              if (pendingRef.current === key) setRapfiLoad(Math.round(p.progress * 100))
+            })
+            if (pendingRef.current !== key) return
+            setRapfiLoad(null)
+            const ra = await getRapfi().analyze(
+              { moves: [...moves, a] },
+              'renju',
+              RIF_CHOOSE_THINK_MS,
+            )
+            if (pendingRef.current !== key) return
+            const rb = await getRapfi().analyze(
+              { moves: [...moves, b] },
+              'renju',
+              RIF_CHOOSE_THINK_MS,
+            )
+            if (pendingRef.current !== key) return
+            const sa = evalTextToScore(ra.evalText)
+            const sb = evalTextToScore(rb.evalText)
+            if (sa !== null && sb !== null) {
+              const blackA = -sa
+              const blackB = -sb
+              chooseNote(blackA <= blackB, Math.min(blackA, blackB), Math.max(blackA, blackB), 'Rapfi')
+              return
+            }
+            // 任一點缺評分（秒殺/定式手）→ 誠實走第 3 層，不混尺度
+          } catch {
+            // 載入失敗/思考異常 → 第 3 層
+          } finally {
+            if (pendingRef.current === key) setRapfiLoad(null)
+          }
+        }
+        if (pendingRef.current !== key) return
+        // 3) 本站引擎搜索回退：同兩打的淺搜評分（黑視角），取較低者。
+        const cellA = idx(a.x, a.y)
+        const cellB = idx(b.x, b.y)
+        const scan = await client.offerScan(game.board, BLACK, 'renju', [cellA, cellB])
+        if (pendingRef.current !== key || scan.length < 2) return
+        const ra = scan.find((s) => s.cell === cellA)!
+        const rb = scan.find((s) => s.cell === cellB)!
+        chooseNote(
+          ra.score <= rb.score,
+          Math.min(ra.score, rb.score),
+          Math.max(ra.score, rb.score),
+          '引擎搜索',
+        )
       }
-      client
-        .evalMoves(game.board, BLACK, 'renju', [idx(a.x, a.y), idx(b.x, b.y)])
-        .then((scored) => {
-          if (pendingRef.current !== key || scored.length < 2) return
-          const [ra, rb] = scored
-          const pickA = ra.score <= rb.score
-          chooseNote(pickA, Math.min(ra.score, rb.score), Math.max(ra.score, rb.score), '')
-        })
+      run()
+        .catch(() => {})
         .finally(() => {
-          if (pendingRef.current === key) setThinking(false)
+          if (pendingRef.current === key) {
+            setThinking(false)
+            setRapfiLoad(null)
+          }
         })
       return
     }
@@ -463,6 +536,7 @@ export default function Play({ record }: { record?: string }) {
     setRifError(null)
     setAiNotes([])
     setResigned(false)
+    setRapfiLoad(null)
     setAiBook(false)
     recordedRef.current = false
     pendingRef.current = ''
@@ -590,7 +664,9 @@ export default function Play({ record }: { record?: string }) {
           ]
         }）`
     : thinking
-      ? 'AI 思考中…'
+      ? rapfiLoad !== null
+        ? `載入分析引擎中… ${rapfiLoad}%（首次約 40MB，之後走快取）`
+        : 'AI 思考中…'
       : mode === 'rif'
         ? rifStatus()
         : game.toMove === playerColor

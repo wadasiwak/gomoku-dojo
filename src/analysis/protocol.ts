@@ -10,6 +10,13 @@
 //   最後一行才是 "x,y" 落點；秒殺／開局定式手可能完全沒有 INFO 行（欄位要 optional）。
 // - EVAL 是引擎原生字串（如 "+128"、"+M15"＝15 步內必勝、"-M6"）；WINRATE 0..1。
 // - `YXSHOWFORBID` 回 `FORBID xxyy xxyy .`（兩位數座標對，尾隨句點）。
+// - 多 PV（YXNBEST，2026-07 對名月+I10 局面實測）：`YXNBEST n` 是「立即思考並回報
+//   n 個最佳手」的指令本身（不是持續生效的模式開關）——要先用 YXBOARD 設好局面、
+//   INFO 設定送齊，再送 `YXNBEST n`。思考中每輪迭代對每個 PV 輸出一個區塊：
+//     INFO PV <i>（i 從 0 起、0＝最佳）→ INFO NUMPV <n> → INFO DEPTH/EVAL/WINRATE/
+//     BESTLINE …（皆為該 PV 的值）→ INFO PV DONE
+//   結束仍只輸出單行最佳手 "x,y"——n 個候選要從「最後一輪迭代」的 PV 區塊組回
+//   （每塊 BESTLINE 首手＝該候選、EVAL＝該候選分數，皆為待思考方視角）。
 import { BLACK, WHITE, type Color, type Pos, type Rule } from '../engine/types.ts'
 
 /** Gomocup INFO RULE 代碼：本站 gomoku（無禁、長連勝）→ 0 FREESTYLE；renju → 4 RENJU。 */
@@ -57,6 +64,9 @@ export type EngineLine =
   | { kind: 'depth'; value: number }
   | { kind: 'nodes'; value: number }
   | { kind: 'bestline'; pv: Pos[] } // 主變化（第一手＝建議手）
+  | { kind: 'pv'; index: number } // 多 PV 區塊開始（YXNBEST；0＝最佳）
+  | { kind: 'pvdone' } // 多 PV 區塊結束
+  | { kind: 'numpv'; value: number } // 本輪迭代實際 PV 數
   | { kind: 'forbid'; points: Pos[] } // YXSHOWFORBID 回覆
   | { kind: 'message'; text: string } // MESSAGE 雜訊（載入權重、思考摘要等）
   | { kind: 'error'; text: string }
@@ -91,6 +101,10 @@ export function parseEngineLine(line: string): EngineLine {
     const key = tail.slice(0, sp2)
     const val = tail.slice(sp2 + 1)
     switch (key) {
+      case 'PV':
+        return val === 'DONE' ? { kind: 'pvdone' } : { kind: 'pv', index: +val }
+      case 'NUMPV':
+        return { kind: 'numpv', value: +val }
       case 'EVAL':
         return { kind: 'eval', text: val }
       case 'WINRATE':
@@ -111,6 +125,19 @@ export function parseEngineLine(line: string): EngineLine {
     }
   }
   return { kind: 'other', text: line }
+}
+
+/** Rapfi 殺分基準：EVAL "+Mn"＝n 步（ply）內必勝 → 數值化為 RAPFI_MATE − n。 */
+export const RAPFI_MATE = 30000
+
+/** EVAL 原生字串 → 數值分（待思考方視角）。"+M15" → 29985、"-M6" → −29994、
+ *  "+128" → 128。無法解析（undefined／非數字）回 null——呼叫端自行決定回退。 */
+export function evalTextToScore(text: string | undefined): number | null {
+  if (!text) return null
+  if (text.startsWith('+M')) return RAPFI_MATE - parseInt(text.slice(2) || '0', 10)
+  if (text.startsWith('-M')) return -RAPFI_MATE + parseInt(text.slice(2) || '0', 10)
+  const v = parseInt(text, 10)
+  return Number.isFinite(v) ? v : null
 }
 
 /** analyze 一次思考前要送的設定指令（不含 START/BOARD）。 */

@@ -9,6 +9,8 @@ import {
   movesToStones,
   boardToStones,
   parseEngineLine,
+  evalTextToScore,
+  RAPFI_MATE,
 } from '../protocol.ts'
 
 describe('RULE_CODE', () => {
@@ -97,10 +99,34 @@ describe('parseEngineLine（實測輸出行）', () => {
     })
   })
 
+  it('多 PV（YXNBEST）區塊框：INFO PV <i>／INFO PV DONE／INFO NUMPV', () => {
+    expect(parseEngineLine('INFO PV 0')).toEqual({ kind: 'pv', index: 0 })
+    expect(parseEngineLine('INFO PV 2')).toEqual({ kind: 'pv', index: 2 })
+    expect(parseEngineLine('INFO PV DONE')).toEqual({ kind: 'pvdone' })
+    expect(parseEngineLine('INFO NUMPV 3')).toEqual({ kind: 'numpv', value: 3 })
+  })
+
   it('OK／未知行歸 other，不炸', () => {
     expect(parseEngineLine('OK').kind).toBe('other')
-    expect(parseEngineLine('INFO PV DONE').kind).toBe('other')
     expect(parseEngineLine('INFO MAX_HASH_SIZE 30').kind).toBe('other')
+  })
+})
+
+describe('evalTextToScore', () => {
+  it('殺分：+M15 → 29985、-M19 → −29981', () => {
+    expect(evalTextToScore('+M15')).toBe(RAPFI_MATE - 15)
+    expect(evalTextToScore('-M19')).toBe(-RAPFI_MATE + 19)
+  })
+
+  it('一般分數（實測 EVAL 正值不帶 + 號）', () => {
+    expect(evalTextToScore('166')).toBe(166)
+    expect(evalTextToScore('+128')).toBe(128)
+    expect(evalTextToScore('-82')).toBe(-82)
+  })
+
+  it('缺值/非數字 → null（呼叫端自行回退）', () => {
+    expect(evalTextToScore(undefined)).toBeNull()
+    expect(evalTextToScore('abc')).toBeNull()
   })
 })
 

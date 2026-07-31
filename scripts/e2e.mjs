@@ -8,7 +8,8 @@
 //   7. 擺譜研究：擺子（輪流預設）/清除 → 試下（分析統一走 Rapfi）
 //   8. 開局圖鑑：26 卡片牆 → 詳情 → 用此開局對弈；猜名練習答對計分
 //   9. RIF 正式規約：AI 擺開局→換邊決定→白4→兩打→擇打→正常輪替；
-//      r2 棋譜 round-trip／竄改拒絕／悔棋規約下限
+//      r2 棋譜 round-trip／竄改拒絕／悔棋規約下限；
+//      兩打迴歸（名月+I10 書外局面）：Rapfi 決策來源、不含 H7、兩點 node 端深驗
 //  10. GoatCounter path 只回報 pathname（無 hash/query）
 //  11. 匯入棋譜：座標序列（容錯分隔）→重播；非法行內指出第幾手；擺譜頁載入
 //  12. 資源頁：三站外連＋關係聲明＋footer Rapfi 致謝
@@ -16,12 +17,20 @@
 //
 //   npm run build && node scripts/e2e.mjs
 import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { chromium } from 'playwright'
 import { findFivePoints } from '../src/engine/vcf.ts'
 import { BLACK, WHITE, posOf } from '../src/engine/types.ts'
+import {
+  buildBoardCommand,
+  buildThinkSetup,
+  movesToStones,
+  parseEngineLine,
+  evalTextToScore,
+} from '../src/analysis/protocol.ts'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 5311
@@ -47,6 +56,50 @@ async function waitServer() {
     await new Promise((r) => setTimeout(r, 500))
   }
   throw new Error('preview server 起不來')
+}
+
+// ---- node 端 Rapfi（規約兩打深驗用；與 scripts/rapfi-smoke.mjs 同載入手法）----
+let nodeRapfi = null
+async function nodeRapfiEngine() {
+  if (nodeRapfi) return nodeRapfi
+  const require = createRequire(import.meta.url)
+  const DIR = join(ROOT, 'public', 'rapfi') + '/'
+  const file = DIR + 'rapfi-single-simd128.js'
+  // repo 是 "type": "module"，Emscripten glue 要以 CJS 語意手動執行
+  const mod = { exports: {} }
+  new Function('module', 'exports', 'require', '__dirname', '__filename', readFileSync(file, 'utf8'))(
+    mod,
+    mod.exports,
+    require,
+    DIR,
+    file,
+  )
+  const events = []
+  const engine = await mod.exports({
+    locateFile: (url) => DIR + url,
+    onReceiveStdout: (line) => events.push(parseEngineLine(line)),
+    onReceiveStderr: () => {},
+    onExit: () => {},
+  })
+  engine.sendCommand('START 15')
+  nodeRapfi = { engine, events }
+  return nodeRapfi
+}
+
+/** moves（黑先交替）局面 think：回傳 { move, score }（score＝待思考方視角數值）。 */
+async function nodeRapfiThink(moves, ms) {
+  const { engine, events } = await nodeRapfiEngine()
+  events.length = 0
+  const toMove = moves.length % 2 === 0 ? BLACK : WHITE
+  const cmds = [...buildThinkSetup('renju', ms), buildBoardCommand(movesToStones(moves), toMove)]
+  for (const c of cmds) engine.sendCommand(c) // 單執行緒 build：sendCommand 同步想完
+  let move = null
+  let evalText
+  for (const e of events) {
+    if (e.kind === 'move') move = e.pos
+    else if (e.kind === 'eval') evalText = e.text
+  }
+  return { move, score: evalTextToScore(evalText) ?? 0 }
 }
 
 const fails = []
@@ -341,7 +394,8 @@ try {
     await page.locator('button', { hasText: '不換邊' }).click()
     await page.locator('.status', { hasText: '第 4 手' }).waitFor({ timeout: 5000 })
     await cell(1, 1).click() // 白4 任意空點（遠離中央開局區）
-    await page.locator('.pt-mark').first().waitFor({ timeout: 25000 }) // AI 兩打 A/B
+    // 白4 (1,1) 必為書外 → AI 兩打走 Rapfi 即時決策；首載 40MB（本機）放寬 timeout
+    await page.locator('.pt-mark').first().waitFor({ timeout: 150000 }) // AI 兩打 A/B
     const nMarks = await page.locator('.pt-mark').count()
     if (nMarks !== 2) throw new Error(`兩打標記數 ${nMarks} ≠ 2`)
     await page.screenshot({ path: `${OUT}/rif-offers.png` })
@@ -388,8 +442,9 @@ try {
     await cell(free[0][0], free[0][1]).click()
     await cell(free[1][0], free[1][1]).click()
     await page.locator('button', { hasText: '確定兩打' }).click()
-    // AI（白）擇打成立第 5 手後緊接搜索第 6 手，兩步可能連跳 → 等至少 6
-    await waitStonesAtLeast(6)
+    // AI（白）擇打成立第 5 手後緊接搜索第 6 手，兩步可能連跳 → 等至少 6。
+    // 擇打書 miss 時走 Rapfi（兩點各短 think），timeout 放寬。
+    await waitStonesAtLeast(6, 120000)
     const info = await page.locator('.rif-info').innerText()
     if (!/彗星/.test(info)) throw new Error(`規約紀錄應含彗星：${info}`)
     if (!/AI（白）擇/.test(info)) throw new Error(`規約紀錄缺 AI 擇打說明：${info}`)
@@ -425,6 +480,52 @@ try {
     await waitStones(6)
     const disabled = await page.locator('button', { hasText: '悔棋' }).isDisabled()
     if (!disabled) throw new Error('悔棋應在觸及規約下限（第 5 手）後停用')
+  })
+
+  // 名月（H8 I9 G6）＋白4 I10：書外局面（書只收每開局白4 top-3 分支）。
+  // 2026-07 國手實戰迴歸：舊靜態 eval 決策在此提出 I8/H7，H7 真值 −M19（白必勝）。
+  const MEIGETSU_I10 = 'r2:hhiggjif:oi12s0'
+  const MEIGETSU_I10_MOVES = [
+    { x: 7, y: 7 },
+    { x: 8, y: 6 },
+    { x: 6, y: 9 },
+    { x: 8, y: 5 },
+  ]
+  let offeredPair = null // 兩打座標，交給下一步 node 端深驗
+  await step('規約兩打迴歸（名月+I10 書外）：Rapfi 決策來源＋不含 H7', async () => {
+    await page.goto(`${BASE}/#/play`)
+    await page.waitForFunction(() => !!window.__dojo, undefined, { timeout: 10000 })
+    const ok = await page.evaluate(
+      (r) => window.__dojo.loadPlay(r, { player: 'white' }),
+      MEIGETSU_I10,
+    )
+    if (!ok) throw new Error('loadPlay 拒絕了名月+I10 規約譜')
+    // 書 miss → AI（黑）走 Rapfi 即時決策提兩打（此瀏覽器 session 可能首載 40MB，放寬）
+    await page.locator('.pt-mark').first().waitFor({ timeout: 150000 })
+    const marks = await page.$$eval('.pt-mark', (els) =>
+      els.map((e) => e.getAttribute('data-pos')),
+    )
+    if (marks.length !== 2) throw new Error(`兩打標記數 ${marks.length} ≠ 2`)
+    if (marks.includes('7,8')) throw new Error(`兩打含被殺穿的 H7：${marks.join(' / ')}`)
+    const note = await page.locator('.rif-info').innerText()
+    if (!/兩打（Rapfi）/.test(note)) throw new Error(`決策來源未標示 Rapfi：${note}`)
+    await page.screenshot({ path: `${OUT}/rif-offer-rapfi.png` })
+    offeredPair = marks.map((s) => {
+      const [x, y] = s.split(',').map(Number)
+      return { x, y }
+    })
+  })
+
+  await step('規約兩打迴歸：兩點 node 端 Rapfi 短驗（黑視角 > −5000）', async () => {
+    if (!offeredPair) throw new Error('前一步未取得兩打，無從深驗')
+    for (const p of offeredPair) {
+      // 落黑子後白手番 think 3s → 黑視角＝白視角取負；−5000 已寬（−M 級 ≈ −30000）
+      const r = await nodeRapfiThink([...MEIGETSU_I10_MOVES, p], 3000)
+      const blackView = -r.score
+      console.log(`    兩打 (${p.x},${p.y}) Rapfi 3s 黑視角 ${blackView}`)
+      if (blackView <= -5000)
+        throw new Error(`兩打 (${p.x},${p.y}) 深驗黑視角 ${blackView} ≤ −5000（提了被殺穿的點）`)
+    }
   })
 
   // ---- 10. GoatCounter path ------------------------------------------------

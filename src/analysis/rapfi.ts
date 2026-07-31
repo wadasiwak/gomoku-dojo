@@ -48,6 +48,21 @@ export interface RapfiAnalysis {
   timeMs: number
 }
 
+/** 多 PV（YXNBEST）單一候選：move＝該 PV 首手，evalText＝該候選分數（待思考方視角）。 */
+export interface RapfiPvLine {
+  move: Pos
+  pv: Pos[]
+  evalText?: string
+  winrate?: number
+  depth?: number
+}
+
+export interface RapfiNBestResult {
+  /** 依 PV 序（0＝引擎認定最佳）；長度可能少於要求的 n（合法候選不足）。 */
+  lines: RapfiPvLine[]
+  timeMs: number
+}
+
 export interface RapfiLoadProgress {
   /** 0..1；權重檔（40MB）下載進度。 */
   progress: number
@@ -231,6 +246,108 @@ export class RapfiClient {
       })
     }
     // 佇列化：前一件分析完（或失敗）才跑下一件
+    const next = this.queue.then(run, run)
+    this.queue = next.catch(() => {})
+    return next
+  }
+
+  /**
+   * 多 PV 分析：回傳 n 個最佳候選（各含首手/評分/主變化）。規約兩打（黑提兩個
+   * 互不等價的第 5 手）等「要不只一個建議」的場景用。
+   * 協定（實測見 protocol.ts 檔頭）：YXBOARD 設局面後送 `YXNBEST n`（該指令本身
+   * 觸發思考）；每輪迭代對每個 PV 輸出 INFO PV <i> … INFO PV DONE 區塊，
+   * 結束仍只回單行最佳手——候選組回「最後一輪」各 PV 區塊（BESTLINE 首手＋EVAL）。
+   */
+  analyzeNBest(
+    input: RapfiInput,
+    rule: Rule,
+    n: number,
+    thinkTimeMs = 3000,
+  ): Promise<RapfiNBestResult> {
+    const run = async (): Promise<RapfiNBestResult> => {
+      await this.ensureLoaded()
+
+      let stones: StonePlacement[]
+      let toMove: Color
+      if ('moves' in input) {
+        stones = movesToStones(input.moves)
+        toMove = input.moves.length % 2 === 0 ? BLACK : WHITE
+      } else {
+        stones = boardToStones(input.board.black, input.board.white)
+        toMove = input.board.toMove
+      }
+
+      const t0 = Date.now()
+      return await new Promise<RapfiNBestResult>((resolve, reject) => {
+        /** 每個 PV index 的最新已完成區塊（逐輪迭代覆寫，留最後一輪）。 */
+        const committed = new Map<number, RapfiPvLine>()
+        let cur: (RapfiPvLine & { index: number }) | null = null
+        const timer = setTimeout(() => {
+          this.lineHandler = null
+          reject(new Error(`Rapfi 思考逾時（>${thinkTimeMs + 30_000}ms），worker 可能異常`))
+        }, thinkTimeMs + 30_000)
+
+        this.lineHandler = (line) => {
+          const ev = parseEngineLine(line)
+          switch (ev.kind) {
+            case 'pv':
+              cur = { index: ev.index, move: { x: -1, y: -1 }, pv: [] }
+              break
+            case 'eval':
+              if (cur) cur.evalText = ev.text
+              break
+            case 'winrate':
+              if (cur) cur.winrate = ev.value
+              break
+            case 'depth':
+              if (cur) cur.depth = ev.value
+              break
+            case 'bestline':
+              if (cur && ev.pv.length > 0) {
+                cur.pv = ev.pv
+                cur.move = ev.pv[0]
+              }
+              break
+            case 'pvdone':
+              // 沒有 BESTLINE 的區塊（理論上不會有）不進結果
+              if (cur && cur.pv.length > 0)
+                committed.set(cur.index, {
+                  move: cur.move,
+                  pv: cur.pv,
+                  evalText: cur.evalText,
+                  winrate: cur.winrate,
+                  depth: cur.depth,
+                })
+              cur = null
+              break
+            case 'move': {
+              clearTimeout(timer)
+              this.lineHandler = null
+              const lines = [...committed.entries()]
+                .sort((a, z) => a[0] - z[0])
+                .map(([, l]) => l)
+              // 秒殺／定式手可能完全沒有 PV 區塊 → 退化為單一建議手
+              resolve({
+                lines: lines.length > 0 ? lines : [{ move: ev.pos, pv: [ev.pos] }],
+                timeMs: Date.now() - t0,
+              })
+              break
+            }
+            case 'error':
+              clearTimeout(timer)
+              this.lineHandler = null
+              reject(new Error(`Rapfi：${ev.text}`))
+              break
+            default:
+              break
+          }
+        }
+
+        for (const cmd of buildThinkSetup(rule, thinkTimeMs)) this.send(cmd)
+        this.send(buildBoardCommand(stones, toMove, false)) // YXBOARD：只設局面
+        this.send(`YXNBEST ${n}`) // 指令本身觸發思考
+      })
+    }
     const next = this.queue.then(run, run)
     this.queue = next.catch(() => {})
     return next

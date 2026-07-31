@@ -5,7 +5,10 @@
 //   → { id, type: 'forbidden', board: number[] }           // 全盤黑禁手點
 //   → { id, type: 'evaluate', board: number[], color, rule }        // 靜態評分
 //   → { id, type: 'evalmoves', board: number[], color, rule, cells } // 各候選點
-//        落子後的靜態評分（規約換邊/兩打/擇打的輕量決策用）
+//        落子後的靜態評分（工具 API；規約兩打/擇打決策已改走 offerscan，
+//        靜態 eval 分不出「小虧」與「被殺穿」，不再當決策依據）
+//   → { id, type: 'offerscan', board: number[], color, rule, cells } // 規約兩打/
+//        擇打回退決策：各候選「落子後對手最佳應」淺搜評分＋對手 VCF 安全篩
 //   → { id, type: 'ping' }
 //   ← { id, ok: true, result } | { id, ok: false, error }
 import { EMPTY, type Color, type Rule } from './types.ts'
@@ -13,6 +16,7 @@ import { search, LEVELS } from './search.ts'
 import { solveVcf } from './vcf.ts'
 import { findForbiddenPoints } from './forbidden.ts'
 import { evaluate } from './eval.ts'
+import { scanOfferCandidates } from './offer.ts'
 
 export type WorkerRequest =
   | { id: number; type: 'search'; board: number[]; color: Color; rule: Rule; level: 1 | 2 | 3 | 4 }
@@ -31,6 +35,14 @@ export type WorkerRequest =
   | {
       id: number
       type: 'evalmoves'
+      board: number[]
+      color: Color
+      rule: Rule
+      cells: number[]
+    }
+  | {
+      id: number
+      type: 'offerscan'
       board: number[]
       color: Color
       rule: Rule
@@ -75,6 +87,10 @@ function handle(req: WorkerRequest): unknown {
         b[cell] = EMPTY
         return { cell, score }
       })
+    }
+    case 'offerscan': {
+      const b = Uint8Array.from(req.board)
+      return scanOfferCandidates(b, req.color, req.rule, req.cells)
     }
   }
 }
