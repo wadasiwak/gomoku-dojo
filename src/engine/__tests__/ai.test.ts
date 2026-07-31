@@ -306,4 +306,7 @@ describe('速度判斷／防守模式（國手框架二輪：比殺的快慢決�
     expect(r.viaDefense).toBe(true)
     expect(r.move).toEqual({ x: 8, y: 7 })
   }, 10000)
+
+  // 「活四不是無條件快過對手」的實戰迴歸在 defense-race.test.ts（獨立檔避免
+  // 長同步搜索餓死 vitest worker RPC 心跳）。
 })

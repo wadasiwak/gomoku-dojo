@@ -333,7 +333,10 @@ function filterDefenseMoves(
     } else {
       const comp = fourCompletions(b, m.x, m.y, color, opts.rule)
       if (comp && comp.length >= 2) {
-        keep = true // 活四/雙四＝下一手必成五，快過 foe
+        // 活四/雙四「下一手必成五」要快過 foe 的前提：foe 接手沒有一手成五。
+        // foe 有立即五點時輪不到我方收五（國手實戰抓包：白 F9 活四 vs 黑 F4
+        // 一手成五，白永遠等不到下一手）——此時活四只是送終，不得存活。
+        keep = findFivePoints(b, foe, opts.rule).length === 0
       } else {
         if (comp && comp.length === 1) {
           const ep = posOf(comp[0])
