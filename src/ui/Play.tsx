@@ -104,6 +104,11 @@ export default function Play({ record }: { record?: string }) {
   const [rifError, setRifError] = useState<string | null>(null)
   const [aiNotes, setAiNotes] = useState<string[]>([])
   const [thinking, setThinking] = useState(false)
+  /** AI 手番看門狗：>20s 未落子自動重試一次（清 pendingRef 讓 effect 重跑），
+   *  再失敗顯示明確錯誤——把「有時 AI 沒反應」的未知競態變成可自癒/可見。 */
+  const [aiRetryTick, setAiRetryTick] = useState(0)
+  const [aiStalled, setAiStalled] = useState(false)
+  const aiRetryCountRef = useRef(0)
   /** 規約 Rapfi 決策首次載入引擎（40MB）的文字進度（%）；非載入中＝null。 */
   const [rapfiLoad, setRapfiLoad] = useState<number | null>(null)
   const [resigned, setResigned] = useState(false)
@@ -159,6 +164,8 @@ export default function Play({ record }: { record?: string }) {
     recordedRef.current = false
     pendingRef.current = ''
     aiOpeningRef.current = null
+    aiRetryCountRef.current = 0
+    setAiStalled(false)
     setGameId((n) => n + 1)
   }
 
@@ -196,13 +203,32 @@ export default function Play({ record }: { record?: string }) {
     // 國手實戰教訓（2026-07-31，白 13 手敗定）：書原本只在 L4 生效且缺
     // 「黑先第 1 手之後」的白 2 條目，白 2 落到裸搜索選出飄遠的 F10。
     // 規約 offer/擇打的書「評值」不在此限（那是評估參考，不把局面帶進書路線）。
+    // 看門狗：促成自癒。任何未預期的競態（promise 未決/被吞）超過 20s 就清
+    // pendingRef 讓 effect 重跑；重試 2 次仍卡才亮錯誤，不讓「AI 思考中…」永轉。
+    const watchdog = setTimeout(() => {
+      if (pendingRef.current !== key) return
+      pendingRef.current = ''
+      setThinking(false)
+      if (aiRetryCountRef.current < 2) {
+        aiRetryCountRef.current++
+        console.error(`AI 手番看門狗觸發（第 ${aiRetryCountRef.current} 次重試）`, key)
+        setAiRetryTick((n) => n + 1)
+      } else {
+        console.error('AI 手番重試仍無回應', key)
+        setAiStalled(true)
+      }
+    }, 20000)
     const viaBook = useBook && (level === 4 || moves.length < BOOK_EARLY_PLIES)
-      ? bookMoveWithDiscipline(moves, rule, aiColor, foeHasVcf, level < 4)
+      ? bookMoveWithDiscipline(moves, rule, aiColor, foeHasVcf, level < 4).catch((e) => {
+          console.error('開局書查詢異常，回退搜索', e)
+          return null
+        })
       : Promise.resolve(null)
     viaBook
       .then((hit) => {
         if (pendingRef.current !== key) return
         if (hit) {
+          aiRetryCountRef.current = 0
           setAiBook(true)
           setMoves((prev) => [...prev, hit.move])
           return
@@ -210,14 +236,17 @@ export default function Play({ record }: { record?: string }) {
         return client.search(game.board, aiColor, rule, level).then((r) => {
           if (pendingRef.current !== key || !r.move) return
           const m = r.move
+          aiRetryCountRef.current = 0
           setAiBook(false)
           setMoves((prev) => [...prev, { x: m.x, y: m.y }])
         })
       })
       .finally(() => {
+        clearTimeout(watchdog)
         if (pendingRef.current === key) setThinking(false)
       })
-  }, [client, ongoing, game, aiColor, playerColor, rule, level, moves, gameId, mode, phase, useBook])
+    return () => clearTimeout(watchdog)
+  }, [client, ongoing, game, aiColor, playerColor, rule, level, moves, gameId, mode, phase, useBook, aiRetryTick])
 
   // 規約流程的 AI 決策（擺開局/換邊/兩打/擇打）。與上面的搜索 effect 互斥
   // （phase 條件不重疊），共用 pendingRef 防雙觸發。
@@ -544,6 +573,8 @@ export default function Play({ record }: { record?: string }) {
     recordedRef.current = false
     pendingRef.current = ''
     aiOpeningRef.current = null
+    aiRetryCountRef.current = 0
+    setAiStalled(false)
     setGameId((n) => n + 1)
     return true
   }
@@ -850,6 +881,12 @@ export default function Play({ record }: { record?: string }) {
           </div>
         )}
         {rifError && <p className="msg err">{rifError}</p>}
+        {aiStalled && (
+          <p className="msg err">
+            AI 沒有回應（已自動重試 2 次）。請按「重開」再試；若重複發生，請硬重新整理
+            （Cmd/Ctrl+Shift+R）更新版本後回報。
+          </p>
+        )}
         {mode === 'rif' && (moves.length > 0 || aiNotes.length > 0) && (
           <div className="rif-info">
             {opening && (
