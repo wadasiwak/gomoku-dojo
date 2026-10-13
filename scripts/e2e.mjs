@@ -316,37 +316,47 @@ try {
   })
 
   // ---- 7. 擺譜研究 ---------------------------------------------------------
-  await step('擺譜研究：擺子/清除→試下→AI 建議', async () => {
+  await step('擺譜研究：一黑一白依序落子→編號→退一手→無工具列', async () => {
     await page.goto(`${BASE}/#/study`)
     await page.locator('.goban').waitFor()
-    // 預設「輪流」：自動一黑一白；再點一次拿掉後子數重算
-    await cell(7, 7).click() // 輪流 → 黑
-    await cell(6, 6).click() // 輪流 → 白
-    if ((await page.locator('.stone.white').count()) !== 1)
-      throw new Error('輪流模式第二顆應為白子')
-    await cell(6, 6).click() // 再點拿掉
-    await waitStones(1)
-    await cell(6, 6).click() // 拿掉後重算 → 仍是白
-    if ((await page.locator('.stone.white').count()) !== 1)
-      throw new Error('輪流模式拿掉重擺應為白子')
-    await cell(6, 6).click() // 清掉，回到單黑，接原有單色工具流程
-    await waitStones(1)
-    await page.locator('button', { hasText: '白子' }).click()
-    await cell(8, 8).click() // 白子
-    await cell(9, 9).click() // 白子（待清除）
+    await cell(7, 7).click() // 黑
+    await cell(6, 6).click() // 白
+    await cell(8, 8).click() // 黑
+    if ((await page.locator('.stone.white').count()) !== 1) throw new Error('第二手應為白子')
+    if ((await page.locator('.stone.black').count()) !== 2) throw new Error('應有兩顆黑子')
+    await cell(8, 8).click() // 點已有子＝不動作（打譜不拿子，退回用右鍵/退一手）
     await waitStones(3)
-    await page.locator('button', { hasText: '清除' }).click()
-    await cell(9, 9).click()
+    await page.locator('.status b', { hasText: '輪白（第 4 手）' }).waitFor({ timeout: 3000 })
+    await page.locator('button', { hasText: '退一手' }).click()
     await waitStones(2)
-    await page.locator('button', { hasText: '開始試下' }).click()
-    await page.locator('.status', { hasText: '試下中' }).waitFor({ timeout: 5000 })
-    await cell(7, 8).click() // 試下第 1 手（黑）
+    for (const gone of ['開始試下', '黑子', '白子', 'AI 建議'])
+      if ((await page.locator('.panel button', { hasText: gone }).count()) !== 0)
+        throw new Error(`擺譜頁不應再有「${gone}」`)
+    if ((await page.locator('select[aria-label="接下來輪誰"]').count()) !== 0)
+      throw new Error('擺譜頁不應再有「接下來輪誰」')
+  })
+
+  await step('擺譜存檔：取名存檔→清空→從清單開啟→更新→刪除', async () => {
+    await page.goto(`${BASE}/#/study`)
+    page.once('dialog', () => {}) // 保險
+    await page.evaluate(() => localStorage.removeItem('gomoku-dojo-studies-v1'))
+    await page.reload()
+    for (const [x, y] of [[7, 7], [8, 6], [6, 8]]) await cell(x, y).click()
+    await page.locator('input[aria-label="存檔名稱"]').fill('丘月研究')
+    await page.locator('button', { hasText: '存成新檔' }).click()
+    await page.locator('.msg.ok', { hasText: '已存檔「丘月研究」（3 手）' }).waitFor({ timeout: 3000 })
+    await page.locator('button', { hasText: '清空盤面' }).click()
+    await waitStones(0)
+    await page.locator('.study-open', { hasText: '丘月研究' }).click()
     await waitStones(3)
-    await page.locator('button', { hasText: '悔一手' }).click()
-    await waitStones(2)
-    // 分析統一走 Rapfi（見 Rapfi 分析測項）；本站 AI 建議已自擺譜頁移除
-    if ((await page.locator('button', { hasText: 'AI 建議' }).count()) !== 0)
-      throw new Error('擺譜頁不應再有本站 AI 建議鍵')
+    await cell(9, 9).click() // 第 4 手
+    await page.locator('button', { hasText: '更新「丘月研究」' }).click()
+    await page.locator('.study-open', { hasText: '4 手' }).waitFor({ timeout: 3000 })
+    await page.reload() // 重新整理後仍在
+    await page.locator('.study-open', { hasText: '丘月研究' }).waitFor({ timeout: 3000 })
+    page.once('dialog', (d) => d.accept())
+    await page.locator('button[aria-label="刪除 丘月研究"]').click()
+    if ((await page.locator('.study-open').count()) !== 0) throw new Error('刪除後清單應為空')
   })
 
   // ---- 8. 開局圖鑑 ----------------------------------------------------------
@@ -563,7 +573,7 @@ try {
     await page.locator('.import-box textarea').fill('r1:hhhgii')
     await page.locator('button', { hasText: '載入擺譜' }).click()
     await waitStones(3)
-    await page.locator('.status', { hasText: '黑 2 子、白 1 子' }).waitFor({ timeout: 5000 })
+    await page.locator('.status', { hasText: '輪白（第 4 手）' }).waitFor({ timeout: 5000 })
   })
 
   // ---- 12. 資源頁 ------------------------------------------------------------
@@ -597,10 +607,9 @@ try {
     await page.screenshot({ path: `${OUT}/rapfi-analysis.png` })
   })
 
-  await step('Rapfi 分析：擺譜試下也拿得到建議（board 形式輸入）', async () => {
+  await step('Rapfi 分析：擺譜也拿得到建議（手順輸入）', async () => {
     await page.goto(`${BASE}/#/study/r1:hhhgii`)
-    await page.locator('button', { hasText: '開始試下' }).click()
-    await page.locator('.status', { hasText: '試下中' }).waitFor({ timeout: 5000 })
+    await waitStones(3)
     await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
     await page.locator('button', { hasText: 'Rapfi 分析' }).click()
     // 引擎已載入（上一步），這裡只等思考
@@ -629,28 +638,23 @@ try {
     await page.locator('select[aria-label="建議路線顯示手數"]').selectOption('1') // 還原預設
   })
 
-  await step('擺譜：記錄擺子順序（編號）→ 右鍵退回 → Rapfi 收到實際順序 → 照路線走後再分析', async () => {
+  await step('擺譜：右鍵退回 → Rapfi 收到實際手順 → 照路線走後再分析', async () => {
     await page.goto(`${BASE}/#/study`)
     const nums = () => page.locator('.goban g:not(.pv-stone) > .stone-n').allTextContents()
     for (const [x, y] of [[7, 7], [8, 6], [6, 8], [9, 5]]) await cell(x, y).click()
-    if ((await nums()).length !== 4) throw new Error(`擺 4 子應有 4 個編號：${await nums()}`)
-    await cell(3, 3).click({ button: 'right' }) // 右鍵＝拿掉最後擺的 (9,5)
+    if ((await nums()).length !== 4) throw new Error(`4 手應有 4 個編號：${await nums()}`)
+    await cell(3, 3).click({ button: 'right' }) // 右鍵＝退回第 4 手
     const after = await nums()
     if (after.length !== 3 || after.includes('4')) throw new Error(`右鍵沒退回：${after}`)
-    if ((await page.locator('.status b').innerText()) !== '擺譜中：黑 2 子、白 1 子')
-      throw new Error('右鍵後子數不對')
     await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
     await page.locator('button', { hasText: 'Rapfi 分析' }).click()
     await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
-    // 試下：照建議下一手 → 再分析一次（曾因清錨點自我取消而沒結果）
-    await page.locator('button', { hasText: '開始試下' }).click()
+    // 照建議下一手 → 再分析一次（曾因清錨點自我取消而沒結果）
     const [nx, ny] = (await page.locator('[data-pv="1"]').getAttribute('data-pos')).split(',').map(Number)
     await cell(nx, ny).click()
-    if ((await nums()).at(-1) === undefined || (await nums()).length !== 4) throw new Error('試下編號沒接續')
+    if ((await nums()).length !== 4) throw new Error('編號沒接續')
     await page.locator('button', { hasText: 'Rapfi 分析' }).click()
     await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
-    await cell(3, 3).click({ button: 'right' }) // 試下中右鍵＝悔一手
-    if ((await nums()).length !== 3) throw new Error('試下右鍵沒悔棋')
   })
 
   await step('重播：右鍵回到上一手', async () => {

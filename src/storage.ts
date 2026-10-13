@@ -137,6 +137,37 @@ const PV_SHOW_KEY = 'gomoku-dojo-pvshow-v2'
 export const loadPvShow = (): number => load<{ n: number }>(PV_SHOW_KEY, { n: 1 }).n
 export const savePvShow = (n: number): void => save(PV_SHOW_KEY, { n })
 
+// ---- 擺譜研究譜存檔（國手 2026-10-13：研究的譜想留著看）-------------------
+export interface SavedStudy {
+  id: string
+  ts: number
+  name: string
+  /** 本站棋譜字串（r1:/g1:），含規則與手順。 */
+  record: string
+}
+const STUDIES_KEY = 'gomoku-dojo-studies-v1'
+const STUDIES_MAX = 200
+export const loadStudies = (): SavedStudy[] => load<SavedStudy[]>(STUDIES_KEY, [])
+/** 新存一份（最新在前）；回傳新項目。 */
+export function addStudy(name: string, record: string): SavedStudy {
+  const ts = Date.now()
+  const item: SavedStudy = { id: `s${ts}`, ts, name, record }
+  const list = [item, ...loadStudies()].slice(0, STUDIES_MAX)
+  save(STUDIES_KEY, list)
+  return item
+}
+/** 覆蓋既有存檔（更新手順與時間，移到最前）。 */
+export function updateStudy(id: string, name: string, record: string): void {
+  const rest = loadStudies().filter((x) => x.id !== id)
+  save(STUDIES_KEY, [{ id, ts: Date.now(), name, record }, ...rest])
+}
+export function deleteStudy(id: string): void {
+  save(
+    STUDIES_KEY,
+    loadStudies().filter((x) => x.id !== id),
+  )
+}
+
 // ---- Rapfi 分析思考時間（擺譜／重播共用，記住上次選擇）--------------------
 const THINK_KEY = 'gomoku-dojo-rapfi-think-v1'
 export const loadRapfiThink = (): number => load<{ ms: number }>(THINK_KEY, { ms: 3000 }).ms
