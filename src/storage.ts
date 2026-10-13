@@ -132,8 +132,9 @@ export function recordPuzzleAttempt(id: string, solved: boolean, missed: boolean
 }
 
 // ---- Rapfi 建議路線顯示手數（擺譜／重播共用；0＝全部）------------------
-const PV_SHOW_KEY = 'gomoku-dojo-pvshow-v1'
-export const loadPvShow = (): number => load<{ n: number }>(PV_SHOW_KEY, { n: 10 }).n
+// 預設只顯示下一手（國手 2026-10-13：整條路線畫出來太亂）；v2＝改預設時換 key。
+const PV_SHOW_KEY = 'gomoku-dojo-pvshow-v2'
+export const loadPvShow = (): number => load<{ n: number }>(PV_SHOW_KEY, { n: 1 }).n
 export const savePvShow = (n: number): void => save(PV_SHOW_KEY, { n })
 
 // ---- 塔拉山口-10 特訓設定 ---------------------------------------------

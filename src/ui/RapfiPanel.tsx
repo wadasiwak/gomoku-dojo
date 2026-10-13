@@ -144,6 +144,7 @@ export default function RapfiPanel({
           onChange={(e) => onPvShow(Number(e.target.value))}
           aria-label="建議路線顯示手數"
         >
+          <option value={1}>只顯示下一手</option>
           <option value={6}>路線顯示 6 手</option>
           <option value={10}>路線顯示 10 手</option>
           <option value={0}>路線全部顯示</option>
@@ -181,7 +182,7 @@ export default function RapfiPanel({
           {result.pv.length > 1 && (
             <p className="rapfi-pv">
               主變化：{result.pv.map(coordName).join(' → ')}
-              <span className="muted small">（棋盤上半透明編號子；照著下會一路顯示，走別的就收掉）</span>
+              <span className="muted small">（棋盤上半透明子；照著下會接著顯示下一手，走別的就收掉）</span>
             </p>
           )}
           <p className="rapfi-ms muted">實際思考 {(result.timeMs / 1000).toFixed(1)}s</p>

@@ -626,7 +626,7 @@ try {
     if ((await page.locator('.rapfi-result').count()) !== 1) throw new Error('照走後分析結果被清掉')
     await cell(0, 0).click() // 偏離
     if ((await pvs()).length !== 0) throw new Error('偏離後路線沒收掉')
-    await page.locator('select[aria-label="建議路線顯示手數"]').selectOption('10') // 還原預設
+    await page.locator('select[aria-label="建議路線顯示手數"]').selectOption('1') // 還原預設
   })
 
   // ---- 14. 名人賽特訓（塔拉山口-10 vs Rapfi） ---------------------------------

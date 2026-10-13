@@ -85,7 +85,8 @@ dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
 ## Rapfi 建議路線（擺譜／重播）
 
 - `src/ui/pvFollow.ts`：分析時記錄錨點（盤面快照＋主變化＋顏色），之後純推導「目前盤面＝
-  錨點＋主變化前 k 手」→ 畫剩餘路線（Board `pv` prop，半透明編號子 `[data-pv]`）；偏離收掉。
+  錨點＋主變化前 k 手」→ 畫剩餘路線（Board `pv` prop，半透明編號子 `[data-pv]`；預設只顯示下一手，
+  可選 6/10/全部，key `gomoku-dojo-pvshow-v2`）；偏離收掉。
   跟著走時父層把 RapfiPanel 的 positionKey 維持在錨點 key，結果文字不被清掉。
 - 換規則／手動改手番要主動清錨點（盤面沒變但路線不適用）。
 
