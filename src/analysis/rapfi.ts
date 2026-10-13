@@ -259,7 +259,7 @@ export class RapfiClient {
         stones = movesToStones(input.moves)
         toMove = input.moves.length % 2 === 0 ? BLACK : WHITE
       } else {
-        stones = boardToStones(input.board.black, input.board.white)
+        stones = boardToStones(input.board.black, input.board.white, input.board.toMove)
         toMove = input.board.toMove
       }
 
@@ -348,7 +348,7 @@ export class RapfiClient {
         stones = movesToStones(input.moves)
         toMove = input.moves.length % 2 === 0 ? BLACK : WHITE
       } else {
-        stones = boardToStones(input.board.black, input.board.white)
+        stones = boardToStones(input.board.black, input.board.white, input.board.toMove)
         toMove = input.board.toMove
       }
 

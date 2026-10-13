@@ -18,6 +18,7 @@ import {
 } from '../analysis/rapfi.ts'
 import type { Rule } from '../engine/types.ts'
 import { coordName } from './coords.ts'
+import { loadRapfiThink, saveRapfiThink } from '../storage.ts'
 
 interface Props {
   /** 取當前局面（點擊分析當下才呼叫）。 */
@@ -48,12 +49,21 @@ export default function RapfiPanel({
   onPvShow,
 }: Props) {
   const [phase, setPhase] = useState<Phase>('idle')
-  const [thinkMs, setThinkMs] = useState(3000)
+  const [thinkMs, setThinkMs] = useState(loadRapfiThink)
   const [progress, setProgress] = useState<RapfiLoadProgress | null>(null)
   const [result, setResult] = useState<RapfiAnalysis | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [everLoaded, setEverLoaded] = useState(false)
   const seqRef = useRef(0)
+  /** 思考中已過秒數（長時間研究時顯示進度）。 */
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (phase !== 'thinking') return
+    const t0 = Date.now()
+    setElapsed(0)
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - t0) / 1000)), 500)
+    return () => clearInterval(id)
+  }, [phase])
 
   // 局面變了：作廢在途分析與舊結果（引擎讓它想完，analyze 佇列會消化）。
   useEffect(() => {
@@ -127,17 +137,23 @@ export default function RapfiPanel({
           {phase === 'loading'
             ? '載入引擎…'
             : phase === 'thinking'
-              ? 'Rapfi 思考中…'
+              ? `Rapfi 思考中… ${elapsed}/${Math.round(thinkMs / 1000)} 秒`
               : 'Rapfi 分析'}
         </button>
         <select
           value={thinkMs}
-          onChange={(e) => setThinkMs(Number(e.target.value))}
+          onChange={(e) => {
+            setThinkMs(Number(e.target.value))
+            saveRapfiThink(Number(e.target.value))
+          }}
           aria-label="Rapfi 思考時間"
         >
           <option value={1000}>想 1 秒</option>
           <option value={3000}>想 3 秒</option>
           <option value={10000}>想 10 秒</option>
+          <option value={30000}>想 30 秒（研究）</option>
+          <option value={60000}>想 1 分鐘（研究）</option>
+          <option value={120000}>想 2 分鐘（深入研究）</option>
         </select>
         <select
           value={pvShow}

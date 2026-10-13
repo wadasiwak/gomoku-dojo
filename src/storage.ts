@@ -137,6 +137,11 @@ const PV_SHOW_KEY = 'gomoku-dojo-pvshow-v2'
 export const loadPvShow = (): number => load<{ n: number }>(PV_SHOW_KEY, { n: 1 }).n
 export const savePvShow = (n: number): void => save(PV_SHOW_KEY, { n })
 
+// ---- Rapfi 分析思考時間（擺譜／重播共用，記住上次選擇）--------------------
+const THINK_KEY = 'gomoku-dojo-rapfi-think-v1'
+export const loadRapfiThink = (): number => load<{ ms: number }>(THINK_KEY, { ms: 3000 }).ms
+export const saveRapfiThink = (ms: number): void => save(THINK_KEY, { ms })
+
 // ---- 塔拉山口-10 特訓設定 ---------------------------------------------
 export interface TaraSettings {
   /** first＝我下第 1 手（開局暫執黑）、second＝AI 下第 1 手。 */

@@ -32,12 +32,32 @@ export function movesToStones(moves: readonly Pos[]): StonePlacement[] {
   return moves.map((pos, i) => ({ pos, color: i % 2 === 0 ? BLACK : WHITE }))
 }
 
-/** 任意局面（擺譜）→ 帶色棋子清單。黑子在前，維持穩定順序。 */
-export function boardToStones(black: readonly Pos[], white: readonly Pos[]): StonePlacement[] {
-  return [
-    ...black.map((pos) => ({ pos, color: BLACK as Color })),
-    ...white.map((pos) => ({ pos, color: WHITE as Color })),
-  ]
+/**
+ * 任意局面（擺譜）→ 帶色棋子清單，排成「黑白交替、最後一顆是待下方的對手」。
+ *
+ * ⚠️ Rapfi 會把 BOARD 裡的棋子順序當成手順（2026-10-13 國手擺譜實測抓到）：
+ * 丘月（黑 H8、I7，白 H9，輪白）照交替序送＝−140（黑稍優，與主流評價一致）；
+ * 舊版「黑子全部在前」送＝+M19（白必勝，完全錯）。擺譜不知道真實手順，就排成
+ * 最像真實對局的交替序：從尾端往前「對手、待下方、對手…」，多出來的子放最前面。
+ *
+ * 例：黑 [A, B]、白 [C]、輪白 → 黑 A、白 C、黑 B（最後一顆＝黑＝白的對手）。
+ */
+export function boardToStones(
+  black: readonly Pos[],
+  white: readonly Pos[],
+  toMove: Color,
+): StonePlacement[] {
+  const last: Color = toMove === BLACK ? WHITE : BLACK
+  const pools: Record<Color, Pos[]> = { [BLACK]: [...black], [WHITE]: [...white] } as Record<Color, Pos[]>
+  const reversed: StonePlacement[] = []
+  let color = last
+  // 從尾端往前交替取子；某色取完就只剩另一色（多出來的子落在最前面）
+  while (pools[BLACK].length + pools[WHITE].length > 0) {
+    const c = pools[color].length > 0 ? color : color === BLACK ? WHITE : BLACK
+    reversed.push({ pos: pools[c].pop()!, color: c })
+    color = color === BLACK ? WHITE : BLACK
+  }
+  return reversed.reverse()
 }
 
 /**

@@ -43,8 +43,27 @@ describe('buildBoardCommand', () => {
   })
 
   it('擺譜局面（黑白數量不等）＋ YXBOARD', () => {
-    const stones = boardToStones([{ x: 7, y: 6 }, { x: 7, y: 8 }], [{ x: 3, y: 0 }])
+    // 黑 2 白 1、輪黑（擺譜非交替局面）：最後一顆＝白，多出的黑在最前
+    const stones = boardToStones([{ x: 7, y: 6 }, { x: 7, y: 8 }], [{ x: 3, y: 0 }], BLACK)
     expect(buildBoardCommand(stones, BLACK, false)).toBe('YXBOARD 7,6,1 7,8,1 3,0,2 DONE')
+  })
+})
+
+describe('boardToStones：排成交替手順（Rapfi 把順序當手順）', () => {
+  const B = (x: number, y: number) => ({ x, y })
+  it('丘月 黑 H8 I7、白 H9、輪白 → 黑、白、黑', () => {
+    const s = boardToStones([B(7, 7), B(8, 8)], [B(7, 6)], WHITE)
+    expect(s.map((x) => x.color)).toEqual([BLACK, WHITE, BLACK])
+    expect(buildBoardCommand(s, WHITE, true)).toBe('BOARD 7,7,2 7,6,1 8,8,2 DONE')
+  })
+  it('等數、輪黑 → 黑白交替且最後一顆是白', () => {
+    const s = boardToStones([B(1, 1), B(2, 2)], [B(3, 3), B(4, 4)], BLACK)
+    expect(s.map((x) => x.color)).toEqual([BLACK, WHITE, BLACK, WHITE])
+  })
+  it('每顆子都在、沒有重複', () => {
+    const s = boardToStones([B(1, 1), B(2, 2), B(5, 5)], [B(3, 3)], WHITE)
+    expect(s).toHaveLength(4)
+    expect(s.at(-1)!.color).toBe(BLACK)
   })
 })
 
