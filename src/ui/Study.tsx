@@ -2,6 +2,8 @@
 // 「試下」黑白輪替試招。分析統一走 Rapfi（擺子與試下階段皆可分析）。
 // 規則面：試下每手即時判五連/長連勝負；連珠模式黑踩禁手判負、可開
 // 全盤禁手點 ✕ 標記。擺子階段不做合法性限制（研究用，任意局面皆可）。
+// 擺子會記錄順序（order＝單一真相，盤面由它推導）：棋盤顯示手順編號、
+// 右鍵退回最後一手、Rapfi 分析優先用實際擺子順序（Rapfi 把順序當手順）。
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Board from './Board.tsx'
 import ImportBox from './ImportBox.tsx'
@@ -12,6 +14,7 @@ import { createBoard } from '../engine/board.ts'
 import { isWinningMove } from '../engine/rules.ts'
 import { isForbiddenMove } from '../engine/forbidden.ts'
 import type { RapfiInput } from '../analysis/rapfi.ts'
+import type { StonePlacement } from '../analysis/protocol.ts'
 import { remainingPv, type PvAnchor } from './pvFollow.ts'
 import { loadPvShow, savePvShow } from '../storage.ts'
 import {
@@ -19,7 +22,6 @@ import {
   WHITE,
   EMPTY,
   idx,
-  posOf,
   opponent,
   type Color,
   type Pos,
@@ -47,13 +49,15 @@ export default function Study({ record }: { record?: string }) {
   const [rule, setRule] = useState<Rule>(preset?.rule ?? 'renju')
   const [phase, setPhase] = useState<'setup' | 'play'>('setup')
   const [tool, setTool] = useState<Tool>('alternate')
-  const [setup, setSetup] = useState<number[]>(() => {
+  /** 擺子順序（單一真相）：拿掉子＝從清單刪除，換色＝刪掉舊的再接在最後。 */
+  const [order, setOrder] = useState<StonePlacement[]>(
+    () => preset?.moves.map((pos, i) => ({ pos, color: i % 2 === 0 ? BLACK : WHITE })) ?? [],
+  )
+  const setup = useMemo(() => {
     const b = [...createBoard()]
-    preset?.moves.forEach((m, i) => {
-      b[idx(m.x, m.y)] = i % 2 === 0 ? BLACK : WHITE
-    })
+    for (const o of order) b[idx(o.pos.x, o.pos.y)] = o.color
     return b
-  })
+  }, [order])
   // 手番預設「自動」＝依盤上子數（黑多一顆→輪白、一樣多→輪黑；輪流擺子
   // 天然吻合）。擺出非交替局面（如淨多兩顆黑）或想強制手番時再手動指定。
   const [first, setFirst] = useState<'auto' | 'black' | 'white'>('auto')
@@ -121,15 +125,18 @@ export default function Study({ record }: { record?: string }) {
     setPvAnchor(null)
   }
 
-  // Rapfi 分析輸入：擺譜是任意局面（手順未必交替）→ 走 board 形式。
+  // Rapfi 分析輸入：擺子順序＋試下手順（Rapfi 把順序當手順）。順序不是黑白交替
+  // 時（單色工具連擺），rapfi.ts 自動退回交錯排列（orderedStones）。
   const buildRapfiInput = (): RapfiInput => {
-    const black: Pos[] = []
-    const white: Pos[] = []
-    for (let i = 0; i < sim.board.length; i++) {
-      if (sim.board[i] === BLACK) black.push(posOf(i))
-      else if (sim.board[i] === WHITE) white.push(posOf(i))
+    const stones: StonePlacement[] = [...order]
+    let color = sim.toMove
+    // 試下手順的顏色：從擺完後的手番起交替（與 sim 重放同一規則）
+    for (let i = moves.length - 1; i >= 0; i--) color = opponent(color)
+    for (const m of moves) {
+      stones.push({ pos: m, color })
+      color = opponent(color)
     }
-    return { board: { black, white, toMove: sim.toMove } }
+    return { ordered: { stones, toMove: sim.toMove } }
   }
 
   // renju＋試下＋黑手番＋開關開 → 全盤禁手點標記（走 Worker）。
@@ -150,25 +157,21 @@ export default function Study({ record }: { record?: string }) {
   const onCell = (x: number, y: number) => {
     const cell = idx(x, y)
     if (phase === 'setup') {
-      setSetup((prev) => {
-        const next = [...prev]
-        if (tool === 'erase') next[cell] = EMPTY
-        else if (tool === 'alternate') {
+      setOrder((prev) => {
+        const at = prev.findIndex((o) => o.pos.x === x && o.pos.y === y)
+        const without = at >= 0 ? prev.filter((_, i) => i !== at) : prev
+        if (tool === 'erase') return without
+        if (tool === 'alternate') {
           // 輪流擺（預設）：依盤上子數決定下一顆顏色（黑≤白→黑），
           // 點已有子則拿掉——拿掉後子數變了，下一顆顏色自動跟著對。
-          if (next[cell] !== EMPTY) next[cell] = EMPTY
-          else {
-            let nb = 0
-            let nw = 0
-            for (const v of next) {
-              if (v === BLACK) nb++
-              else if (v === WHITE) nw++
-            }
-            next[cell] = nb <= nw ? BLACK : WHITE
-          }
-        } else if (tool === 'black') next[cell] = next[cell] === BLACK ? EMPTY : BLACK
-        else next[cell] = next[cell] === WHITE ? EMPTY : WHITE
-        return next
+          if (at >= 0) return without
+          const nb = prev.filter((o) => o.color === BLACK).length
+          return [...prev, { pos: { x, y }, color: nb <= prev.length - nb ? BLACK : WHITE }]
+        }
+        // 單色工具：點同色＝拿掉；點空點或異色＝（換成）該色，接在順序最後
+        const color = tool === 'black' ? BLACK : WHITE
+        if (at >= 0 && prev[at].color === color) return without
+        return [...without, { pos: { x, y }, color }]
       })
       return
     }
@@ -177,6 +180,12 @@ export default function Study({ record }: { record?: string }) {
   }
 
   // 擺譜↔試下切換、悔棋都不清建議路線：盤面還在路線上就繼續顯示（pvFollow 純推導）
+  /** 右鍵／退一手：試下中悔一手；擺子中拿掉最後擺的那顆。 */
+  const stepBack = () => {
+    if (phase === 'play') setMoves((m) => m.slice(0, -1))
+    else setOrder((o) => o.slice(0, -1))
+  }
+
   const startPlay = () => {
     setPhase('play')
     setMoves([])
@@ -191,7 +200,7 @@ export default function Study({ record }: { record?: string }) {
       ? `擺譜中：黑 ${stoneCount.black} 子、白 ${stoneCount.white} 子`
       : sim.over
         ? `試下結束：${sim.over}`
-        : `試下中：輪${sim.toMove === BLACK ? '黑' : '白'}（第 ${moves.length + 1} 手）`
+        : `試下中：輪${sim.toMove === BLACK ? '黑' : '白'}（第 ${order.length + moves.length + 1} 手）`
 
   return (
     <div className="page play-page">
@@ -205,8 +214,14 @@ export default function Study({ record }: { record?: string }) {
         </p>
         <Board
           board={board}
-          lastMove={phase === 'play' ? (moves[moves.length - 1] ?? null) : null}
-          numbered={phase === 'play' ? moves : undefined}
+          lastMove={
+            phase === 'play'
+              ? (moves[moves.length - 1] ?? order[order.length - 1]?.pos ?? null)
+              : (order[order.length - 1]?.pos ?? null)
+          }
+          numbered={[...order.map((o) => o.pos), ...(phase === 'play' ? moves : [])]}
+          pvStart={order.length + (phase === 'play' ? moves.length : 0) + 1}
+          onRightClick={stepBack}
           pv={pvShow > 0 ? pvLine.slice(0, pvShow) : pvLine}
           forbidden={forbidden.map((f) => ({
             x: f.index % 15,
@@ -224,6 +239,7 @@ export default function Study({ record }: { record?: string }) {
             <h2>擺子</h2>
             <p className="muted small">
               點交點放子／再點一次拿掉；「輪流」自動一黑一白，擺好後開始試下。
+              棋子編號＝擺放順序；右鍵（或「退一手」）拿掉最後一顆。
             </p>
             <div className="btn-row" role="group" aria-label="擺子工具">
               {(
@@ -279,9 +295,12 @@ export default function Study({ record }: { record?: string }) {
               <button className="btn primary" onClick={startPlay}>
                 開始試下
               </button>
+              <button className="btn" onClick={stepBack} disabled={order.length === 0}>
+                退一手
+              </button>
               <button
                 className="btn"
-                onClick={() => setSetup([...createBoard()])}
+                onClick={() => setOrder([])}
                 disabled={stoneCount.black + stoneCount.white === 0}
               >
                 清空盤面
@@ -297,7 +316,7 @@ export default function Study({ record }: { record?: string }) {
           <>
             <h2>試下</h2>
             <p className="muted small">
-              黑白輪替落子；「Rapfi 分析」標出建議手，點該處即照走。
+              黑白輪替落子；「Rapfi 分析」標出建議手，點該處即照走。右鍵悔一手。
             </p>
             {rule === 'renju' && (
               <label className="row">
@@ -312,9 +331,7 @@ export default function Study({ record }: { record?: string }) {
             <div className="btn-row">
               <button
                 className="btn"
-                onClick={() => {
-                  setMoves((m) => m.slice(0, -1))
-                }}
+                onClick={stepBack}
                 disabled={moves.length === 0}
               >
                 悔一手
@@ -337,12 +354,8 @@ export default function Study({ record }: { record?: string }) {
             setPvShow(n)
             savePvShow(n)
           }}
-          onResult={(a) =>
-            setPvAnchor(
-              a
-                ? { root: Uint8Array.from(sim.board), line: a.pv, color: sim.toMove, key: positionKey }
-                : null,
-            )
+          onResult={(a, key) =>
+            setPvAnchor({ root: Uint8Array.from(sim.board), line: a.pv, color: sim.toMove, key })
           }
         />
       </aside>

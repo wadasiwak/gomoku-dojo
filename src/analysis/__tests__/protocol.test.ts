@@ -8,6 +8,7 @@ import {
   buildThinkSetup,
   movesToStones,
   boardToStones,
+  orderedStones,
   parseEngineLine,
   evalTextToScore,
   RAPFI_MATE,
@@ -155,5 +156,25 @@ describe('buildThinkSetup', () => {
     expect(cmds).toContain('INFO RULE 4')
     expect(cmds).toContain('INFO TIMEOUT_TURN 3000')
     expect(cmds).toContain('INFO SHOW_DETAIL 2')
+  })
+})
+
+describe('orderedStones：擺譜實際順序優先', () => {
+  const S = (x: number, y: number, color: typeof BLACK | typeof WHITE) => ({ pos: { x, y }, color })
+  it('黑白交替且最後一顆＝待下方對手 → 原樣照用', () => {
+    const st = [S(7, 7, BLACK), S(9, 9, WHITE), S(8, 8, BLACK)]
+    expect(orderedStones(st, WHITE)).toEqual(st)
+  })
+  it('單色連擺（非交替）→ 退回交錯排列', () => {
+    const st = [S(7, 7, BLACK), S(8, 8, BLACK), S(7, 6, WHITE)]
+    const out = orderedStones(st, WHITE)
+    expect(out.map((x) => x.color)).toEqual([BLACK, WHITE, BLACK])
+  })
+  it('交替但最後一顆是待下方自己（手番手動指定）→ 退回交錯排列', () => {
+    const st = [S(7, 7, BLACK), S(7, 6, WHITE)]
+    expect(orderedStones(st, WHITE).at(-1)!.color).toBe(BLACK)
+  })
+  it('空盤 → 空清單', () => {
+    expect(orderedStones([], BLACK)).toEqual([])
   })
 })

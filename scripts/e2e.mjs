@@ -629,6 +629,37 @@ try {
     await page.locator('select[aria-label="建議路線顯示手數"]').selectOption('1') // 還原預設
   })
 
+  await step('擺譜：記錄擺子順序（編號）→ 右鍵退回 → Rapfi 收到實際順序 → 照路線走後再分析', async () => {
+    await page.goto(`${BASE}/#/study`)
+    const nums = () => page.locator('.goban g:not(.pv-stone) > .stone-n').allTextContents()
+    for (const [x, y] of [[7, 7], [8, 6], [6, 8], [9, 5]]) await cell(x, y).click()
+    if ((await nums()).length !== 4) throw new Error(`擺 4 子應有 4 個編號：${await nums()}`)
+    await cell(3, 3).click({ button: 'right' }) // 右鍵＝拿掉最後擺的 (9,5)
+    const after = await nums()
+    if (after.length !== 3 || after.includes('4')) throw new Error(`右鍵沒退回：${after}`)
+    if ((await page.locator('.status b').innerText()) !== '擺譜中：黑 2 子、白 1 子')
+      throw new Error('右鍵後子數不對')
+    await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
+    await page.locator('button', { hasText: 'Rapfi 分析' }).click()
+    await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
+    // 試下：照建議下一手 → 再分析一次（曾因清錨點自我取消而沒結果）
+    await page.locator('button', { hasText: '開始試下' }).click()
+    const [nx, ny] = (await page.locator('[data-pv="1"]').getAttribute('data-pos')).split(',').map(Number)
+    await cell(nx, ny).click()
+    if ((await nums()).at(-1) === undefined || (await nums()).length !== 4) throw new Error('試下編號沒接續')
+    await page.locator('button', { hasText: 'Rapfi 分析' }).click()
+    await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
+    await cell(3, 3).click({ button: 'right' }) // 試下中右鍵＝悔一手
+    if ((await nums()).length !== 3) throw new Error('試下右鍵沒悔棋')
+  })
+
+  await step('重播：右鍵回到上一手', async () => {
+    await page.goto(`${BASE}/#/replay/r1:hhhgiigg`)
+    await waitStones(4)
+    await cell(3, 3).click({ button: 'right' })
+    await waitStones(3)
+  })
+
   // ---- 14. 名人賽特訓（塔拉山口-10 vs Rapfi） ---------------------------------
   const taraCfg = (patch) =>
     page.evaluate(

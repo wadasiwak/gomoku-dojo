@@ -40,9 +40,13 @@ interface Props {
   hint?: Pos | null
   /** 字母標記點（規約兩打 A/B、圖鑑標點用）：實線圈＋字母、不擋點擊。 */
   marks?: LabelMark[]
-  /** Rapfi 建議路線：半透明編號子（1＝下一手），不擋點擊。 */
+  /** Rapfi 建議路線：半透明編號子，不擋點擊。 */
   pv?: { pos: Pos; color: Color }[]
+  /** 建議路線第一手的編號（接續盤上手數，避免與真實棋子撞號；預設 1）。 */
+  pvStart?: number
   onCell?: (x: number, y: number) => void
+  /** 右鍵（退一手）：給了就攔掉瀏覽器右鍵選單。 */
+  onRightClick?: () => void
   disabled?: boolean
   /** 只顯示局部（科普例圖用），格座標閉區間。 */
   crop?: { x0: number; y0: number; x1: number; y1: number }
@@ -58,7 +62,9 @@ export default function Board({
   hint,
   marks = [],
   pv = [],
+  pvStart = 1,
   onCell,
+  onRightClick,
   disabled,
   crop,
   showCoords = true,
@@ -88,6 +94,14 @@ export default function Board({
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
       role="grid"
       aria-label={ariaLabel}
+      onContextMenu={
+        onRightClick
+          ? (e) => {
+              e.preventDefault()
+              onRightClick()
+            }
+          : undefined
+      }
     >
       <defs>
         <radialGradient id="stone-b" cx="35%" cy="30%" r="80%">
@@ -186,6 +200,7 @@ export default function Board({
             key={`v${pos.x}-${pos.y}`}
             className="pv-stone"
             data-pv={i + 1}
+            data-n={pvStart + i}
             data-pos={`${pos.x},${pos.y}`}
             pointerEvents="none"
           >
@@ -204,7 +219,7 @@ export default function Board({
               y={cx(pos.y) + 5}
               fill={color === BLACK ? '#ffffff' : '#111'}
             >
-              {i + 1}
+              {pvStart + i}
             </text>
           </g>
         ),

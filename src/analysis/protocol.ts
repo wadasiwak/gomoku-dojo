@@ -27,6 +27,22 @@ export interface StonePlacement {
   color: Color
 }
 
+/**
+ * 擺譜記錄的實際擺子順序 → 送給 Rapfi 的棋子清單。順序是「黑白交替且最後一顆＝
+ * 待下方的對手」就照用（最接近真實手順）；否則（單色工具連擺、手番手動指定）
+ * 退回 boardToStones 交錯排列。
+ */
+export function orderedStones(stones: readonly StonePlacement[], toMove: Color): StonePlacement[] {
+  const alternating = stones.every((s, i) => i === 0 || s.color !== stones[i - 1].color)
+  const endsRight = stones.length === 0 || stones[stones.length - 1].color !== toMove
+  if (alternating && endsRight) return [...stones]
+  return boardToStones(
+    stones.filter((s) => s.color === BLACK).map((s) => s.pos),
+    stones.filter((s) => s.color === WHITE).map((s) => s.pos),
+    toMove,
+  )
+}
+
 /** 交替手順（黑先）→ 帶色棋子清單。 */
 export function movesToStones(moves: readonly Pos[]): StonePlacement[] {
   return moves.map((pos, i) => ({ pos, color: i % 2 === 0 ? BLACK : WHITE }))

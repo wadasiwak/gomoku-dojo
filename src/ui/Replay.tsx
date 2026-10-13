@@ -158,7 +158,15 @@ export default function Replay({ record }: { record: string }) {
           board={game.board}
           lastMove={last}
           numbered={shown}
+          pvStart={shown.length + 1}
           hint={hint}
+          onRightClick={() => {
+            // 右鍵返回：研棋變化中退一手；否則回到棋譜上一手
+            if (inTrial) {
+              setTrial((t) => t.slice(0, -1))
+              setHint(null)
+            } else if (step > 0) goStep(step - 1)
+          }}
           pv={pvShow > 0 ? pvLine.slice(0, pvShow) : pvLine}
           onCell={onCell}
           disabled={!ongoing}
@@ -246,12 +254,8 @@ export default function Replay({ record }: { record: string }) {
             setPvShow(n)
             savePvShow(n)
           }}
-          onResult={(a) =>
-            setPvAnchor(
-              a
-                ? { root: Uint8Array.from(game.board), line: a.pv, color: game.toMove, key: positionKey }
-                : null,
-            )
+          onResult={(a, key) =>
+            setPvAnchor({ root: Uint8Array.from(game.board), line: a.pv, color: game.toMove, key })
           }
         />
         <div className="btn-row">

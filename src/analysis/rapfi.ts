@@ -21,6 +21,7 @@ import {
   buildThinkSetup,
   movesToStones,
   boardToStones,
+  orderedStones,
   parseEngineLine,
   type StonePlacement,
   type ThinkLimits,
@@ -29,9 +30,11 @@ import {
 export const RAPFI_ATTRIBUTION =
   '分析引擎 Rapfi © dhbloo，GPL-3.0，原始碼 github.com/dhbloo/rapfi'
 
-/** 分析輸入：二選一。moves＝黑先交替手順（對弈/重播）；board＝任意擺譜局面。 */
+/** 分析輸入：moves＝黑先交替手順（對弈/重播）；ordered＝擺譜記錄的實際擺子順序；
+ *  board＝只有盤面（不知順序，自動交錯排列）。 */
 export type RapfiInput =
   | { moves: readonly Pos[] }
+  | { ordered: { stones: readonly StonePlacement[]; toMove: Color } }
   | { board: { black: readonly Pos[]; white: readonly Pos[]; toMove: Color } }
 
 export interface RapfiAnalysis {
@@ -258,6 +261,9 @@ export class RapfiClient {
       if ('moves' in input) {
         stones = movesToStones(input.moves)
         toMove = input.moves.length % 2 === 0 ? BLACK : WHITE
+      } else if ('ordered' in input) {
+        stones = orderedStones(input.ordered.stones, input.ordered.toMove)
+        toMove = input.ordered.toMove
       } else {
         stones = boardToStones(input.board.black, input.board.white, input.board.toMove)
         toMove = input.board.toMove
@@ -347,6 +353,9 @@ export class RapfiClient {
       if ('moves' in input) {
         stones = movesToStones(input.moves)
         toMove = input.moves.length % 2 === 0 ? BLACK : WHITE
+      } else if ('ordered' in input) {
+        stones = orderedStones(input.ordered.stones, input.ordered.toMove)
+        toMove = input.ordered.toMove
       } else {
         stones = boardToStones(input.board.black, input.board.white, input.board.toMove)
         toMove = input.board.toMove

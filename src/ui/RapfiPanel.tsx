@@ -29,8 +29,9 @@ interface Props {
   /** 待思考方標籤（「黑」／「白」）。 */
   toMoveLabel: string
   disabled?: boolean
-  /** 分析結果回拋（父層畫建議路線）；開始新分析時回拋 null。 */
-  onResult: (a: RapfiAnalysis | null) => void
+  /** 分析結果回拋（父層畫建議路線，新結果直接取代舊的）。key＝本次分析當下的
+   *  positionKey——父層存成錨點 key 回傳，面板的 positionKey 才不會因此變動而清掉結果。 */
+  onResult: (a: RapfiAnalysis, key: string) => void
   /** 棋盤上建議路線顯示幾手（0＝全部）；選單在本面板、狀態由父層持有。 */
   pvShow: number
   onPvShow: (n: number) => void
@@ -87,9 +88,12 @@ export default function RapfiPanel({
   const analyze = async () => {
     if (disabled || phase !== 'idle') return
     const my = ++seqRef.current
+    const keyAtStart = positionKey
     setError(null)
     setResult(null)
-    onResult(null)
+    // 不在這裡 onResult(null)：父層跟著建議路線走時，清錨點會讓 positionKey 變回
+    // 目前局面 → 觸發上面的作廢 effect，把剛開始的這次分析自己取消掉。
+    // 舊路線留到新結果出來再一起取代。
     const rapfi = getRapfi()
     try {
       setPhase('loading')
@@ -102,7 +106,7 @@ export default function RapfiPanel({
       const a = await rapfi.analyze(buildInput(), rule, thinkMs)
       if (seqRef.current !== my) return
       setResult(a)
-      onResult(a)
+      onResult(a, keyAtStart)
       setPhase('idle')
     } catch (e) {
       if (seqRef.current !== my) return
