@@ -609,6 +609,107 @@ try {
     await page.screenshot({ path: `${OUT}/rapfi-study.png` })
   })
 
+  // ---- 14. 名人賽特訓（塔拉山口-10 vs Rapfi） ---------------------------------
+  const taraCfg = (patch) =>
+    page.evaluate(
+      (p) =>
+        localStorage.setItem(
+          'gomoku-dojo-tara-v1',
+          JSON.stringify({ variant: 'standard', seat: 'first', strength: 'd6', timeControl: 'none', showForbidden: true, showEval: true, ...p }),
+        ),
+      patch,
+    )
+  const taraStatus = () => page.locator('.status b').innerText()
+  async function waitTaraStatus(re, timeout = 60000) {
+    const t0 = Date.now()
+    while (Date.now() - t0 < timeout) {
+      if (re.test(await taraStatus())) return
+      await page.waitForTimeout(200)
+    }
+    throw new Error(`狀態列等不到 ${re}：「${await taraStatus()}」`)
+  }
+
+  await step('特訓：nav 入口→天元限制→AI 交換決定（Rapfi 評估）', async () => {
+    await page.goto(`${BASE}/#/`)
+    await taraCfg({})
+    await page.locator('nav a', { hasText: '特訓' }).click()
+    await waitTaraStatus(/天元/)
+    await cell(6, 7).click() // 非天元 → 擋
+    await page.locator('.msg.err', { hasText: '天元' }).waitFor({ timeout: 3000 })
+    await cell(7, 7).click()
+    // AI（白方持有者）決定交換後輪到人（若 AI 換了，人執白下第 2 手；否則人等 AI 下第 2 手）
+    await waitTaraStatus(/輪到你下第|你決定是否交換/, 120000)
+    const notes = await page.locator('.rif-info p').allInnerTexts()
+    if (!notes.some((t) => /交換/.test(t))) throw new Error(`缺 AI 交換紀錄：${notes}`)
+  })
+
+  await step('特訓：人方擺十子（對稱等價擋下、滿 10 提示）→ AI 擇一 → AI 下第 6 手', async () => {
+    await page.goto(`${BASE}/#/tara`)
+    await taraCfg({})
+    await page.reload()
+    await page.waitForFunction(() => window.__dojo?.loadTara)
+    // 左右對稱局面：黑 H8、白 H7、黑 H9、白 H5；人執黑已選十子
+    await page.evaluate(() =>
+      window.__dojo.loadTara({
+        moves: [{ x: 7, y: 7 }, { x: 7, y: 8 }, { x: 7, y: 6 }, { x: 7, y: 10 }],
+        meta: { variant: 'standard', swaps: [false, false, false], branch: 'ten', offers: null },
+      }),
+    )
+    await waitTaraStatus(/擺十子/)
+    await cell(6, 7).click()
+    await cell(8, 7).click() // 與 G8 鏡射等價
+    await page.locator('.msg.err', { hasText: '對稱等價' }).waitFor({ timeout: 3000 })
+    for (const [x, y] of [[6, 6], [6, 8], [5, 7], [6, 5], [6, 9], [5, 6], [5, 8], [4, 7], [6, 4], [6, 10]])
+      await cell(x, y).click()
+    await page.locator('.msg.err', { hasText: '已選滿' }).waitFor({ timeout: 3000 })
+    if ((await page.locator('[data-mark]').count()) !== 10) throw new Error('十子標記數不是 10')
+    await page.locator('button', { hasText: '確定十子' }).click()
+    await waitTaraStatus(/輪到你落子/, 120000)
+    if ((await stones()) !== 6) throw new Error(`應有 6 子，實際 ${await stones()}`)
+    await page.locator('.rif-info', { hasText: 'AI 從十子中擇' }).waitFor({ timeout: 3000 })
+  })
+
+  await step('特訓：棋鐘走秒＋超時判負＋棋譜庫標示', async () => {
+    // 獨立 page＋假時鐘（不污染共用 page 的計時器）：快轉 5 分鐘 → 人方超時判負
+    const p2 = await browser.newPage()
+    try {
+      await p2.clock.install()
+      await p2.goto(`${BASE}/#/tara`)
+      await p2.evaluate(() =>
+        localStorage.setItem(
+          'gomoku-dojo-tara-v1',
+          JSON.stringify({ variant: 'standard', seat: 'first', strength: 'd6', timeControl: '5+5', showForbidden: true, showEval: false }),
+        ),
+      )
+      await p2.reload()
+      await p2.locator('.clock.running', { hasText: '你' }).waitFor({ timeout: 5000 })
+      const a = await p2.locator('.clock.running b').innerText()
+      await p2.clock.runFor(3000)
+      const b = await p2.locator('.clock.running b').innerText()
+      if (a !== '5:00' || b !== '4:57') throw new Error(`棋鐘走秒不對：${a} → ${b}`)
+      // 先下天元（零手的局不存檔），等 AI 交換決定完、輪回人方再快轉
+      await p2.locator('rect[aria-label="(7,7)"]').click()
+      await p2.locator('.status b', { hasText: /輪到你下第|你決定是否交換/ }).waitFor({ timeout: 120000 })
+      await p2.clock.runFor(6 * 60_000)
+      await p2.locator('.status b', { hasText: '超時' }).waitFor({ timeout: 5000 })
+      await p2.goto(`${BASE}/#/records`)
+      const first = await p2.locator('.record-item').first().innerText()
+      if (!/塔拉山口-10/.test(first) || !/超時/.test(first)) throw new Error(`棋譜庫標示不對：${first}`)
+    } finally {
+      await p2.close()
+    }
+  })
+
+  // ---- 15. 對弈頁難度 5＝Rapfi ----------------------------------------------
+  await step('對弈：難度 5（Rapfi）落子→Rapfi 回手', async () => {
+    await page.goto(`${BASE}/#/play`)
+    await page.locator('select[aria-label="對局模式"]').selectOption('free')
+    await page.locator('select[aria-label="AI 難度"]').selectOption('5')
+    await page.locator('button', { hasText: '重開' }).click()
+    await cell(7, 7).click()
+    await waitStones(2, 60000)
+  })
+
   await browser.close()
 } finally {
   server.kill()

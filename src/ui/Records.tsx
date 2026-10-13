@@ -9,6 +9,7 @@ const REASON_LABEL: Record<string, string> = {
   overline: '長連',
   forbidden: '踩禁手',
   resign: '認輸',
+  time: '超時',
   draw: '和局',
 }
 
@@ -28,7 +29,10 @@ export default function Records() {
             <button className="record-open" onClick={() => navigate(`replay/${g.record}`)}>
               <span className={`badge ${g.outcome}`}>{OUTCOME_LABEL[g.outcome]}</span>
               <span>
-                {g.rule === 'renju' ? '連珠' : '無禁手'} · L{g.level} · 執
+                {g.mode === 'tara'
+                  ? `塔拉山口-10 · Rapfi ${g.strength ?? ''}`
+                  : `${g.rule === 'renju' ? '連珠' : '無禁手'} · ${g.level === 5 ? 'Rapfi' : `L${g.level}`}`}{' '}
+                · 執
                 {g.player === 'black' ? '黑' : '白'} ·{' '}
                 {REASON_LABEL[g.reason] ?? g.reason}
               </span>

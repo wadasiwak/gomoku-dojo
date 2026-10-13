@@ -79,6 +79,8 @@ declare global {
       loadPlay?: (record: string, opts?: { player?: 'black' | 'white' }) => boolean
       /** 開局猜名：回報本題正解名稱。 */
       guessAnswer?: () => string
+      /** 名人賽特訓：直接載入塔拉山口-10 規則狀態。 */
+      loadTara?: (state: import('../tara/protocol.ts').TaraState) => void
     }
   }
 }
@@ -90,6 +92,9 @@ const RIF_OFFER_THINK_MS = 2500
 const RIF_CHOOSE_THINK_MS = 2000
 /** 兩打要的 PV 數：前兩個互不對稱等價點通常在前 2~3 個裡，多要一點當備援。 */
 const RIF_NBEST = 4
+/** 難度 5＝對手直接用 Rapfi（每手思考上限）；不支援 wasm SIMD 時退回本站 L4。 */
+const RAPFI_LEVEL = 5
+const RAPFI_PLAY_MS = 3000
 
 export default function Play({ record }: { record?: string }) {
   const clientRef = useRef<EngineClient | null>(null)
@@ -205,6 +210,8 @@ export default function Play({ record }: { record?: string }) {
     // 規約 offer/擇打的書「評值」不在此限（那是評估參考，不把局面帶進書路線）。
     // 看門狗：促成自癒。任何未預期的競態（promise 未決/被吞）超過 20s 就清
     // pendingRef 讓 effect 重跑；重試 2 次仍卡才亮錯誤，不讓「AI 思考中…」永轉。
+    // Rapfi 首次要下載 40MB 權重 → 放寬到 150s。
+    const useRapfi = level === RAPFI_LEVEL && isRapfiSupported()
     const watchdog = setTimeout(() => {
       if (pendingRef.current !== key) return
       pendingRef.current = ''
@@ -217,8 +224,8 @@ export default function Play({ record }: { record?: string }) {
         console.error('AI 手番重試仍無回應', key)
         setAiStalled(true)
       }
-    }, 20000)
-    const viaBook = useBook && (level === 4 || moves.length < BOOK_EARLY_PLIES)
+    }, useRapfi ? 150_000 : 20_000)
+    const viaBook = !useRapfi && useBook && (level === 4 || moves.length < BOOK_EARLY_PLIES)
       ? bookMoveWithDiscipline(moves, rule, aiColor, foeHasVcf, level < 4).catch((e) => {
           console.error('開局書查詢異常，回退搜索', e)
           return null
@@ -233,7 +240,24 @@ export default function Play({ record }: { record?: string }) {
           setMoves((prev) => [...prev, hit.move])
           return
         }
-        return client.search(game.board, aiColor, rule, level).then((r) => {
+        if (useRapfi) {
+          return getRapfi()
+            .preload((p) => {
+              if (pendingRef.current === key) setRapfiLoad(Math.round(p.progress * 100))
+            })
+            .then(() => {
+              if (pendingRef.current === key) setRapfiLoad(null)
+              return getRapfi().analyze({ moves }, rule, RAPFI_PLAY_MS)
+            })
+            .then((r) => {
+              if (pendingRef.current !== key) return
+              aiRetryCountRef.current = 0
+              setAiBook(false)
+              // 看門狗重試可能讓同一手排了兩次分析：手數不對就不落子（防重複落子）
+              setMoves((prev) => (prev.length === moves.length ? [...prev, r.move] : prev))
+            })
+        }
+        return client.search(game.board, aiColor, rule, Math.min(level, 4) as 1 | 2 | 3 | 4).then((r) => {
           if (pendingRef.current !== key || !r.move) return
           const m = r.move
           aiRetryCountRef.current = 0
@@ -830,14 +854,15 @@ export default function Play({ record }: { record?: string }) {
           <select
             value={level}
             onChange={(e) =>
-              updateSettings({ level: Number(e.target.value) as 1 | 2 | 3 | 4 }, false)
+              updateSettings({ level: Number(e.target.value) as Settings['level'] }, false)
             }
             aria-label="AI 難度"
           >
             <option value={1}>1 入門</option>
             <option value={2}>2 進階</option>
             <option value={3}>3 高手</option>
-            <option value={4}>4 最強</option>
+            <option value={4}>4 本站最強</option>
+            {isRapfiSupported() && <option value={RAPFI_LEVEL}>5 Rapfi（頂尖引擎）</option>}
           </select>
         </label>
         {rule === 'renju' && (

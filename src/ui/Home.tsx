@@ -39,6 +39,12 @@ export default function Home() {
             )}
           </p>
         </button>
+        <button className="entry-card" onClick={() => navigate('tara')}>
+          <span className="entry-icon">🏆</span>
+          <h2>名人賽特訓</h2>
+          <p>塔拉山口-10 開局對 Rapfi（交換／十子選一），可開 30 分＋30 秒棋鐘。</p>
+          <p className="entry-stat">對手：Gomocup 冠軍級引擎</p>
+        </button>
         <button className="entry-card" onClick={() => navigate('puzzles')}>
           <span className="entry-icon">🧩</span>
           <h2>題庫闖關</h2>

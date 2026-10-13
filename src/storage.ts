@@ -24,12 +24,14 @@ function save(key: string, value: unknown): void {
 }
 
 // ---- 對弈設定 ----------------------------------------------------------
-/** 對弈模式：free＝自由對弈（原行為）、rif＝RIF 正式規約（規則固定連珠）。 */
-export type PlayMode = 'free' | 'rif'
+/** 對弈模式：free＝自由對弈（原行為）、rif＝RIF 正式規約（規則固定連珠）、
+ *  tara＝塔拉山口-10 名人賽特訓（#/tara，對手固定 Rapfi）。 */
+export type PlayMode = 'free' | 'rif' | 'tara'
 
 export interface Settings {
   rule: Rule
-  level: 1 | 2 | 3 | 4
+  /** 1–4＝本站引擎；5＝Rapfi（RAPFI_LEVEL）。 */
+  level: 1 | 2 | 3 | 4 | 5
   player: 'black' | 'white'
   showForbidden: boolean
   /** 舊資料無此欄位 → load 的 merge fallback 補 'free'，向下相容。 */
@@ -60,8 +62,12 @@ const STATS_KEY = 'gomoku-dojo-stats-v1'
 export const statKey = (rule: Rule, level: number): string => `${rule}-L${level}`
 export const loadStats = (): Stats => load<Stats>(STATS_KEY, {})
 export function recordOutcome(rule: Rule, level: number, outcome: keyof StatLine): void {
+  recordOutcomeByKey(statKey(rule, level), outcome)
+}
+/** 塔拉特訓的戰績 key（依 Rapfi 強度分開記）。 */
+export const taraStatKey = (strength: string): string => `tara-${strength}`
+export function recordOutcomeByKey(key: string, outcome: keyof StatLine): void {
   const stats = loadStats()
-  const key = statKey(rule, level)
   const line = stats[key] ?? { win: 0, loss: 0, draw: 0 }
   line[outcome]++
   stats[key] = line
@@ -81,6 +87,8 @@ export interface SavedGame {
   record: string
   /** 對弈模式（舊資料無此欄位＝自由對弈）。 */
   mode?: PlayMode
+  /** 塔拉特訓：Rapfi 強度標籤（顯示用）。 */
+  strength?: string
 }
 const RECORDS_KEY = 'gomoku-dojo-records-v1'
 export const loadSavedGames = (): SavedGame[] => load<SavedGame[]>(RECORDS_KEY, [])
@@ -122,3 +130,27 @@ export function recordPuzzleAttempt(id: string, solved: boolean, missed: boolean
   }
   save(PUZZLE_KEY, p)
 }
+
+// ---- 塔拉山口-10 特訓設定 ---------------------------------------------
+export interface TaraSettings {
+  /** 條文解讀：standard＝簡章寫法、swapFirst＝白 4 後先交換再選分支。 */
+  variant: 'standard' | 'swapFirst'
+  /** first＝我下第 1 手（開局暫執黑）、second＝AI 下第 1 手。 */
+  seat: 'first' | 'second'
+  strength: 'max' | 'd14' | 'd10' | 'd6'
+  timeControl: 'none' | '30+30' | '60+30' | '10+10' | '5+5'
+  showForbidden: boolean
+  /** 對局中顯示 AI 的評估分數（關閉＝終局才顯示，避免被提示）。 */
+  showEval: boolean
+}
+const TARA_KEY = 'gomoku-dojo-tara-v1'
+export const loadTaraSettings = (): TaraSettings =>
+  load<TaraSettings>(TARA_KEY, {
+    variant: 'standard',
+    seat: 'first',
+    strength: 'max',
+    timeControl: '30+30',
+    showForbidden: true,
+    showEval: false,
+  })
+export const saveTaraSettings = (s: TaraSettings): void => save(TARA_KEY, s)

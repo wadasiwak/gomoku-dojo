@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 export type Route =
   | { name: 'home' }
   | { name: 'play'; record?: string }
+  | { name: 'tara' }
   | { name: 'puzzles'; tab: string }
   | { name: 'puzzle'; id: string }
   | { name: 'records' }
@@ -21,6 +22,8 @@ export function parseHash(hash: string): Route {
   switch (head) {
     case 'play':
       return rest.length > 0 ? { name: 'play', record: rest.join('/') } : { name: 'play' }
+    case 'tara':
+      return { name: 'tara' }
     case 'puzzles':
       return { name: 'puzzles', tab: rest[0] ?? 'all' }
     case 'puzzle':

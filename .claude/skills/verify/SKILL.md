@@ -70,6 +70,19 @@ dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
 - footer 致謝以 `RAPFI_ATTRIBUTION`（src/analysis/rapfi.ts）為單一真相，
   App.tsx 只做原始碼網址轉連結——改致謝文字改那個常數。
 
+## 名人賽特訓（#/tara，塔拉山口-10）
+
+- 規則＝`src/tara/protocol.ts` 純 reducer（vitest `src/tara/__tests__/`）；phase 由
+  （moves.length, meta.swaps/branch/offers）推導。行動者＝`actorColor`（顏色）再對照
+  雙方目前執色（交換互換）→ 人或 AI。
+- AI 開局決策＝`src/tara/ai.ts`（Oracle 介面）；瀏覽器接 `src/tara/oracle.ts`，node 接
+  `scripts/tara-ai-sim.mjs`（同一套邏輯，`--force-ten` 驗十子路徑）。白 4／第 5 手均衡
+  掃描約 10–13 秒（單執行緒、每候選 300ms），十子多 PV 4 秒、擇一 7 秒。
+- e2e：`window.__dojo.loadTara(state)` 直接載入規則狀態（驗人方擺十子需要特定執色）；
+  棋鐘測試用獨立 page＋`page.clock`（假時鐘快轉判超時，零手的局不存檔所以先下天元）。
+- 已知簡化：AI 擺白 4 只看塔拉分支均衡，沒把對方改選十子算進去；棋鐘每次交棒都加秒
+  （含交換/選擇決定）。
+
 ## 開局書（src/openings/＋scripts/gen-opening-book.mjs）
 
 - **產書**：`npm run gen:book`（Rapfi WASM node 離線深算，預設 10s/局面、全量

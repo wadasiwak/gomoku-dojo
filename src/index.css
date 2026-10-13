@@ -57,6 +57,18 @@ body {
 .topbar nav {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+}
+
+.topbar nav a {
+  white-space: nowrap;
+}
+
+/* 窄螢幕：九個入口換行排兩列，縮小內距（不再擠成直排兩字） */
+@media (max-width: 520px) {
+  .topbar nav a {
+    padding: 5px 8px;
+  }
 }
 
 .topbar nav a {
@@ -839,4 +851,38 @@ footer {
 }
 .book-item p {
   margin: 6px 0 0;
+}
+
+/* ---- 名人賽特訓：棋鐘 ---- */
+.clock-row {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 8px;
+  max-width: 600px;
+}
+
+.clock {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 0.9rem;
+}
+
+.clock b {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock.running {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+
+.clock.low b {
+  color: var(--err);
 }

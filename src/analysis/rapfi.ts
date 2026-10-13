@@ -23,6 +23,7 @@ import {
   boardToStones,
   parseEngineLine,
   type StonePlacement,
+  type ThinkLimits,
 } from './protocol.ts'
 
 export const RAPFI_ATTRIBUTION =
@@ -176,8 +177,14 @@ export class RapfiClient {
    * @param input 手順或擺譜局面（15×15，座標 0-based）
    * @param rule 'gomoku'（無禁手）| 'renju'（連珠：黑禁手，引擎自動迴避/利用）
    * @param thinkTimeMs 思考時間上限（預設 5000；殺棋會提早回）
+   * @param limits 深度／節點／執行緒上限（對弈強度分級用；分析不給＝全力）
    */
-  analyze(input: RapfiInput, rule: Rule, thinkTimeMs = 5000): Promise<RapfiAnalysis> {
+  analyze(
+    input: RapfiInput,
+    rule: Rule,
+    thinkTimeMs = 5000,
+    limits: ThinkLimits = {},
+  ): Promise<RapfiAnalysis> {
     const run = async (): Promise<RapfiAnalysis> => {
       await this.ensureLoaded()
 
@@ -241,7 +248,7 @@ export class RapfiClient {
           }
         }
 
-        for (const cmd of buildThinkSetup(rule, thinkTimeMs)) this.send(cmd)
+        for (const cmd of buildThinkSetup(rule, thinkTimeMs, limits)) this.send(cmd)
         this.send(buildBoardCommand(stones, toMove, true))
       })
     }
@@ -263,6 +270,7 @@ export class RapfiClient {
     rule: Rule,
     n: number,
     thinkTimeMs = 3000,
+    limits: ThinkLimits = {},
   ): Promise<RapfiNBestResult> {
     const run = async (): Promise<RapfiNBestResult> => {
       await this.ensureLoaded()
@@ -343,7 +351,7 @@ export class RapfiClient {
           }
         }
 
-        for (const cmd of buildThinkSetup(rule, thinkTimeMs)) this.send(cmd)
+        for (const cmd of buildThinkSetup(rule, thinkTimeMs, limits)) this.send(cmd)
         this.send(buildBoardCommand(stones, toMove, false)) // YXBOARD：只設局面
         this.send(`YXNBEST ${n}`) // 指令本身觸發思考
       })

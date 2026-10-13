@@ -140,16 +140,26 @@ export function evalTextToScore(text: string | undefined): number | null {
   return Number.isFinite(v) ? v : null
 }
 
+/** 思考限制（對弈強度分級用）：未給＝不限。 */
+export interface ThinkLimits {
+  /** 迭代深度上限（WebRapfi 實測 10~15 接近人類）。 */
+  maxDepth?: number
+  /** 節點上限（單位：千節點，Gomocup MAX_NODE 協定值）。 */
+  maxKiloNodes?: number
+  /** 執行緒數（單執行緒 build 只能 1）。 */
+  threads?: number
+}
+
 /** analyze 一次思考前要送的設定指令（不含 START/BOARD）。 */
-export function buildThinkSetup(rule: Rule, thinkTimeMs: number): string[] {
+export function buildThinkSetup(rule: Rule, thinkTimeMs: number, limits: ThinkLimits = {}): string[] {
   return [
     `INFO RULE ${RULE_CODE[rule]}`,
-    'INFO THREAD_NUM 1', // 單執行緒 build
+    `INFO THREAD_NUM ${limits.threads ?? 1}`,
     `INFO TIMEOUT_TURN ${thinkTimeMs}`,
     'INFO TIMEOUT_MATCH 0', // 0＝不限總時
     'INFO TIME_LEFT 2147483647', // 協定值：不限剩餘時間
     'INFO SHOW_DETAIL 2', // 逐迭代輸出 INFO EVAL/WINRATE/BESTLINE
-    'INFO MAX_DEPTH 100',
-    'INFO MAX_NODE 0', // 0＝不限節點
+    `INFO MAX_DEPTH ${limits.maxDepth ?? 100}`,
+    `INFO MAX_NODE ${limits.maxKiloNodes ?? 0}`, // 0＝不限節點
   ]
 }
