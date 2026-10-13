@@ -45,3 +45,60 @@ COOP/COEP response header；GitHub Pages 是純靜態託管無法設 header，�
 ## 站內致謝文字
 
 分析引擎 Rapfi © dhbloo，GPL-3.0，原始碼 github.com/dhbloo/rapfi
+
+## 多執行緒版（rapfi-multi-simd128）
+
+與單執行緒版**同一份原始碼與權重**（rapfi `3c94c2a976f24a0dd1c5517623e9ab6fffe66bd7`、
+rapfi-networks `e32ad77a5364363b3e3a02b3f9e8610ade19ea98`，皆未修改），差別只在**不加**
+`-DNO_MULTI_THREADING=ON`（上游 CMake 因此改加 `-pthread -s PROXY_TO_PTHREAD=1`，輸出名 `rapfi-multi-simd128`）。
+
+- 工具鏈：emsdk 6.0.5（`emcc 6.0.5 (1db513782be24469589d7cb8a1f1834e9a33f271)`）＋ cmake（Homebrew）
+- 編譯日期：2026-10-13（macOS arm64）
+
+```bash
+# 前置同上（clone + checkout + submodule Networks）
+source ~/emsdk/emsdk_env.sh
+mkdir -p Rapfi/build/wasm-multi-simd128 && cd Rapfi/build/wasm-multi-simd128
+emcmake cmake ../.. -DCMAKE_BUILD_TYPE=Release \
+  -DNO_COMMAND_MODULES=ON \
+  -DUSE_WASM_SIMD=ON -DUSE_WASM_SIMD_RELAXED=OFF   # relaxed SIMD 關閉：Safari 不支援
+emmake cmake --build . -j8
+# 產物：rapfi-multi-simd128.{js,wasm,data}；只取 .js/.wasm 放本目錄
+```
+
+| 檔案 | 大小 | sha256 |
+| --- | --- | --- |
+| `rapfi-multi-simd128.js` | 45,948 B（45 KB） | `04367227b6059d55c13285753f2eb2afdb9ae2abeb06d562fdbe3118c2e208fb` |
+| `rapfi-multi-simd128.wasm` | 1,204,585 B（1.2 MB） | `61bbe571e91befce8ccca562a927e76a6eb22c6fb8fc2a397cc5823001e7f12d` |
+| （`rapfi-multi-simd128.data`） | 40,336,823 B | `09a8a7c9f4cfbb17690420f0560ebefd947ba876a875bbe37000c49ffa4ae339`＝與 `rapfi-single-simd128.data` **逐位元組相同 → 不另放** |
+
+**共用 .data**：glue 以 `Module.locateFile("rapfi-multi-simd128.data", "")` 取權重包 URL，
+在 locateFile 把 `.data` 結尾導到 `rapfi-single-simd128.data` 即可（node 與瀏覽器皆實測可用），
+兩版共用一份 40 MB、瀏覽器快取也共用。
+
+**需要 crossOriginIsolated**（SharedArrayBuffer）。GitHub Pages 不能設 header →
+以 `public/coi-serviceworker.js`（gzuidhof/coi-serviceworker v0.1.7，MIT，未修改，
+sha256 `e97bbac6017322d48aa54a5bc7ce473c725a4b7376ff245002e0ba71c3dcdd7e`）由 Service Worker 補上 COOP/COEP。
+非 isolated 環境一律退回單執行緒版。
+
+**pthread 子 Worker 載入**：glue 在 classic worker 內以 `new Worker(self.location.href, {name:'em-pthread'})`
+開 pthread（emcc 6 已無 `mainScriptUrlOrBlob`），也就是「重新載入 worker 腳本本身」。
+worker 腳本開頭須判斷 `self.name === 'em-pthread'` 時同步 `importScripts(glue)`（glue 尾端會自動呼叫 `Rapfi()` 進入 pthread 模式），
+不可走一般的 onmessage 載入流程。
+
+**實測加速**（同一 14 手中盤局面、TIMEOUT_TURN 3000、每輪前 YXHASHCLEAR；Apple Silicon 12 核）：
+
+| 環境 | THREAD_NUM 1 | THREAD_NUM 4 | THREAD_NUM 8 |
+| --- | --- | --- | --- |
+| node 26（`scripts/rapfi-smoke-multi.mjs`，三次） | 167–173 K nodes/s | 643–689 K nodes/s（**3.9–4.1×**） | — |
+| Chrome（COOP/COEP header） | 162–165 K/s，depth 16 | 607–664 K/s（**≈3.8–4.0×**），depth 18–20 | 1,396 K/s（≈8.6×） |
+| Chrome（coi-serviceworker） | 159–164 K/s | 598–731 K/s | — |
+
+單執行緒版同局面 162–175 K/s，與多執行緒版 THREAD_NUM 1 相當（多執行緒 build 本身無明顯額外開銷）。
+Lazy SMP 下「深度」不是乾淨的比較指標，以 nodes/s 為準。
+
+**已知注意事項**：
+- `INFO THREAD_NUM n` 要在 `START` **之前**送；`START` 後立刻改執行緒數會死鎖（node／Chrome 皆重現，START 後等 ≥50 ms 或先跑過一次搜尋則正常）。
+- 多執行緒版 `sendCommand` 是非同步（指令丟進 stdin 佇列、pthread 讀），一次 sendCommand 只能是**一條**協定指令；多送一次空的會讓引擎讀到 EOF 而 `emscripten_force_exit` 結束。
+- coi-serviceworker 首次造訪會自動 reload 一次；v0.1.7 在 `updatefound` 就 reload，SW 常尚未接管 → 實測 4 次中 3 次第二次載入仍非 isolated（要第三次才成功）。用 `window.coi.doReload` 改成等 `controllerchange` 再 reload 後，約 45 次 headless Chrome 實測中所有完成的跑次都在第二次載入即 isolated、引擎正常出手；另有 2 次 renderer 崩潰（Target crashed，原因未查明；同測試改用真 header 伺服器 10/10 無崩潰）。
+- COEP require-corp 會擋無 CORP header 的跨域 no-cors 資源（實測 `gc.zgo.at/count.js` 被擋，加 `crossorigin="anonymous"` 即可，該站有 `access-control-allow-origin: *`）。

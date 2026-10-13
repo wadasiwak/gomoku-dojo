@@ -1,5 +1,7 @@
 {
   "ignorePatterns": [
-    "public/rapfi/rapfi-single-simd128.js"
+    "public/rapfi/rapfi-single-simd128.js",
+    "public/rapfi/rapfi-multi-simd128.js",
+    "public/coi-serviceworker.js"
   ]
 }

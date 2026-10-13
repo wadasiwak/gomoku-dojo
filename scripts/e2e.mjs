@@ -585,13 +585,13 @@ try {
   })
 
   // ---- 13. Rapfi 分析 --------------------------------------------------------
-  await step('Rapfi 分析：載入引擎→建議 hint＋評分/PV（首載 40MB 走本機）', async () => {
+  await step('Rapfi 分析：載入引擎→建議路線＋評分/PV（首載 40MB 走本機）', async () => {
     await page.goto(`${BASE}/#/replay/r1:hhhgii`)
     await waitStones(3)
     await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
     await page.locator('button', { hasText: 'Rapfi 分析' }).click()
     await page.locator('.rapfi-result').waitFor({ timeout: 120000 })
-    await page.locator('.hint-mark').waitFor({ timeout: 5000 })
+    await page.locator('[data-pv="1"]').waitFor({ timeout: 5000 })
     const txt = await page.locator('.rapfi-result').innerText()
     if (!/Rapfi 建議：/.test(txt)) throw new Error(`結果缺建議手：${txt}`)
     await page.screenshot({ path: `${OUT}/rapfi-analysis.png` })
@@ -605,8 +605,28 @@ try {
     await page.locator('button', { hasText: 'Rapfi 分析' }).click()
     // 引擎已載入（上一步），這裡只等思考
     await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
-    await page.locator('.hint-mark').waitFor({ timeout: 5000 })
+    await page.locator('[data-pv="1"]').waitFor({ timeout: 5000 })
     await page.screenshot({ path: `${OUT}/rapfi-study.png` })
+  })
+
+  await step('Rapfi 建議路線：棋盤顯示編號路線→照第一手下仍保留→走別的收掉', async () => {
+    await page.goto(`${BASE}/#/study/r1:hhhgiiggjk`)
+    await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
+    await page.locator('select[aria-label="建議路線顯示手數"]').selectOption('6')
+    await page.locator('button', { hasText: 'Rapfi 分析' }).click()
+    await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
+    const pvs = () =>
+      page.locator('[data-pv]').evaluateAll((els) => els.map((e) => e.getAttribute('data-pos')))
+    const line = await pvs()
+    if (line.length < 2 || line.length > 6) throw new Error(`路線手數不對：${line.length}`)
+    const [x, y] = line[0].split(',').map(Number)
+    await cell(x, y).click() // 擺譜（輪流擺）照建議下第一手
+    const after = await pvs()
+    if (after[0] !== line[1]) throw new Error(`照走後路線沒前進：${after[0]} vs ${line[1]}`)
+    if ((await page.locator('.rapfi-result').count()) !== 1) throw new Error('照走後分析結果被清掉')
+    await cell(0, 0).click() // 偏離
+    if ((await pvs()).length !== 0) throw new Error('偏離後路線沒收掉')
+    await page.locator('select[aria-label="建議路線顯示手數"]').selectOption('10') // 還原預設
   })
 
   // ---- 14. 名人賽特訓（塔拉山口-10 vs Rapfi） ---------------------------------
@@ -615,7 +635,7 @@ try {
       (p) =>
         localStorage.setItem(
           'gomoku-dojo-tara-v1',
-          JSON.stringify({ variant: 'standard', seat: 'first', strength: 'd6', timeControl: 'none', showForbidden: true, showEval: true, ...p }),
+          JSON.stringify({ seat: 'first', strength: 'd6', timeControl: 'none', showForbidden: true, showEval: true, ...p }),
         ),
       patch,
     )
@@ -643,30 +663,52 @@ try {
     if (!notes.some((t) => /交換/.test(t))) throw new Error(`缺 AI 交換紀錄：${notes}`)
   })
 
-  await step('特訓：人方擺十子（對稱等價擋下、滿 10 提示）→ AI 擇一 → AI 下第 6 手', async () => {
+  await step('特訓：人方十打（對稱等價擋下、滿 10 提示）→ AI 擇一 → AI 下第 6 手', async () => {
     await page.goto(`${BASE}/#/tara`)
     await taraCfg({})
     await page.reload()
     await page.waitForFunction(() => window.__dojo?.loadTara)
-    // 左右對稱局面：黑 H8、白 H7、黑 H9、白 H5；人執黑已選十子
+    // 左右對稱局面：黑 H8、白 H7、黑 H9、白 H5；人執黑已選十打
     await page.evaluate(() =>
       window.__dojo.loadTara({
         moves: [{ x: 7, y: 7 }, { x: 7, y: 8 }, { x: 7, y: 6 }, { x: 7, y: 10 }],
-        meta: { variant: 'standard', swaps: [false, false, false], branch: 'ten', offers: null },
+        meta: { swaps: [false, false, false], branch: 'ten', offers: null },
       }),
     )
-    await waitTaraStatus(/擺十子/)
+    await waitTaraStatus(/十打：點選/)
     await cell(6, 7).click()
     await cell(8, 7).click() // 與 G8 鏡射等價
     await page.locator('.msg.err', { hasText: '對稱等價' }).waitFor({ timeout: 3000 })
     for (const [x, y] of [[6, 6], [6, 8], [5, 7], [6, 5], [6, 9], [5, 6], [5, 8], [4, 7], [6, 4], [6, 10]])
       await cell(x, y).click()
     await page.locator('.msg.err', { hasText: '已選滿' }).waitFor({ timeout: 3000 })
-    if ((await page.locator('[data-mark]').count()) !== 10) throw new Error('十子標記數不是 10')
-    await page.locator('button', { hasText: '確定十子' }).click()
+    if ((await page.locator('[data-mark]').count()) !== 10) throw new Error('十打標記數不是 10')
+    await page.locator('button', { hasText: '確定十打' }).click()
     await waitTaraStatus(/輪到你落子/, 120000)
     if ((await stones()) !== 6) throw new Error(`應有 6 子，實際 ${await stones()}`)
-    await page.locator('.rif-info', { hasText: 'AI 從十子中擇' }).waitFor({ timeout: 3000 })
+    await page.locator('.rif-info', { hasText: 'AI 從十打中擇' }).waitFor({ timeout: 3000 })
+  })
+
+  await step('特訓：白 4 後人方三選一 → ③持白 → AI 下黑 5 → 人最後選黑白', async () => {
+    await page.goto(`${BASE}/#/tara`)
+    await taraCfg({})
+    await page.reload()
+    await page.waitForFunction(() => window.__dojo?.loadTara)
+    // 前四手已下、三次都不換 → 人（下第 1 手者）執黑，輪到三選一
+    await page.evaluate(() =>
+      window.__dojo.loadTara({
+        moves: [{ x: 7, y: 7 }, { x: 7, y: 8 }, { x: 8, y: 6 }, { x: 4, y: 4 }],
+        meta: { swaps: [false, false, false], branch: null, offers: null },
+      }),
+    )
+    await waitTaraStatus(/三選一/)
+    for (const t of ['① 十打', '② 持黑', '③ 持白'])
+      await page.locator('.btn-col button', { hasText: t }).waitFor({ timeout: 3000 })
+    await page.locator('.btn-col button', { hasText: '③ 持白' }).click()
+    await waitTaraStatus(/黑 5 已下：你最後選黑白（目前你執白）/, 120000)
+    if ((await stones()) !== 5) throw new Error(`應有 5 子，實際 ${await stones()}`)
+    await page.locator('button', { hasText: '我選執白' }).click()
+    await waitTaraStatus(/輪到你落子|等待 Rapfi|思考/, 60000)
   })
 
   await step('特訓：棋鐘走秒＋超時判負＋棋譜庫標示', async () => {
@@ -678,7 +720,7 @@ try {
       await p2.evaluate(() =>
         localStorage.setItem(
           'gomoku-dojo-tara-v1',
-          JSON.stringify({ variant: 'standard', seat: 'first', strength: 'd6', timeControl: '5+5', showForbidden: true, showEval: false }),
+          JSON.stringify({ seat: 'first', strength: 'd6', timeControl: '5+5', showForbidden: true, showEval: false }),
         ),
       )
       await p2.reload()

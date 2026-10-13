@@ -8,10 +8,10 @@
 //
 // 架構：懶載入的獨立 classic Worker（public/rapfi/rapfi.worker.js）——首次呼叫
 // analyze()/preload() 才 fetch 引擎（glue 39KB＋wasm 1.2MB＋NNUE 權重 40MB，
-// 之後走瀏覽器 HTTP cache）。單執行緒 build（GitHub Pages 設不了 COOP/COEP
-// header，SharedArrayBuffer 多執行緒版不可用），思考期間 worker 阻塞、主執行緒
-// 不受影響；stop() 只能 terminate worker 再重載（Gomocup YXSTOP 在單執行緒
-// build 思考中收不到）。
+// 之後走瀏覽器 HTTP cache）。桌機且頁面 crossOriginIsolated（coi-serviceworker
+// 補 COOP/COEP）時改用多執行緒 build（rapfi-multi.worker.js，2–8 緒，實測 4 緒約 4×），
+// 否則單執行緒 build；思考期間主執行緒不受影響。stop() 一律 terminate worker 再重載
+// （單執行緒 build 思考中收不到 YXSTOP；多執行緒版為求一致同樣處理）。
 //
 // 與本站原創引擎（src/engine/client.ts EngineClient）完全獨立：Rapfi 只做
 // 「分析」（研棋/擺譜的第二意見），對弈預設仍是本站引擎。
@@ -77,6 +77,50 @@ interface WorkerMsg {
 }
 
 const BOARD_SIZE_CMD = 'START 15'
+
+/** 多執行緒版的執行緒數上限（實測 8 緒約 8.6×；再多邊際小、記憶體大）。 */
+const MAX_THREADS = 8
+
+/**
+ * 多執行緒版可用條件：頁面 crossOriginIsolated（coi-serviceworker 補 COOP/COEP 後成立）
+ * ＋SharedArrayBuffer＋非行動裝置。行動裝置（尤其 iOS）未實機驗證、記憶體吃緊，
+ * 一律走單執行緒版（index.html 也只在桌機註冊 coi-serviceworker）。
+ */
+/**
+ * 崩潰保險（sessionStorage，同分頁重新整理後仍在）：多執行緒版偶發分頁崩潰
+ * （headless 測試數十次中出現約 3 次、原因未查明）。思考開始時記 MT_BUSY、結束清掉；
+ * 若載入時發現 MT_BUSY 還在＝上次在思考中崩潰（或思考中被重新整理）→ 本分頁改用
+ * 單執行緒版（MT_OFF），讓崩潰最多發生一次。
+ */
+const MT_BUSY = 'gomoku-dojo-rapfi-mt-busy'
+const MT_OFF = 'gomoku-dojo-rapfi-mt-off'
+
+function session(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage
+  } catch {
+    return null
+  }
+}
+
+/** 本分頁是否因崩潰保險而停用多執行緒（UI 提示用）。 */
+export function multiThreadDisabledByCrashGuard(): boolean {
+  return session()?.getItem(MT_OFF) === '1'
+}
+
+function multiThreadCount(): number {
+  if (typeof self === 'undefined' || typeof navigator === 'undefined') return 1
+  const ss = session()
+  if (ss?.getItem(MT_BUSY)) {
+    ss.removeItem(MT_BUSY)
+    ss.setItem(MT_OFF, '1')
+  }
+  if (ss?.getItem(MT_OFF) === '1') return 1
+  const isolated = (self as { crossOriginIsolated?: boolean }).crossOriginIsolated === true
+  if (!isolated || typeof SharedArrayBuffer !== 'function') return 1
+  if (/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent)) return 1
+  return Math.max(2, Math.min(navigator.hardwareConcurrency || 4, MAX_THREADS))
+}
 /** 載入整體 timeout：慢網抓 40MB 權重也該在此限內完成。 */
 const LOAD_TIMEOUT_MS = 120_000
 
@@ -105,6 +149,8 @@ export class RapfiClient {
   private lineHandler: ((line: string) => void) | null = null
   private onProgress: ((p: RapfiLoadProgress) => void) | null = null
   private readonly baseUrl: string
+  /** 引擎執行緒數：>1＝多執行緒版（rapfi-multi.worker.js）；載入失敗會降回 1。 */
+  threads: number = multiThreadCount()
 
   /** @param baseUrl artifacts 目錄；預設相對於頁面 URL 的 `rapfi/`（dev 與 GitHub Pages 子路徑皆可）。 */
   constructor(baseUrl?: string) {
@@ -121,7 +167,8 @@ export class RapfiClient {
   private ensureLoaded(): Promise<void> {
     if (this.loadPromise) return this.loadPromise
     this.loadPromise = new Promise<void>((resolve, reject) => {
-      const worker = new Worker(this.baseUrl + 'rapfi.worker.js') // classic worker
+      const multi = this.threads > 1
+      const worker = new Worker(this.baseUrl + (multi ? 'rapfi-multi.worker.js' : 'rapfi.worker.js')) // classic worker
       this.worker = worker
       const timer = setTimeout(() => {
         fail(new Error(`Rapfi 載入逾時（${LOAD_TIMEOUT_MS / 1000}s）`))
@@ -131,6 +178,13 @@ export class RapfiClient {
         worker.terminate()
         this.worker = null
         this.loadPromise = null
+        if (multi) {
+          // 多執行緒版載不起來 → 降回單執行緒版重載（不讓使用者卡在錯誤）
+          console.error('Rapfi 多執行緒版載入失敗，改用單執行緒版', err)
+          this.threads = 1
+          this.ensureLoaded().then(resolve, reject)
+          return
+        }
         reject(err)
       }
       worker.onerror = (ev) => fail(new Error(`Rapfi worker 錯誤：${ev.message || 'unknown'}`))
@@ -141,6 +195,8 @@ export class RapfiClient {
             clearTimeout(timer)
             // 之後的訊息交給常駐 handler
             worker.onmessage = (e: MessageEvent<WorkerMsg>) => this.handleMessage(e.data)
+            // 多執行緒版：THREAD_NUM 必須在 START 之前送（START 後立刻改會死鎖）
+            if (multi) this.send(`INFO THREAD_NUM ${this.threads}`)
             this.send(BOARD_SIZE_CMD) // 回覆 "OK"，由 handler 忽略
             resolve()
             break
@@ -158,14 +214,23 @@ export class RapfiClient {
             break // 載入階段的 stdout（讀 config 等 MESSAGE）不用管
         }
       }
-      worker.postMessage({ type: 'load', glueURL: this.baseUrl + 'rapfi-single-simd128.js' })
+      worker.postMessage({
+        type: 'load',
+        glueURL: this.baseUrl + (multi ? 'rapfi-multi-simd128.js' : 'rapfi-single-simd128.js'),
+      })
     })
     return this.loadPromise
   }
 
   private handleMessage(msg: WorkerMsg): void {
     if (msg.type === 'stdout' && this.lineHandler) this.lineHandler(String(msg.data))
-    // stderr/exit/status 在運轉期只當雜訊；exit 理論上只在 terminate 時發生
+    if (msg.type === 'exit') {
+      // 引擎行程結束（多執行緒版讀到 EOF 等異常）→ 在途思考立即報錯、下次呼叫重載
+      const handler = this.lineHandler
+      this.stop()
+      handler?.(`ERROR 引擎意外結束（exit ${msg.data}）`)
+    }
+    // stderr/status 在運轉期只當雜訊
   }
 
   private send(cmd: string): void {
@@ -199,6 +264,7 @@ export class RapfiClient {
       }
 
       const t0 = Date.now()
+      this.markBusy(true)
       return await new Promise<RapfiAnalysis>((resolve, reject) => {
         let evalText: string | undefined
         let winrate: number | undefined
@@ -248,12 +314,13 @@ export class RapfiClient {
           }
         }
 
-        for (const cmd of buildThinkSetup(rule, thinkTimeMs, limits)) this.send(cmd)
+        for (const cmd of buildThinkSetup(rule, thinkTimeMs, { ...limits, threads: this.threads }))
+          this.send(cmd)
         this.send(buildBoardCommand(stones, toMove, true))
       })
     }
     // 佇列化：前一件分析完（或失敗）才跑下一件
-    const next = this.queue.then(run, run)
+    const next = this.queue.then(run, run).finally(() => this.markBusy(false))
     this.queue = next.catch(() => {})
     return next
   }
@@ -286,6 +353,7 @@ export class RapfiClient {
       }
 
       const t0 = Date.now()
+      this.markBusy(true)
       return await new Promise<RapfiNBestResult>((resolve, reject) => {
         /** 每個 PV index 的最新已完成區塊（逐輪迭代覆寫，留最後一輪）。 */
         const committed = new Map<number, RapfiPvLine>()
@@ -351,14 +419,24 @@ export class RapfiClient {
           }
         }
 
-        for (const cmd of buildThinkSetup(rule, thinkTimeMs, limits)) this.send(cmd)
+        for (const cmd of buildThinkSetup(rule, thinkTimeMs, { ...limits, threads: this.threads }))
+          this.send(cmd)
         this.send(buildBoardCommand(stones, toMove, false)) // YXBOARD：只設局面
         this.send(`YXNBEST ${n}`) // 指令本身觸發思考
       })
     }
-    const next = this.queue.then(run, run)
+    const next = this.queue.then(run, run).finally(() => this.markBusy(false))
     this.queue = next.catch(() => {})
     return next
+  }
+
+  /** 崩潰保險記號：只有多執行緒版需要。 */
+  private markBusy(on: boolean): void {
+    if (this.threads <= 1) return
+    const ss = session()
+    if (!ss) return
+    if (on) ss.setItem(MT_BUSY, '1')
+    else ss.removeItem(MT_BUSY)
   }
 
   /**
@@ -367,6 +445,7 @@ export class RapfiClient {
    */
   stop(): void {
     if (!this.worker) return
+    this.markBusy(false) // 主動中止不算崩潰
     this.worker.terminate()
     this.worker = null
     this.loadPromise = null

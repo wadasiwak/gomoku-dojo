@@ -21,6 +21,28 @@
     />
     <meta property="og:url" content="https://wadasiwak.github.io/gomoku-dojo/" />
     <meta name="twitter:card" content="summary" />
+    <script>
+      // Rapfi 多執行緒版需要 crossOriginIsolated；GitHub Pages 設不了 COOP/COEP header，
+      // 由 coi-serviceworker（MIT）以 Service Worker 補上。首次造訪會自動重新載入一次。
+      // - 只在桌機註冊：行動裝置（尤其 iOS）未實機驗證、記憶體吃緊，維持單執行緒版。
+      // - v0.1.7 在 updatefound 就 reload，SW 常尚未接管 → 改成等 controllerchange 再 reload
+      //  （實測原版 4 次有 3 次第二次載入仍未隔離）。
+      // - 保留原版防無限重載：剛自己重載過就不再註冊（旗標要在函式庫清掉前先讀）。
+      var coiReloadedBySelf = sessionStorage.getItem('coiReloadedBySelf')
+      window.coi = {
+        shouldRegister: function () {
+          return !coiReloadedBySelf && !/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent)
+        },
+        doReload: function () {
+          var sw = navigator.serviceWorker
+          if (sw && !sw.controller) {
+            sw.addEventListener('controllerchange', function () { location.reload() }, { once: true })
+            setTimeout(function () { location.reload() }, 4000)
+          } else location.reload()
+        },
+      }
+    </script>
+    <script src="./coi-serviceworker.js"></script>
   </head>
   <body>
     <div id="root"></div>
@@ -37,11 +59,13 @@
     <script
       data-goatcounter="https://wadasiwak.goatcounter.com/count"
       async
+      crossorigin="anonymous"
       src="//gc.zgo.at/count.js"
     ></script>
     <script
       src="https://wadasiwak.github.io/japan-planner/widget.js"
       data-site="gomoku-dojo"
+      crossorigin="anonymous"
       defer
     ></script>
   </body>

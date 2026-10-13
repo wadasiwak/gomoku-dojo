@@ -70,18 +70,39 @@ dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
 - footer 致謝以 `RAPFI_ATTRIBUTION`（src/analysis/rapfi.ts）為單一真相，
   App.tsx 只做原始碼網址轉連結——改致謝文字改那個常數。
 
+## Rapfi 多執行緒版（桌機）
+
+- 編譯/實測紀錄在 `public/rapfi/README.md`「多執行緒版」；node 冒煙：`node scripts/rapfi-smoke-multi.mjs`。
+- 啟用條件（`src/analysis/rapfi.ts` multiThreadCount）：crossOriginIsolated＋SharedArrayBuffer＋
+  非行動裝置；`index.html` 只在桌機註冊 `coi-serviceworker.js`（自訂 doReload 等
+  controllerchange；自訂 shouldRegister 時要自己保留 coiReloadedBySelf 防無限重載）。
+- COEP require-corp：跨域 script 要加 `crossorigin="anonymous"`（GoatCounter、導流 widget；本機
+  localhost 下 widget 算跨域）。
+- 崩潰保險：多執行緒版偶發分頁崩潰（原因未查明，e2e 約 1/3 次）→ 思考中記 sessionStorage
+  `gomoku-dojo-rapfi-mt-busy`，重整時還在就本分頁改單執行緒（`…-mt-off`），特訓頁面板提示。
+  若 e2e 偶發 `Page crashed`，先重跑確認是否就是這個。
+
+## Rapfi 建議路線（擺譜／重播）
+
+- `src/ui/pvFollow.ts`：分析時記錄錨點（盤面快照＋主變化＋顏色），之後純推導「目前盤面＝
+  錨點＋主變化前 k 手」→ 畫剩餘路線（Board `pv` prop，半透明編號子 `[data-pv]`）；偏離收掉。
+  跟著走時父層把 RapfiPanel 的 positionKey 維持在錨點 key，結果文字不被清掉。
+- 換規則／手動改手番要主動清錨點（盤面沒變但路線不適用）。
+
 ## 名人賽特訓（#/tara，塔拉山口-10）
 
 - 規則＝`src/tara/protocol.ts` 純 reducer（vitest `src/tara/__tests__/`）；phase 由
   （moves.length, meta.swaps/branch/offers）推導。行動者＝`actorColor`（顏色）再對照
   雙方目前執色（交換互換）→ 人或 AI。
+- 白 4 後三選一（國手 2026-10-13 釐清，取代先前誤做的「塔拉/十子＋另一步交換」與
+  swapFirst 解讀）：①十打 ②持黑＝branch tara＋交換點 false ③持白＝branch tara＋交換點
+  true；黑 5 後的交換點＝「最後選黑白」。
 - AI 開局決策＝`src/tara/ai.ts`（Oracle 介面）；瀏覽器接 `src/tara/oracle.ts`，node 接
-  `scripts/tara-ai-sim.mjs`（同一套邏輯，`--force-ten` 驗十子路徑）。白 4／第 5 手均衡
-  掃描約 10–13 秒（單執行緒、每候選 300ms），十子多 PV 4 秒、擇一 7 秒。
+  `scripts/tara-ai-sim.mjs`（同一套邏輯，`--force-ten` 驗十打路徑）。白 4／第 5 手均衡
+  掃描約 10–13 秒（每候選 300ms），白 4 再加防十打（最多 3 候選×2.5s），十打多 PV 4 秒、擇一 7 秒。
 - e2e：`window.__dojo.loadTara(state)` 直接載入規則狀態（驗人方擺十子需要特定執色）；
   棋鐘測試用獨立 page＋`page.clock`（假時鐘快轉判超時，零手的局不存檔所以先下天元）。
-- 已知簡化：AI 擺白 4 只看塔拉分支均衡，沒把對方改選十子算進去；棋鐘每次交棒都加秒
-  （含交換/選擇決定）。
+- 已知簡化：棋鐘每次交棒都加秒（含交換/選擇決定）。
 
 ## 開局書（src/openings/＋scripts/gen-opening-book.mjs）
 
