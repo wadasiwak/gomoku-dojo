@@ -1,40 +1,35 @@
 // 塔拉山口-10（Taraguchi-10）開局規則狀態機。
 //
-// 條文來源：台灣五子棋協會《第十八屆名人賽》簡章（2026-10）＋Wikipedia
-// 「Taraguchi opening rule」＋renjunews Super Taraguchi-10 公告三方對照。
+// 條文：台灣五子棋協會《第十八屆名人賽》簡章（2026-10），國手 2026-10-13 親自釐清：
 //   1. 黑下第 1 手（天元）　　　　　　→ 對方可交換
 //   2. 白下第 2 手（中央 3×3）　　　　→ 對方可交換
 //   3. 黑下第 3 手（中央 5×5）　　　　→ 對方可交換
 //   4. 白下第 4 手（中央 7×7）
-//   之後由「下一手輪到的一方」（＝當時執黑者）二選一：
-//     塔拉：可交換 → 黑下第 5 手（中央 9×9）→ 對方可交換 → 白下第 6 手（任意）
-//     十子：黑方擺 10 個第 5 手候選（全盤任意、兩兩不可對稱等價）→
-//           白方擇一成立第 5 手 → 白下第 6 手（任意）
+//   白 4 下完後，對方（＝當時執黑者）三選一：
+//     ① 十打：持黑擺 10 個第 5 手候選（全盤任意、兩兩不可對稱等價）→
+//            對方擇一成立第 5 手 → 白下第 6 手（防對方下太奇怪的白 4）
+//     ② 持黑：自己下黑 5（中央 9×9）→ 對方最後選黑白
+//     ③ 持白：對方下黑 5（中央 9×9）→ 自己最後選黑白
+//   ②③ 與第 1～4 手的塔拉交換同一個意思（＝白 4 後的交換點，再加黑 5 後的交換點）。
 //
 // 「交換」＝雙方互換執色；誰有權交換＝下一手輪到的那個顏色的持有者。
-//
-// 兩種條文解讀（國手 2026-10-13 要求兩種都做成選項）：
-//   - standard（簡章＋國際公告寫法，預設）：白 4 之後先選「塔拉／十子」，
-//     選塔拉才有那次交換；選十子即放棄交換、自己確定執黑。
-//   - swapFirst：白 4 之後先決定交換與否，換完的執黑者再選「下第 5 手／十子」。
+// ②③ 在 meta 裡記為 branch='tara' 加一個交換點（②＝不換、③＝換），
+// 與第 1～3 手的交換點同一套推導，不另立狀態。
 //
 // 純函式 reducer，形狀比照 rif/protocol.ts：moves 為單一真相，meta 只記事件，
 // phase 由（meta, moves.length）推導。盤面勝負仍由 UI 層 Game 重放判定。
 import { BLACK, WHITE, SIZE, idx, type Color, type Pos } from '../engine/types.ts'
 import { canonicalBoardKey } from '../engine/symmetry.ts'
 
-export type TaraVariant = 'standard' | 'swapFirst'
-
-/** 十子選一的候選數。 */
+/** 十打的候選數。 */
 export const TARA_OFFER_COUNT = 10
 
 export interface TaraMeta {
-  variant: TaraVariant
   /** 每個交換點的決定，依發生順序（true＝交換）。 */
   swaps: boolean[]
-  /** 白 4 之後的分支；尚未選＝null。 */
+  /** 白 4 之後的路線：tara＝②③（下黑 5）、ten＝①十打；尚未選＝null。 */
   branch: 'tara' | 'ten' | null
-  /** 十子分支：黑方擺出的 10 個第 5 手候選。 */
+  /** 十打：黑方擺出的 10 個第 5 手候選。 */
   offers: Pos[] | null
 }
 
@@ -46,7 +41,7 @@ export interface TaraState {
 export type TaraPhase =
   | 'place' // 落子（第 1–4 手、塔拉分支第 5 手、之後正常輪替）
   | 'swap' // 下一手的持有者決定是否交換
-  | 'branch' // 白 4 之後二選一（塔拉／十子）
+  | 'branch' // 白 4 之後三選一（十打／持黑／持白）
   | 'offer10' // 黑方擺 10 個第 5 手候選
   | 'choose10' // 白方擇一
   | 'normal' // 開局結束，正常輪替
@@ -54,20 +49,23 @@ export type TaraPhase =
 export type TaraAction =
   | { type: 'place'; pos: Pos }
   | { type: 'swap'; swap: boolean }
-  | { type: 'branch'; branch: 'tara' | 'ten' }
+  /** 白 4 後三選一：ten＝①十打、black＝②持黑下黑 5、white＝③持白讓對方下黑 5。 */
+  | { type: 'branch'; choice: BranchChoice }
   | { type: 'offer'; offers: Pos[] }
   | { type: 'choose'; pos: Pos }
 
+export type BranchChoice = 'ten' | 'black' | 'white'
+
 export const TARA_CENTER: Pos = { x: 7, y: 7 }
 
-export const taraInitial = (variant: TaraVariant = 'standard'): TaraState => ({
+export const taraInitial = (): TaraState => ({
   moves: [],
-  meta: { variant, swaps: [], branch: null, offers: null },
+  meta: { swaps: [], branch: null, offers: null },
 })
 
 /** 第 n 手（1 起算）允許的範圍：與天元的 Chebyshev 距離上限。
  *  第 1 手 0（天元）、2 手 1（3×3）、3 手 2（5×5）、4 手 3（7×7）、塔拉第 5 手 4（9×9）。
- *  其餘（十子候選、第 6 手起）不限＝null。 */
+ *  其餘（十打候選、第 6 手起）不限＝null。 */
 export function areaLimit(state: TaraState, moveNo: number): number | null {
   if (moveNo <= 4) return moveNo - 1
   if (moveNo === 5 && state.meta.branch === 'tara') return 4
@@ -79,22 +77,16 @@ export const areaSize = (limit: number): number => limit * 2 + 1
 
 export function taraPhase(s: TaraState): TaraPhase {
   const n = s.moves.length
-  const { swaps, branch, offers, variant } = s.meta
+  const { swaps, branch, offers } = s.meta
   if (n === 0) return 'place'
   if (n <= 3) return swaps.length < n ? 'swap' : 'place'
   if (n === 4) {
-    if (variant === 'standard') {
-      if (branch === null) return 'branch'
-      if (branch === 'tara') return swaps.length < 4 ? 'swap' : 'place'
-    } else {
-      if (swaps.length < 4) return 'swap'
-      if (branch === null) return 'branch'
-      if (branch === 'tara') return 'place'
-    }
+    if (branch === null) return 'branch'
+    if (branch === 'tara') return 'place' // ②③ 已含白 4 後的交換點（swaps[3]）
     return offers === null ? 'offer10' : 'choose10'
   }
   if (n === 5 && branch === 'tara') {
-    // 塔拉分支第 5 手之後的交換＝兩種解讀都是第 5 個交換點（1、2、3、白 4 後、黑 5 後）
+    // 黑 5 之後的交換點（第 5 個：1、2、3、白 4 後、黑 5 後）＝「最後選黑白」
     return swaps.length < 5 ? 'swap' : 'normal'
   }
   return 'normal'
@@ -114,7 +106,7 @@ export const colorToMove = (moves: readonly Pos[]): Color =>
   moves.length % 2 === 0 ? BLACK : WHITE
 
 /** 目前該由哪個顏色的持有者行動：
- *  交換／分支決定＝下一手輪到的顏色；十子擺放＝黑；十子擇一＝白。 */
+ *  交換／分支決定＝下一手輪到的顏色；十打擺放＝黑；十打擇一＝白。 */
 export function actorColor(s: TaraState): Color {
   const ph = taraPhase(s)
   if (ph === 'offer10') return BLACK
@@ -127,7 +119,7 @@ const cheb = (a: Pos, b: Pos): number => Math.max(Math.abs(a.x - b.x), Math.abs(
 const inBoard = (p: Pos): boolean => p.x >= 0 && p.x < SIZE && p.y >= 0 && p.y < SIZE
 const occupied = (moves: readonly Pos[], p: Pos): boolean => moves.some((m) => same(m, p))
 
-/** 手順盤面＋一顆黑子 extra → canonical key（十子對稱等價檢查用）。 */
+/** 手順盤面＋一顆黑子 extra → canonical key（十打對稱等價檢查用）。 */
 function keyWithBlack(moves: readonly Pos[], extra: Pos): string {
   const b = new Uint8Array(SIZE * SIZE)
   moves.forEach((m, i) => {
@@ -171,11 +163,18 @@ export function taraReduce(
       return { next: { ...s, meta: { ...s.meta, swaps: [...s.meta.swaps, action.swap] } }, error: null }
     }
     case 'branch': {
-      if (phase !== 'branch') return err('現在不是選擇塔拉／十子的階段')
-      return { next: { ...s, meta: { ...s.meta, branch: action.branch } }, error: null }
+      if (phase !== 'branch') return err('現在不是白 4 後的選擇階段')
+      if (action.choice === 'ten')
+        return { next: { ...s, meta: { ...s.meta, branch: 'ten' } }, error: null }
+      // ②持黑＝不換、③持白＝換（下黑 5 的人＝換完的執黑者）
+      const swap = action.choice === 'white'
+      return {
+        next: { ...s, meta: { ...s.meta, branch: 'tara', swaps: [...s.meta.swaps, swap] } },
+        error: null,
+      }
     }
     case 'offer': {
-      if (phase !== 'offer10') return err('現在不是黑方擺十子的階段')
+      if (phase !== 'offer10') return err('現在不是黑方十打的階段')
       const offers = action.offers
       if (offers.length !== TARA_OFFER_COUNT) return err(`必須剛好擺 ${TARA_OFFER_COUNT} 個候選`)
       for (let i = 0; i < offers.length; i++) {

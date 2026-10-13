@@ -886,3 +886,15 @@ footer {
 .clock.low b {
   color: var(--err);
 }
+
+/* 白 4 後三選一：按鈕直排（文字較長） */
+.btn-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.btn-col .btn {
+  text-align: left;
+}

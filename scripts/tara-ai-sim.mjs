@@ -1,9 +1,9 @@
 // 塔拉山口-10 AI 開局決策模擬（node 直跑 Rapfi WASM，不需瀏覽器）：
-//   node scripts/tara-ai-sim.mjs [--games 4] [--variant standard|swapFirst]
-// 讓 AI 對 AI 走完開局（擺子／交換／分支／十子／擇一），印出每一步的決策、
+//   node scripts/tara-ai-sim.mjs [--games 4] [--force-ten]
+// 讓 AI 對 AI 走完開局（擺子／交換／白 4 後三選一／十打／擇一），印出每一步的決策、
 // 黑方視角分數與耗時；最後印出開局結束時的局面評估——用來確認：
 //   1. 決策流程不卡、每步耗時在可接受範圍（瀏覽器單執行緒約等速）
-//   2. 「均衡擺子」真的把分數壓在 0 附近、十子值與擇一方向正確
+//   2. 「均衡擺子」真的把分數壓在 0 附近、白 4 防十打、十打值與擇一方向正確
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -25,8 +25,7 @@ const arg = (k, d) => {
   return i > 0 ? process.argv[i + 1] : d
 }
 const GAMES = +arg('games', 2)
-const VARIANT = arg('variant', 'standard')
-/** --force-ten：分支一律走十子（驗十子擺放／擇一路徑）。 */
+/** --force-ten：白 4 後一律選十打（驗十打擺放／擇一路徑）。 */
 const FORCE_TEN = process.argv.includes('--force-ten')
 
 function loadGlueAsCjs(file) {
@@ -86,13 +85,13 @@ const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
 
 for (let g = 0; g < GAMES; g++) {
   seed = 1000 + g
-  let s = taraInitial(VARIANT)
+  let s = taraInitial()
   const act = (a) => {
     const { next, error } = taraReduce(s, a)
     if (error) throw new Error(`${error} ← ${JSON.stringify(a)}`)
     s = next
   }
-  console.log(`\n=== 第 ${g + 1} 局（${VARIANT}）===`)
+  console.log(`\n=== 第 ${g + 1} 局 ===`)
   let plan = null
   for (let guard = 0; guard < 30 && taraPhase(s) !== 'normal'; guard++) {
     const ph = taraPhase(s)
@@ -101,7 +100,7 @@ for (let g = 0; g < GAMES; g++) {
     if (ph === 'place') {
       const r = await aiPlaceBalanced(s, oracle, rng)
       act({ type: 'place', pos: r.move })
-      line = `第 ${s.moves.length} 手 ${name(r.move)}（黑方 ${r.black ?? '—'}）`
+      line = `第 ${s.moves.length} 手 ${name(r.move)}（黑方 ${r.black ?? '—'}${r.tenValue !== undefined ? `；對方十打值 ${r.tenValue}` : ''}）`
     } else if (ph === 'swap') {
       const r = await aiSwap(s, actorColor(s), oracle)
       act({ type: 'swap', swap: r.swap })
@@ -109,12 +108,12 @@ for (let g = 0; g < GAMES; g++) {
     } else if (ph === 'branch') {
       plan = await aiTenPlan(s, oracle)
       const b = FORCE_TEN ? 'ten' : decideBranch(plan)
-      act({ type: 'branch', branch: b })
-      line = `分支：${b === 'ten' ? '十子' : '塔拉'}（十子值 ${plan.value}）`
+      act({ type: 'branch', choice: b })
+      line = `白 4 後選：${{ ten: '①十打', black: '②持黑', white: '③持白' }[b]}（十打值 ${plan.value}）`
     } else if (ph === 'offer10') {
       if (!plan) plan = await aiTenPlan(s, oracle)
       act({ type: 'offer', offers: plan.offers })
-      line = `十子：${plan.offers.map(name).join(' ')}`
+      line = `十打：${plan.offers.map(name).join(' ')}`
     } else if (ph === 'choose10') {
       const r = await aiChooseOffer(s, oracle)
       act({ type: 'choose', pos: r.move })

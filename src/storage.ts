@@ -131,10 +131,13 @@ export function recordPuzzleAttempt(id: string, solved: boolean, missed: boolean
   save(PUZZLE_KEY, p)
 }
 
+// ---- Rapfi 建議路線顯示手數（擺譜／重播共用；0＝全部）------------------
+const PV_SHOW_KEY = 'gomoku-dojo-pvshow-v1'
+export const loadPvShow = (): number => load<{ n: number }>(PV_SHOW_KEY, { n: 10 }).n
+export const savePvShow = (n: number): void => save(PV_SHOW_KEY, { n })
+
 // ---- 塔拉山口-10 特訓設定 ---------------------------------------------
 export interface TaraSettings {
-  /** 條文解讀：standard＝簡章寫法、swapFirst＝白 4 後先交換再選分支。 */
-  variant: 'standard' | 'swapFirst'
   /** first＝我下第 1 手（開局暫執黑）、second＝AI 下第 1 手。 */
   seat: 'first' | 'second'
   strength: 'max' | 'd14' | 'd10' | 'd6'
@@ -146,7 +149,6 @@ export interface TaraSettings {
 const TARA_KEY = 'gomoku-dojo-tara-v1'
 export const loadTaraSettings = (): TaraSettings =>
   load<TaraSettings>(TARA_KEY, {
-    variant: 'standard',
     seat: 'first',
     strength: 'max',
     timeControl: '30+30',

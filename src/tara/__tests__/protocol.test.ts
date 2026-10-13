@@ -1,5 +1,5 @@
-// 塔拉山口-10 reducer 全路徑：範圍限制／三次交換／兩種解讀的塔拉、十子分支／
-// 十子等價檢查／誰有權行動（actorColor）與換色推導。
+// 塔拉山口-10 reducer 全路徑：範圍限制／三次交換／白 4 後三選一（十打、持黑、持白）／
+// 十打等價檢查／誰有權行動（actorColor）與換色推導。
 import { describe, expect, it } from 'vitest'
 import {
   taraInitial,
@@ -86,27 +86,38 @@ describe('換色與行動者', () => {
   })
 })
 
-describe('standard 解讀（簡章寫法）', () => {
-  it('白 4 之後先選分支；塔拉 → 交換 → 第 5 手限 9×9 → 交換 → 正常', () => {
-    let s = apply(taraInitial('standard'), ...FIRST_FOUR)
+describe('白 4 後三選一', () => {
+  it('執黑者三選一；②持黑：自己下黑 5（限 9×9）→ 對方最後選黑白 → 正常', () => {
+    let s = apply(taraInitial(), ...FIRST_FOUR)
     expect(taraPhase(s)).toBe('branch')
     expect(actorColor(s)).toBe(BLACK)
-    s = apply(s, { type: 'branch', branch: 'tara' })
-    expect(taraPhase(s)).toBe('swap')
-    s = apply(s, swap(false))
+    s = apply(s, { type: 'branch', choice: 'black' })
+    expect(firstPlayerColor(s.meta)).toBe(BLACK) // 沒換
     expect(taraPhase(s)).toBe('place')
+    expect(actorColor(s)).toBe(BLACK)
     expectError(s, place(12, 12), /9×9/)
     s = apply(s, place(11, 11))
     expect(taraPhase(s)).toBe('swap')
-    expect(actorColor(s)).toBe(WHITE)
+    expect(actorColor(s)).toBe(WHITE) // 對方（白）最後選
     s = apply(s, swap(true))
     expect(taraPhase(s)).toBe('normal')
     expect(firstPlayerColor(s.meta)).toBe(WHITE)
     s = apply(s, place(0, 0)) // 第 6 手全盤任意
     expect(s.moves).toHaveLength(6)
   })
-  it('十子：選了就沒有交換，黑擺十點、白擇一、白下第 6 手', () => {
-    let s = apply(taraInitial('standard'), ...FIRST_FOUR, { type: 'branch', branch: 'ten' })
+  it('③持白：對方改執黑下黑 5 → 我（執白）最後選黑白', () => {
+    let s = apply(taraInitial(), ...FIRST_FOUR, { type: 'branch', choice: 'white' })
+    // 選擇者原本執黑（下第 1 手的人），選持白後雙方互換
+    expect(firstPlayerColor(s.meta)).toBe(WHITE)
+    expect(taraPhase(s)).toBe('place')
+    s = apply(s, place(9, 9))
+    expect(taraPhase(s)).toBe('swap')
+    expect(actorColor(s)).toBe(WHITE) // 選擇者現執白 → 由他最後選
+    s = apply(s, swap(false))
+    expect(taraPhase(s)).toBe('normal')
+  })
+  it('①十打：沒有交換，黑擺十點、白擇一、白下第 6 手', () => {
+    let s = apply(taraInitial(), ...FIRST_FOUR, { type: 'branch', choice: 'ten' })
     expect(taraPhase(s)).toBe('offer10')
     expect(s.meta.swaps).toHaveLength(3)
     s = apply(s, { type: 'offer', offers: TEN })
@@ -119,33 +130,16 @@ describe('standard 解讀（簡章寫法）', () => {
     s = apply(s, place(0, 14))
     expect(s.moves).toHaveLength(6)
   })
-})
-
-describe('swapFirst 解讀', () => {
-  it('白 4 之後先交換，換完的執黑者再選分支', () => {
-    let s = apply(taraInitial('swapFirst'), ...FIRST_FOUR)
-    expect(taraPhase(s)).toBe('swap')
-    s = apply(s, swap(true))
-    expect(taraPhase(s)).toBe('branch')
-    expect(firstPlayerColor(s.meta)).toBe(WHITE)
-    s = apply(s, { type: 'branch', branch: 'ten' })
-    expect(taraPhase(s)).toBe('offer10')
-  })
-  it('塔拉分支：第 5 手後再一次交換', () => {
-    let s = apply(taraInitial('swapFirst'), ...FIRST_FOUR, swap(false), {
-      type: 'branch',
-      branch: 'tara',
-    })
-    expect(taraPhase(s)).toBe('place')
-    s = apply(s, place(9, 9))
-    expect(taraPhase(s)).toBe('swap')
-    s = apply(s, swap(false))
-    expect(taraPhase(s)).toBe('normal')
+  it('白 4 前不能選、選過不能再選', () => {
+    const before = apply(taraInitial(), place(7, 7), swap(false))
+    expectError(before, { type: 'branch', choice: 'ten' }, /白 4 後/)
+    const after = apply(taraInitial(), ...FIRST_FOUR, { type: 'branch', choice: 'black' })
+    expectError(after, { type: 'branch', choice: 'white' }, /白 4 後/)
   })
 })
 
-describe('十子驗證', () => {
-  const at = apply(taraInitial(), ...FIRST_FOUR, { type: 'branch', branch: 'ten' })
+describe('十打驗證', () => {
+  const at = apply(taraInitial(), ...FIRST_FOUR, { type: 'branch', choice: 'ten' })
   it('數量必須剛好 10', () => {
     expectError(at, { type: 'offer', offers: TEN.slice(0, 9) }, /剛好擺 10/)
   })
