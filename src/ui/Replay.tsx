@@ -8,6 +8,8 @@ import Board from './Board.tsx'
 import ImportBox from './ImportBox.tsx'
 import RapfiPanel from './RapfiPanel.tsx'
 import { coordName } from './coords.ts'
+import { remainingPv, type PvAnchor } from './pvFollow.ts'
+import { loadPvShow, savePvShow } from '../storage.ts'
 import { Game } from '../engine/game.ts'
 import { EngineClient } from '../engine/client.ts'
 import { parseRecord, serializeRecord } from '../engine/record.ts'
@@ -39,7 +41,9 @@ export default function Replay({ record }: { record: string }) {
   const [step, setStep] = useState(total)
   const [trial, setTrial] = useState<Pos[]>([]) // 研棋變化（接在第 step 手之後）
   const [hint, setHint] = useState<Pos | null>(null)
-  const [rapfiMove, setRapfiMove] = useState<Pos | null>(null) // Rapfi 建議（另一顆 hint 圈）
+  /** Rapfi 建議路線錨點（照著下／照棋譜前進會一路顯示，偏離自動收掉；見 pvFollow.ts）。 */
+  const [pvAnchor, setPvAnchor] = useState<PvAnchor | null>(null)
+  const [pvShow, setPvShow] = useState(loadPvShow)
   const [thinking, setThinking] = useState(false)
   const [copied, setCopied] = useState(false)
   const hintReqRef = useRef(0)
@@ -47,7 +51,7 @@ export default function Replay({ record }: { record: string }) {
     setStep(total)
     setTrial([])
     setHint(null)
-    setRapfiMove(null)
+    setPvAnchor(null)
   }, [record, total])
 
   /** 換手數＝離開變化：收掉研棋與建議。 */
@@ -55,8 +59,7 @@ export default function Replay({ record }: { record: string }) {
     setStep(n)
     setTrial([])
     setHint(null)
-    setRapfiMove(null)
-    hintReqRef.current++ // 使在途建議失效
+    hintReqRef.current++ // 使在途建議失效（Rapfi 路線不清：盤面還在路線上就繼續顯示）
   }
 
   const game = useMemo(() => {
@@ -113,11 +116,14 @@ export default function Replay({ record }: { record: string }) {
         ? `第 ${step} / ${total} 手（未終局）`
         : winText(result)
 
+  const positionKey = `${parsed.rec.rule}|${Array.from(game.board).join('')}`
+  /** 尚未走的 Rapfi 建議路線（盤面偏離就是空的）。 */
+  const pvLine = remainingPv(pvAnchor, game.board)
+
   const onCell = (x: number, y: number) => {
     if (!ongoing || !game.canPlay(x, y)) return
     setTrial((t) => [...t, { x, y }])
     setHint(null)
-    setRapfiMove(null)
   }
 
   const suggest = () => {
@@ -152,7 +158,8 @@ export default function Replay({ record }: { record: string }) {
           board={game.board}
           lastMove={last}
           numbered={shown}
-          hint={hint ?? rapfiMove}
+          hint={hint}
+          pv={pvShow > 0 ? pvLine.slice(0, pvShow) : pvLine}
           onCell={onCell}
           disabled={!ongoing}
         />
@@ -206,7 +213,6 @@ export default function Replay({ record }: { record: string }) {
             onClick={() => {
               setTrial((t) => t.slice(0, -1))
               setHint(null)
-              setRapfiMove(null)
             }}
             disabled={!inTrial}
           >
@@ -217,7 +223,6 @@ export default function Replay({ record }: { record: string }) {
             onClick={() => {
               setTrial([])
               setHint(null)
-              setRapfiMove(null)
             }}
             disabled={!inTrial}
           >
@@ -233,10 +238,21 @@ export default function Replay({ record }: { record: string }) {
         <RapfiPanel
           buildInput={() => ({ moves: shown })}
           rule={parsed.rec.rule}
-          positionKey={`${record}|${step}|${trial.map((m) => `${m.x},${m.y}`).join(';')}`}
+          positionKey={pvLine.length > 0 && pvAnchor ? pvAnchor.key : positionKey}
           toMoveLabel={game.toMove === BLACK ? '黑' : '白'}
           disabled={!ongoing}
-          onMove={setRapfiMove}
+          pvShow={pvShow}
+          onPvShow={(n) => {
+            setPvShow(n)
+            savePvShow(n)
+          }}
+          onResult={(a) =>
+            setPvAnchor(
+              a
+                ? { root: Uint8Array.from(game.board), line: a.pv, color: game.toMove, key: positionKey }
+                : null,
+            )
+          }
         />
         <div className="btn-row">
           <button

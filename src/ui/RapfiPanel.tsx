@@ -6,7 +6,8 @@
 //   RapfiClient.analyze 內部佇列會自行消化）；「取消」才 stop()——單執行緒
 //   build 思考中收不到停止指令，只能 terminate worker，下次分析重新初始化
 //   （artifacts 走 HTTP cache，秒級）。
-// - 建議手經 onMove 回拋給父層畫 hint 圈；PV／評分／勝率在面板內文字顯示。
+// - 分析結果經 onResult 回拋給父層（畫建議路線，見 pvFollow.ts）；評分／勝率在面板內文字顯示。
+//   父層跟著路線走時會維持同一個 positionKey，結果就不會被清掉。
 import { useEffect, useRef, useState } from 'react'
 import {
   getRapfi,
@@ -15,7 +16,7 @@ import {
   type RapfiInput,
   type RapfiLoadProgress,
 } from '../analysis/rapfi.ts'
-import type { Pos, Rule } from '../engine/types.ts'
+import type { Rule } from '../engine/types.ts'
 import { coordName } from './coords.ts'
 
 interface Props {
@@ -27,8 +28,11 @@ interface Props {
   /** 待思考方標籤（「黑」／「白」）。 */
   toMoveLabel: string
   disabled?: boolean
-  /** 建議手回拋（父層畫 hint 圈）。 */
-  onMove: (p: Pos | null) => void
+  /** 分析結果回拋（父層畫建議路線）；開始新分析時回拋 null。 */
+  onResult: (a: RapfiAnalysis | null) => void
+  /** 棋盤上建議路線顯示幾手（0＝全部）；選單在本面板、狀態由父層持有。 */
+  pvShow: number
+  onPvShow: (n: number) => void
 }
 
 type Phase = 'idle' | 'loading' | 'thinking'
@@ -39,7 +43,9 @@ export default function RapfiPanel({
   positionKey,
   toMoveLabel,
   disabled,
-  onMove,
+  onResult,
+  pvShow,
+  onPvShow,
 }: Props) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [thinkMs, setThinkMs] = useState(3000)
@@ -73,7 +79,7 @@ export default function RapfiPanel({
     const my = ++seqRef.current
     setError(null)
     setResult(null)
-    onMove(null)
+    onResult(null)
     const rapfi = getRapfi()
     try {
       setPhase('loading')
@@ -86,7 +92,7 @@ export default function RapfiPanel({
       const a = await rapfi.analyze(buildInput(), rule, thinkMs)
       if (seqRef.current !== my) return
       setResult(a)
-      onMove(a.move)
+      onResult(a)
       setPhase('idle')
     } catch (e) {
       if (seqRef.current !== my) return
@@ -133,6 +139,15 @@ export default function RapfiPanel({
           <option value={3000}>想 3 秒</option>
           <option value={10000}>想 10 秒</option>
         </select>
+        <select
+          value={pvShow}
+          onChange={(e) => onPvShow(Number(e.target.value))}
+          aria-label="建議路線顯示手數"
+        >
+          <option value={6}>路線顯示 6 手</option>
+          <option value={10}>路線顯示 10 手</option>
+          <option value={0}>路線全部顯示</option>
+        </select>
         {phase !== 'idle' && (
           <button className="btn" onClick={cancel}>
             取消
@@ -164,7 +179,10 @@ export default function RapfiPanel({
             {result.depth !== undefined && `　深度 ${result.depth}`}
           </p>
           {result.pv.length > 1 && (
-            <p className="rapfi-pv">主變化：{result.pv.map(coordName).join(' → ')}</p>
+            <p className="rapfi-pv">
+              主變化：{result.pv.map(coordName).join(' → ')}
+              <span className="muted small">（棋盤上半透明編號子；照著下會一路顯示，走別的就收掉）</span>
+            </p>
           )}
           <p className="rapfi-ms muted">實際思考 {(result.timeMs / 1000).toFixed(1)}s</p>
         </div>

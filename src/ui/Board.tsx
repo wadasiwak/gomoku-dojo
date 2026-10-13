@@ -1,6 +1,6 @@
 // 共用 SVG 棋盤：對弈/題庫/重播/科普全站同一顆。
 // 石子落在「線交點」（不是格子中央）；座標標記照連珠慣例 A–O × 15..1（A1 左下）。
-import { SIZE, BLACK, WHITE, idx, type Pos } from '../engine/types.ts'
+import { SIZE, BLACK, WHITE, idx, type Color, type Pos } from '../engine/types.ts'
 import type { Board as BoardData } from '../engine/board.ts'
 
 const CELL = 36
@@ -40,6 +40,8 @@ interface Props {
   hint?: Pos | null
   /** 字母標記點（規約兩打 A/B、圖鑑標點用）：實線圈＋字母、不擋點擊。 */
   marks?: LabelMark[]
+  /** Rapfi 建議路線：半透明編號子（1＝下一手），不擋點擊。 */
+  pv?: { pos: Pos; color: Color }[]
   onCell?: (x: number, y: number) => void
   disabled?: boolean
   /** 只顯示局部（科普例圖用），格座標閉區間。 */
@@ -55,6 +57,7 @@ export default function Board({
   numbered,
   hint,
   marks = [],
+  pv = [],
   onCell,
   disabled,
   crop,
@@ -176,6 +179,35 @@ export default function Board({
           />
           <circle cx={cx(hint.x)} cy={cx(hint.y)} r="4.5" fill="#2b8ae2" />
         </g>
+      )}
+      {pv.map(({ pos, color }, i) =>
+        board[idx(pos.x, pos.y)] === BLACK || board[idx(pos.x, pos.y)] === WHITE ? null : (
+          <g
+            key={`v${pos.x}-${pos.y}`}
+            className="pv-stone"
+            data-pv={i + 1}
+            data-pos={`${pos.x},${pos.y}`}
+            pointerEvents="none"
+          >
+            <circle
+              cx={cx(pos.x)}
+              cy={cx(pos.y)}
+              r={CELL * 0.42}
+              fill={color === BLACK ? 'url(#stone-b)' : 'url(#stone-w)'}
+              opacity={i === 0 ? 0.72 : 0.5}
+              stroke={i === 0 ? '#2b8ae2' : 'none'}
+              strokeWidth="3"
+            />
+            <text
+              className="stone-n"
+              x={cx(pos.x)}
+              y={cx(pos.y) + 5}
+              fill={color === BLACK ? '#ffffff' : '#111'}
+            >
+              {i + 1}
+            </text>
+          </g>
+        ),
       )}
       {marks.map((m) => (
         <g

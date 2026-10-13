@@ -12,6 +12,8 @@ import { createBoard } from '../engine/board.ts'
 import { isWinningMove } from '../engine/rules.ts'
 import { isForbiddenMove } from '../engine/forbidden.ts'
 import type { RapfiInput } from '../analysis/rapfi.ts'
+import { remainingPv, type PvAnchor } from './pvFollow.ts'
+import { loadPvShow, savePvShow } from '../storage.ts'
 import {
   BLACK,
   WHITE,
@@ -57,7 +59,9 @@ export default function Study({ record }: { record?: string }) {
   const [first, setFirst] = useState<'auto' | 'black' | 'white'>('auto')
   const [moves, setMoves] = useState<Pos[]>([])
   const [showFb, setShowFb] = useState(true)
-  const [rapfiMove, setRapfiMove] = useState<Pos | null>(null) // Rapfi 建議（hint 圈）
+  /** Rapfi 建議路線錨點（照著下會一路顯示，偏離自動收掉；見 pvFollow.ts）。 */
+  const [pvAnchor, setPvAnchor] = useState<PvAnchor | null>(null)
+  const [pvShow, setPvShow] = useState(loadPvShow)
   const [forbidden, setForbidden] = useState<{ index: number; kind: string }[]>([])
 
   // 試下模擬：從擺好的盤面起、依 first 輪替重放 moves，逐手判勝負/禁手。
@@ -99,6 +103,9 @@ export default function Study({ record }: { record?: string }) {
   }, [setup, moves, first, rule])
 
   const board = phase === 'setup' ? Uint8Array.from(setup) : sim.board
+  const positionKey = `${rule}|${sim.toMove}|${Array.from(sim.board).join('')}`
+  /** 尚未走的建議路線（盤面偏離就是空的）。 */
+  const pvLine = remainingPv(pvAnchor, sim.board)
   const ongoing = phase === 'play' && !sim.over
   const stoneCount = useMemo(() => {
     let black = 0
@@ -111,7 +118,7 @@ export default function Study({ record }: { record?: string }) {
   }, [board])
 
   const clearHint = () => {
-    setRapfiMove(null)
+    setPvAnchor(null)
   }
 
   // Rapfi 分析輸入：擺譜是任意局面（手順未必交替）→ 走 board 形式。
@@ -143,7 +150,6 @@ export default function Study({ record }: { record?: string }) {
   const onCell = (x: number, y: number) => {
     const cell = idx(x, y)
     if (phase === 'setup') {
-      clearHint() // 盤面變了，舊的 Rapfi 建議圈作廢
       setSetup((prev) => {
         const next = [...prev]
         if (tool === 'erase') next[cell] = EMPTY
@@ -168,18 +174,16 @@ export default function Study({ record }: { record?: string }) {
     }
     if (!ongoing || board[cell] !== EMPTY) return
     setMoves((m) => [...m, { x, y }])
-    clearHint()
   }
 
+  // 擺譜↔試下切換、悔棋都不清建議路線：盤面還在路線上就繼續顯示（pvFollow 純推導）
   const startPlay = () => {
     setPhase('play')
     setMoves([])
-    clearHint()
   }
   const backToSetup = () => {
     setPhase('setup')
     setMoves([])
-    clearHint()
   }
 
   const statusText =
@@ -203,7 +207,7 @@ export default function Study({ record }: { record?: string }) {
           board={board}
           lastMove={phase === 'play' ? (moves[moves.length - 1] ?? null) : null}
           numbered={phase === 'play' ? moves : undefined}
-          hint={rapfiMove}
+          pv={pvShow > 0 ? pvLine.slice(0, pvShow) : pvLine}
           forbidden={forbidden.map((f) => ({
             x: f.index % 15,
             y: Math.floor(f.index / 15),
@@ -244,7 +248,10 @@ export default function Study({ record }: { record?: string }) {
               規則
               <select
                 value={rule}
-                onChange={(e) => setRule(e.target.value as Rule)}
+                onChange={(e) => {
+                  setRule(e.target.value as Rule)
+                  clearHint() // 規則變了，建議路線不再適用
+                }}
                 aria-label="規則模式"
               >
                 <option value="renju">連珠（黑有禁手）</option>
@@ -255,7 +262,10 @@ export default function Study({ record }: { record?: string }) {
               接下來輪誰
               <select
                 value={first}
-                onChange={(e) => setFirst(e.target.value as 'auto' | 'black' | 'white')}
+                onChange={(e) => {
+                  setFirst(e.target.value as 'auto' | 'black' | 'white')
+                  clearHint() // 手番變了，盤面相同但路線顏色已不對
+                }}
                 aria-label="接下來輪誰"
               >
                 <option value="auto">
@@ -304,7 +314,6 @@ export default function Study({ record }: { record?: string }) {
                 className="btn"
                 onClick={() => {
                   setMoves((m) => m.slice(0, -1))
-                  clearHint()
                 }}
                 disabled={moves.length === 0}
               >
@@ -320,10 +329,21 @@ export default function Study({ record }: { record?: string }) {
         <RapfiPanel
           buildInput={buildRapfiInput}
           rule={rule}
-          positionKey={`${phase}|${rule}|${sim.toMove}|${Array.from(sim.board).join('')}`}
+          positionKey={pvLine.length > 0 && pvAnchor ? pvAnchor.key : positionKey}
           toMoveLabel={sim.toMove === BLACK ? '黑' : '白'}
           disabled={phase === 'play' && !ongoing}
-          onMove={setRapfiMove}
+          pvShow={pvShow}
+          onPvShow={(n) => {
+            setPvShow(n)
+            savePvShow(n)
+          }}
+          onResult={(a) =>
+            setPvAnchor(
+              a
+                ? { root: Uint8Array.from(sim.board), line: a.pv, color: sim.toMove, key: positionKey }
+                : null,
+            )
+          }
         />
       </aside>
     </div>
