@@ -135,3 +135,56 @@ export function grade(item: GuideItem, mode: TargetMode, marks: [number, number]
 /** 指南用字（簡體）→ 繁體顯示（註記用）。 */
 const T2: Record<string, string> = { 胜: '勝', 余: '餘', 败: '敗', 优: '優', 恒: '恆', 银: '銀', 决: '決', 准: '準' }
 export const tradText = (s: string): string => [...s].map((c) => T2[c] ?? c).join('')
+
+// ---- 分兩色標（國手 2026-10-14：除了黑優也要記平衡點——比賽最常出現的就是這些）----
+export type MarkCat = 'black' | 'equal'
+export interface CatMark {
+  x: number
+  y: number
+  cat: MarkCat
+}
+
+/** 黑優點（黑必勝＋偏黑等）與平衡點分開列。 */
+export function targetsSplit(item: GuideItem): { black: GuideLabel[]; equal: GuideLabel[] } {
+  const notes = parseNotes(item.notes)
+  const black: GuideLabel[] = []
+  const equal: GuideLabel[] = []
+  for (const l of item.labels) {
+    const cat = labelEval(item, l, notes)
+    if (cat === 'black') black.push(l)
+    else if (cat === 'equal' && l[2] === 'bal') equal.push(l)
+  }
+  return { black, equal }
+}
+
+export interface SplitGradeResult {
+  hit: { label: GuideLabel; cat: MarkCat }[]
+  miss: { label: GuideLabel; cat: MarkCat }[]
+  /** 位置對、顏色標反（want＝應標的類別）。 */
+  swapped: { label: GuideLabel; want: MarkCat }[]
+  wrong: [number, number][]
+  perfect: boolean
+}
+
+/** 分兩色評分：每個目標點要被同類別的標記標到（或其對稱等價點）。 */
+export function gradeSplit(item: GuideItem, marks: CatMark[]): SplitGradeResult {
+  const { black, equal } = targetsSplit(item)
+  const syms = stabilizer(item.stones)
+  const eq = (m: CatMark, l: GuideLabel) =>
+    syms.some((f) => {
+      const [x, y] = f(m.x, m.y)
+      return x === l[0] && y === l[1]
+    })
+  const hit: SplitGradeResult['hit'] = []
+  const miss: SplitGradeResult['miss'] = []
+  const swapped: SplitGradeResult['swapped'] = []
+  const all: [GuideLabel, MarkCat][] = [...black.map((l) => [l, 'black'] as [GuideLabel, MarkCat]), ...equal.map((l) => [l, 'equal'] as [GuideLabel, MarkCat])]
+  for (const [l, cat] of all) {
+    const ms = marks.filter((m) => eq(m, l))
+    if (ms.some((m) => m.cat === cat)) hit.push({ label: l, cat })
+    else if (ms.length > 0) swapped.push({ label: l, want: cat })
+    else miss.push({ label: l, cat })
+  }
+  const wrong = marks.filter((m) => !all.some(([l]) => eq(m, l))).map((m) => [m.x, m.y] as [number, number])
+  return { hit, miss, swapped, wrong, perfect: miss.length === 0 && swapped.length === 0 && wrong.length === 0 }
+}

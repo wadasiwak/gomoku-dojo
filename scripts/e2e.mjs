@@ -784,7 +784,7 @@ try {
     await page.locator('select[aria-label="開局"]').selectOption('d1')
     await page.locator('.guide-title', { hasText: '寒預' }).waitFor({ timeout: 10000 })
     const prompt = await page.locator('.guide-prompt').innerText()
-    if (!/共 7 個/.test(prompt)) throw new Error(`寒預應標 7 個：${prompt}`)
+    if (!/黑優點 7 個/.test(prompt) || !/平衡點 0 個/.test(prompt)) throw new Error(`寒預應為黑優 7、平衡 0：${prompt}`)
     // 寒預 PDF 原方位的黑優點：a1 I9、a2 I7、a3 J8、a4 I8、a5 J10、a6 I10、7 H7
     const pts = [[8, 6], [8, 8], [9, 7], [8, 7], [9, 5], [8, 5], [7, 8]]
     const g = (x, y) => page.locator(`.guide-board rect[aria-label="(${x},${y})"]`)
@@ -797,6 +797,30 @@ try {
     await page.locator('select[aria-label="範圍"]').selectOption('wrong')
     await page.locator('.guide-title').waitFor({ timeout: 3000 })
     if (!/錯題本（1）/.test(await page.locator('select[aria-label="範圍"]').innerText())) throw new Error('錯題本計數不對')
+  })
+
+  await step('打點複習：殘險 黑優點一下＋平衡點兩下→全對；標反顏色→提示', async () => {
+    const { targetsSplit } = await import('../src/guide/quiz.ts')
+    const data = JSON.parse(readFileSync(join(ROOT, 'src/guide/guide-data.json'), 'utf8'))
+    const v = data.find((x) => x.name === '殘險')
+    const t = targetsSplit(v)
+    if (t.equal.length === 0) throw new Error('殘險應有平衡點')
+    await page.locator('select[aria-label="範圍"]').selectOption('all')
+    await page.locator('select[aria-label="開局"]').selectOption(v.opening)
+    for (let i = 0; i < 20; i++) {
+      if ((await page.locator('.guide-title').innerText()).includes('殘險')) break
+      await page.locator('button', { hasText: '下一題' }).click()
+    }
+    const g = (l) => page.locator(`.guide-board rect[aria-label="(${l[0]},${l[1]})"]`)
+    for (const l of t.black) await g(l).click()
+    for (const l of t.equal) await g(l).click({ clickCount: 1 }).then(() => g(l).click())
+    await page.locator('button', { hasText: '對答案' }).click()
+    await page.locator('.guide-result', { hasText: '全對' }).waitFor({ timeout: 3000 })
+    await page.locator('button', { hasText: '重來' }).click()
+    for (const l of t.black) await g(l).click()
+    for (const l of t.equal) await g(l).click() // 只點一下＝標成黑優（顏色反了）
+    await page.locator('button', { hasText: '對答案' }).click()
+    await page.locator('.guide-result', { hasText: '顏色標反' }).waitFor({ timeout: 3000 })
   })
 
   // ---- 15. 對弈頁難度 5＝Rapfi ----------------------------------------------

@@ -1,7 +1,7 @@
 // 打點複習純邏輯：註記解析（含百分比、範圍、' 那一套）、目標三段、對稱判定、評分，
 // 並對全部 249 題做資料完整性檢查（每個平衡類打點都要對得到註記評價）。
 import { describe, expect, it } from 'vitest'
-import { parseNotes, targetsOf, stabilizer, grade, type GuideItem } from '../quiz.ts'
+import { parseNotes, targetsOf, stabilizer, grade, targetsSplit, gradeSplit, type GuideItem } from '../quiz.ts'
 import DATA from '../guide-data.json'
 
 const ALL = DATA as unknown as GuideItem[]
@@ -75,5 +75,30 @@ describe('資料完整性（249 題）', () => {
         if (kind === 'bal' && !n.has(`${rank}${prime ? "'" : ''}`)) missing.push(`${v.page}:${v.name} ${rank}`)
     }
     expect(missing).toEqual([])
+  })
+})
+
+describe('分兩色標（黑優＋平衡）', () => {
+  it('寒通：黑優 8 個、平衡點分開列', () => {
+    const v = byName('寒通')
+    const t = targetsSplit(v)
+    expect(t.black).toHaveLength(8)
+    // 平衡點只來自純數字標籤（寒通註記沒有「平衡」，此處可能為空）
+    expect(t.equal.every((l) => l[2] === 'bal')).toBe(true)
+  })
+  it('顏色標反另外回報；全對才 perfect', () => {
+    const v = byName('殘險') // 註記有「6打平衡7打平衡」
+    const t = targetsSplit(v)
+    expect(t.equal.length).toBeGreaterThan(0)
+    const marks = [
+      ...t.black.map((l) => ({ x: l[0], y: l[1], cat: 'black' as const })),
+      ...t.equal.map((l) => ({ x: l[0], y: l[1], cat: 'equal' as const })),
+    ]
+    expect(gradeSplit(v, marks).perfect).toBe(true)
+    const flipped = marks.map((m, i) => (i === 0 ? { ...m, cat: 'equal' as const } : m))
+    const r = gradeSplit(v, flipped)
+    expect(r.perfect).toBe(false)
+    expect(r.swapped).toHaveLength(1)
+    expect(r.swapped[0].want).toBe('black')
   })
 })

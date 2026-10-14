@@ -1090,3 +1090,10 @@ footer {
 .pill.x {
   background: #c92a2a;
 }
+
+.guide-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+}

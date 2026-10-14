@@ -1,37 +1,44 @@
 // 打點複習頁（#/guide）：《漱星閣開局指南》（現任名人整理，經同意收錄）的打點記憶練習。
 // 題目＝開局＋白 4（照 PDF 原方位），在盤上標出目標打點後對答案；對完攤開指南全部打點
-// 與註記。目標可選：只標黑必勝／黑優（必勝＋偏黑，預設）／不輸（＋平衡）。
+// 與註記。目標可選：黑優＋平衡分兩色標（預設；國手：平衡點是比賽最常出現的）／只標黑必勝／
+// 黑優（必勝＋偏黑）／不輸（＋平衡，不分色）。分兩色模式：點一下黑優（黃）、兩下平衡（藍）、三下取消。
 // 純邏輯（註記解析、目標、對稱、評分）在 src/guide/quiz.ts；資料 JSON 進頁才載入。
 import { useEffect, useMemo, useState } from 'react'
 import { getOpening, OPENINGS } from '../content/openings.ts'
 import {
   grade,
+  gradeSplit,
   labelEval,
   parseNotes,
   stabilizer,
   targetsOf,
+  targetsSplit,
   tradText,
-  type GradeResult,
+  type CatMark,
   type GuideItem,
+  type SplitGradeResult,
   type TargetMode,
 } from '../guide/quiz.ts'
 import { loadGuideProgress, saveGuideProgress, type GuideProgress } from '../storage.ts'
 
 const COL = 'ABCDEFGHIJKLMNO'
 const nm = (x: number, y: number) => `${COL[x]}${15 - y}`
-const TARGET_LABEL: Record<TargetMode, string> = {
+type Mode = TargetMode | 'split'
+const TARGET_LABEL: Record<Mode, string> = {
+  split: '黑優點與平衡點',
   black: '黑優點（黑必勝＋偏黑）',
   win: '黑必勝點',
   notlose: '不輸點（黑必勝＋偏黑＋平衡）',
 }
+const MARK_COLOR = { black: '#ffd43b', equal: '#4dabf7' } as const
 
 export default function GuideQuiz() {
   const [data, setData] = useState<GuideItem[] | null>(null)
   const [prog, setProg] = useState<GuideProgress>(loadGuideProgress)
   const cfg = prog.cfg
   const [idx, setIdx] = useState(0)
-  const [marks, setMarks] = useState<[number, number][]>([])
-  const [result, setResult] = useState<(GradeResult & { reveal: boolean }) | null>(null)
+  const [marks, setMarks] = useState<CatMark[]>([])
+  const [result, setResult] = useState<(SplitGradeResult & { reveal: boolean }) | null>(null)
   const [asked, setAsked] = useState<{ n: number; ok: boolean } | null>(null)
   const [askInput, setAskInput] = useState('')
   const [shuffleSeed, setShuffleSeed] = useState(0)
@@ -65,8 +72,22 @@ export default function GuideQuiz() {
   }, [data, cfg.opening, cfg.scope, cfg.order, shuffleSeed])
 
   const item = list[idx] as GuideItem | undefined
-  const mode = cfg.target as TargetMode
-  const targets = useMemo(() => (item ? targetsOf(item, mode) : []), [item, mode])
+  const mode = cfg.target as Mode
+  const split = useMemo(() => (item ? targetsSplit(item) : { black: [], equal: [] }), [item])
+  const targets = useMemo(
+    () => (!item ? [] : mode === 'split' ? [...split.black, ...split.equal] : targetsOf(item, mode)),
+    [item, mode, split],
+  )
+
+  // 既有使用者的設定一次性切到新的預設（分兩色標）
+  useEffect(() => {
+    if (prog.cfg.v !== 2) {
+      const next = { ...prog, cfg: { ...prog.cfg, target: 'split', v: 2 } }
+      setProg(next)
+      saveGuideProgress(next)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const resetQ = () => {
     setMarks([])
@@ -89,12 +110,31 @@ export default function GuideQuiz() {
   const onCell = (x: number, y: number) => {
     if (!item || result) return
     if (item.stones.some(([sx, sy]) => sx === x && sy === y)) return
-    setMarks((m) => (m.some(([a, b]) => a === x && b === y) ? m.filter(([a, b]) => a !== x || b !== y) : [...m, [x, y]]))
+    setMarks((m) => {
+      const cur = m.find((k) => k.x === x && k.y === y)
+      const rest = m.filter((k) => k.x !== x || k.y !== y)
+      // 分兩色：無 → 黑優 → 平衡 → 無；其他模式：無 ↔ 標記
+      if (!cur) return [...rest, { x, y, cat: 'black' }]
+      if (mode === 'split' && cur.cat === 'black') return [...rest, { x, y, cat: 'equal' }]
+      return rest
+    })
   }
 
   const check = (revealOnly: boolean) => {
     if (!item) return
-    const r = grade(item, mode, marks)
+    const r: SplitGradeResult =
+      mode === 'split'
+        ? gradeSplit(item, marks)
+        : (() => {
+            const g = grade(item, mode, marks.map((m) => [m.x, m.y] as [number, number]))
+            return {
+              hit: g.hit.map((label) => ({ label, cat: 'black' as const })),
+              miss: g.miss.map((label) => ({ label, cat: 'black' as const })),
+              swapped: [],
+              wrong: g.wrong,
+              perfect: g.perfect,
+            }
+          })()
     // reveal＝按「看答案」（不計分）；按「對答案」即使什麼都沒標也算一次作答
     setResult({ ...r, reveal: revealOnly })
     if (revealOnly) return
@@ -163,23 +203,26 @@ export default function GuideQuiz() {
           </text>
         </g>
       ))}
-      {marks.map(([x, y]) => (
+      {marks.map(({ x, y, cat }) => (
         <circle
           key={`m${x},${y}`}
-          className="guide-mark"
+          className={`guide-mark ${cat}`}
           cx={c(x)}
           cy={c(y)}
           r="13"
-          fill="#ffd43b"
+          fill={MARK_COLOR[cat]}
           fillOpacity={result ? 0.25 : 0.6}
-          stroke="#ffd43b"
+          stroke={MARK_COLOR[cat]}
           strokeWidth="2"
         />
       ))}
-      {result?.hit.map((t) => (
+      {result?.hit.map(({ label: t }) => (
         <circle key={`h${t[0]},${t[1]}`} cx={c(t[0])} cy={c(t[1])} r="16" fill="none" stroke="#51cf66" strokeWidth="3.5" />
       ))}
-      {result?.miss.map((t) => (
+      {result?.swapped.map(({ label: t }) => (
+        <circle key={`sw${t[0]},${t[1]}`} cx={c(t[0])} cy={c(t[1])} r="16" fill="none" stroke="#ff922b" strokeWidth="3.5" strokeDasharray="4 3" />
+      ))}
+      {result?.miss.map(({ label: t, cat }) => (
         <rect
           key={`ms${t[0]},${t[1]}`}
           className="guide-miss"
@@ -189,7 +232,7 @@ export default function GuideQuiz() {
           height="30"
           rx="5"
           fill="none"
-          stroke="#ffd43b"
+          stroke={MARK_COLOR[cat]}
           strokeWidth="3"
           strokeDasharray="5 3"
         />
@@ -294,9 +337,10 @@ export default function GuideQuiz() {
         <label>
           要標的點
           <select value={cfg.target} onChange={(e) => setCfg({ target: e.target.value })} aria-label="要標的點">
-            <option value="black">黑優（必勝＋偏黑）</option>
+            <option value="split">黑優＋平衡（分兩色標）</option>
+            <option value="black">只標黑優（必勝＋偏黑）</option>
             <option value="win">只標黑必勝</option>
-            <option value="notlose">不輸（＋平衡）</option>
+            <option value="notlose">不輸（黑優＋平衡，不分色）</option>
           </select>
         </label>
         <label className="row">
@@ -308,8 +352,14 @@ export default function GuideQuiz() {
         <div className="guide-board-col">
           {board}
           <p className="muted small">
-            <span style={{ color: '#ffd43b' }}>● 你的標記</span>　<span style={{ color: '#51cf66' }}>◎ 標對</span>
-            <span style={{ color: '#ffd43b' }}>⬚ 漏標</span>　<span style={{ color: '#ff6b6b' }}>✕ 標錯</span>
+            <span className="guide-legend">
+              <span style={{ color: MARK_COLOR.black }}>● 黑優標記</span>
+              {mode === 'split' && <span style={{ color: MARK_COLOR.equal }}>● 平衡標記（點兩下）</span>}
+              <span style={{ color: '#51cf66' }}>◎ 標對</span>
+              <span style={{ color: '#ff922b' }}>◌ 顏色標反</span>
+              <span>⬚ 漏標（框色＝該標的類別）</span>
+              <span style={{ color: '#ff6b6b' }}>✕ 標錯</span>
+            </span>
             對答案後攤開指南打點：綠 a＝黑必勝、藍＝偏黑、灰＝平衡／偏白、橘 c?＝白近勝、紅 c＝黑敗。
           </p>
         </div>
@@ -350,10 +400,18 @@ export default function GuideQuiz() {
                       {asked.ok ? '✓ 正確' : `✗ 是 ${item.win}`}：{item.win} 打黑勝
                     </p>
                   )}
-                  <p className="guide-prompt">
-                    標出所有<b>{TARGET_LABEL[mode]}</b>：共 <b className="guide-count">{targets.length}</b> 個
-                    {!cfg.askCount && <span className="muted">（黑必勝 {item.win} 個）</span>}
-                  </p>
+                  {mode === 'split' ? (
+                    <p className="guide-prompt">
+                      標出 <b style={{ color: MARK_COLOR.black }}>黑優點 {split.black.length} 個</b>（點一下）
+                      和 <b style={{ color: MARK_COLOR.equal }}>平衡點 {split.equal.length} 個</b>（點兩下）
+                      {!cfg.askCount && <span className="muted">（其中黑必勝 {item.win} 個）</span>}
+                    </p>
+                  ) : (
+                    <p className="guide-prompt">
+                      標出所有<b>{TARGET_LABEL[mode]}</b>：共 <b className="guide-count">{targets.length}</b> 個
+                      {!cfg.askCount && <span className="muted">（黑必勝 {item.win} 個）</span>}
+                    </p>
+                  )}
                 </>
               )}
               <div className="btn-row">
@@ -387,7 +445,16 @@ export default function GuideQuiz() {
                   {!result.reveal && (
                     <span>
                       　標對 {result.hit.length}／{targets.length}
-                      {result.miss.length > 0 && <span className="warn-text">，漏 {result.miss.map((t) => nm(t[0], t[1])).join('、')}</span>}
+                      {result.miss.length > 0 && (
+                        <span className="warn-text">
+                          ，漏 {result.miss.map(({ label: t, cat }) => `${nm(t[0], t[1])}${mode === 'split' ? (cat === 'black' ? '（黑優）' : '（平衡）') : ''}`).join('、')}
+                        </span>
+                      )}
+                      {result.swapped.length > 0 && (
+                        <span className="warn-text">
+                          ，顏色標反 {result.swapped.map(({ label: t, want }) => `${nm(t[0], t[1])}（應為${want === 'black' ? '黑優' : '平衡'}）`).join('、')}
+                        </span>
+                      )}
                       {result.wrong.length > 0 && <span className="err-text">，多標 {result.wrong.map(([x, y]) => nm(x, y)).join('、')}</span>}
                     </span>
                   )}
