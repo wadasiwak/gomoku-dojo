@@ -1,6 +1,7 @@
 // 打點複習（#/guide）的純邏輯：解析指南註記、決定要標哪些點、對稱判定、評分。
 //
-// 資料：《漱星閣開局指南》2026.4.3 版（現任名人整理，經同意收錄），每題＝開局＋白 4，
+// 資料：《漱星閣開局指南》2026.4.3 版（中國「漱星閣」群組整理），每題＝開局＋白 4，
+// 另有《玄》棋譜庫（名人林書玄整理，加密在 public/xuan/xuan.vault、解開後同格式＋grades；見 src/renlib/vault.ts）。
 // 棋盤照 PDF 原方位。打點標籤（scripts/parse-opening-guide.mjs 解析）：
 //   win  aN（綠）＝黑必勝　winq aN?＝不確定的必勝　bal 純數字 N＝評價見註記
 //   near cN?（橘）＝白近勝　lose cN（紅）＝黑敗；prime＝N' 那一套（近似對稱盤面的另一側）
@@ -25,6 +26,10 @@ export interface GuideItem {
   /** 前四手 [x, y]（PDF 原方位）。 */
   stones: [number, number][]
   labels: GuideLabel[]
+  /** 《玄》（林書玄整理）才有：每個 label 的原始評等（A1、D!、G?），與 labels 同序。
+   *  有 grades 時評價直接看字母（A～C 黑優、D 均勢、E～G 白優），不看 notes。 */
+  grades?: string[]
+  src?: 'xuan'
 }
 
 export type NoteCat = 'black' | 'equal' | 'white'
@@ -69,7 +74,11 @@ export function parseNotes(notes: string): Map<string, NoteEval> {
 /** 要標的點：win＝只黑必勝；black＝黑優（＋註記偏黑等，預設）；notlose＝不輸（＋平衡）。 */
 export type TargetMode = 'win' | 'black' | 'notlose'
 
+/** 玄的評等字母 → 類別：A 黑必勝、B 黑大優、C 黑優 → 黑優；D 均勢 → 平衡；E～G → 白優。 */
+export const gradeCat = (g: string): NoteCat => ('ABC'.includes(g[0]) ? 'black' : g[0] === 'D' ? 'equal' : 'white')
+
 export function labelEval(item: GuideItem, l: GuideLabel, notes = parseNotes(item.notes)): NoteCat {
+  if (item.grades) return gradeCat(item.grades[item.labels.indexOf(l)])
   const [, , kind, rank, prime] = l
   if (kind === 'win' || kind === 'winq') return 'black'
   if (kind === 'near' || kind === 'lose') return 'white'

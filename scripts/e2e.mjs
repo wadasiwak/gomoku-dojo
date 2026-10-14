@@ -823,6 +823,69 @@ try {
     await page.locator('.guide-result', { hasText: '顏色標反' }).waitFor({ timeout: 3000 })
   })
 
+  await step('打點複習：切到《玄》→寒預黑優＋平衡全對→連到玄庫同一局面', async () => {
+    const { targetsSplit } = await import('../src/guide/quiz.ts')
+    const data = JSON.parse(readFileSync(join(ROOT, 'scratch/xuan/xuan-data.json'), 'utf8'))
+    const v = data.find((x) => x.name === '寒預')
+    const t = targetsSplit(v)
+    await page.locator('select[aria-label="資料來源"]').selectOption('xuan')
+    // 加密：先試錯密碼，再用本機 scratch/xuan/.password 解鎖
+    await page.locator('input[aria-label="玄庫密碼"]').fill('wrong-password')
+    await page.locator('button', { hasText: '解鎖' }).click()
+    await page.locator('.msg.err', { hasText: '密碼不對' }).waitFor({ timeout: 20000 })
+    await page.locator('input[aria-label="玄庫密碼"]').fill(readFileSync(join(ROOT, 'scratch/xuan/.password'), 'utf8').trim())
+    await page.locator('button', { hasText: '解鎖' }).click()
+    await page.locator('select[aria-label="開局"]').selectOption('d1')
+    for (let i = 0; i < 40; i++) {
+      if ((await page.locator('.guide-title').innerText()).includes('寒預')) break
+      await page.locator('button', { hasText: '下一題' }).click()
+    }
+    const prompt = await page.locator('.guide-prompt').innerText()
+    if (!prompt.includes(`黑優點 ${t.black.length} 個`) || !prompt.includes(`平衡點 ${t.equal.length} 個`)) throw new Error(`玄寒預題目不對：${prompt}`)
+    const g = (l) => page.locator(`.guide-board rect[aria-label="(${l[0]},${l[1]})"]`)
+    for (const l of t.black) await g(l).click()
+    for (const l of t.equal) await g(l).click().then(() => g(l).click())
+    await page.locator('button', { hasText: '對答案' }).click()
+    await page.locator('.guide-result', { hasText: '全對' }).waitFor({ timeout: 3000 })
+    await page.locator('.guide-result', { hasText: 'A（黑必勝）× 6' }).waitFor({ timeout: 3000 })
+    await page.locator('a', { hasText: '在玄庫看後續變化' }).click()
+    await page.locator('.status', { hasText: '第 4 手' }).waitFor({ timeout: 20000 })
+    if ((await page.locator('svg[aria-label="玄庫棋盤"] [data-mark="A1"]').count()) !== 1) throw new Error('玄庫寒預局面應有 A1 標記')
+    await page.locator('select[aria-label="資料來源"]').count() // 不在打點頁了
+    await page.goto(`${BASE}/#/guide`)
+    await page.locator('select[aria-label="資料來源"]').selectOption('')
+  })
+
+  await step('玄庫看譜：記住密碼免輸入→跳開局→點評等走下去→右鍵退→庫外自擺→在擺譜開啟→鎖上', async () => {
+    await page.goto(`${BASE}/#/`)
+    await page.locator('nav a', { hasText: '玄庫' }).click()
+    await page.locator('select[aria-label="跳到開局"]').waitFor({ timeout: 20000 })
+    await page.locator('select[aria-label="跳到開局"]').selectOption('d4') // 花月
+    await page.locator('.status', { hasText: '花月・第 3 手' }).waitFor({ timeout: 3000 })
+    const nexts = await page.locator('.lib-next').count()
+    if (nexts < 5) throw new Error(`花月庫內白 4 應不少：${nexts}`)
+    const firstChip = await page.locator('.lib-next').first().innerText()
+    await page.locator('.lib-next').first().click()
+    await page.locator('.status', { hasText: '第 4 手' }).waitFor({ timeout: 3000 })
+    if (!/#\/lib\/[a-o]{8}$/.test(page.url())) throw new Error(`網址應記 4 手：${page.url()}`)
+    await page.locator('svg[aria-label="玄庫棋盤"]').click({ button: 'right', position: { x: 10, y: 10 } })
+    await page.locator('.status', { hasText: '第 3 手' }).waitFor({ timeout: 3000 })
+    // 角落 A15 必不在庫內 → 庫外自擺
+    await page.locator('svg[aria-label="玄庫棋盤"] rect[aria-label="(0,0)"]').click()
+    await page.locator('.status', { hasText: '庫外第 1 手' }).waitFor({ timeout: 3000 })
+    await page.locator('button', { hasText: '回庫內' }).click()
+    await page.locator('.status', { hasText: '第 3 手' }).waitFor({ timeout: 3000 })
+    await page.locator('a', { hasText: '在擺譜開啟這個局面' }).click()
+    await page.waitForURL(/#\/study\/r1:[a-o]{6}$/, { timeout: 5000 })
+    if (!firstChip) throw new Error('變化按鈕沒文字')
+    // 鎖上 → 回到密碼框（本機金鑰清掉，重新整理也要再輸入）
+    await page.goto(`${BASE}/#/lib`)
+    await page.locator('button', { hasText: '鎖上' }).click()
+    await page.locator('input[aria-label="玄庫密碼"]').waitFor({ timeout: 3000 })
+    await page.reload()
+    await page.locator('input[aria-label="玄庫密碼"]').waitFor({ timeout: 10000 })
+  })
+
   // ---- 15. 對弈頁難度 5＝Rapfi ----------------------------------------------
   await step('對弈：難度 5（Rapfi）落子→Rapfi 回手', async () => {
     await page.goto(`${BASE}/#/play`)

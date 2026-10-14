@@ -1,8 +1,9 @@
 // 打點複習純邏輯：註記解析（含百分比、範圍、' 那一套）、目標三段、對稱判定、評分，
 // 並對全部 249 題做資料完整性檢查（每個平衡類打點都要對得到註記評價）。
 import { describe, expect, it } from 'vitest'
-import { parseNotes, targetsOf, stabilizer, grade, targetsSplit, gradeSplit, type GuideItem } from '../quiz.ts'
+import { parseNotes, targetsOf, stabilizer, grade, targetsSplit, gradeSplit, gradeCat, type GuideItem } from '../quiz.ts'
 import DATA from '../guide-data.json'
+import { existsSync, readFileSync } from 'node:fs'
 
 const ALL = DATA as unknown as GuideItem[]
 const byName = (n: string) => ALL.find((v) => v.name === n)!
@@ -100,5 +101,34 @@ describe('分兩色標（黑優＋平衡）', () => {
     expect(r.perfect).toBe(false)
     expect(r.swapped).toHaveLength(1)
     expect(r.swapped[0].want).toBe('black')
+  })
+})
+
+// 玄是加密資料：明文只在本機 scratch（scripts/build-xuan.mjs 產生），沒有就跳過
+const XUAN_FILE = 'scratch/xuan/xuan-data.json'
+describe.skipIf(!existsSync(XUAN_FILE))('《玄》資料（林書玄整理）', () => {
+  const XUAN = (existsSync(XUAN_FILE) ? JSON.parse(readFileSync(XUAN_FILE, 'utf8')) : []) as GuideItem[]
+  it('26 開局都有、題號不撞、grades 與 labels 等長', () => {
+    expect(new Set(XUAN.map((v) => v.opening)).size).toBe(26)
+    expect(new Set(XUAN.map((v) => v.page)).size).toBe(XUAN.length)
+    for (const v of XUAN) {
+      expect(v.grades).toHaveLength(v.labels.length)
+      for (const [x, y] of v.labels) expect(v.stones.some(([sx, sy]) => sx === x && sy === y)).toBe(false)
+    }
+  })
+  it('寒預：A1～A6 六個黑必勝（黑優 6）、D7/D8 兩個平衡', () => {
+    const v = XUAN.find((w) => w.name === '寒預')!
+    expect(v.win).toBe(6)
+    const t = targetsSplit(v)
+    expect(t.black).toHaveLength(6)
+    expect(t.equal.map((l) => v.grades![v.labels.indexOf(l)]).sort()).toEqual(['D7', 'D8'])
+    const marks = [
+      ...t.black.map((l) => ({ x: l[0], y: l[1], cat: 'black' as const })),
+      ...t.equal.map((l) => ({ x: l[0], y: l[1], cat: 'equal' as const })),
+    ]
+    expect(gradeSplit(v, marks).perfect).toBe(true)
+  })
+  it('gradeCat：A～C 黑優、D 平衡、E～G 白優', () => {
+    expect(['A1', 'B', 'C3', 'D!', 'E', 'F9', 'G?'].map(gradeCat)).toEqual(['black', 'black', 'black', 'equal', 'white', 'white', 'white'])
   })
 })

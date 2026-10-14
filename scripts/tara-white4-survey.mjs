@@ -44,7 +44,7 @@ const THREADS = ENGINE === 'multi' ? +arg('threads', 8) : 1
 const TAG = arg('tag', '')
 const ONLY = arg('openings', null)?.split(',')
 /** --guide scratch/white4/guide.json：白 4 改取《漱星閣開局指南》中防十打（黑必勝點 < 10）的
- *  變化（現任名人整理，scripts/parse-opening-guide.mjs 產生），略過 A 階段自選。 */
+ *  變化（漱星閣群組整理，scripts/parse-opening-guide.mjs 產生），略過 A 階段自選。 */
 const GUIDE = arg('guide', null)
 const guide = GUIDE ? JSON.parse(readFileSync(GUIDE, 'utf8')) : null
 /** 每開局要找幾手可用白 4（國手：3～5 手）。 */
@@ -305,7 +305,7 @@ for (const o of ORDERED) {
       scan.push({ pos: b5, score: ev.score === null ? null : -ev.score, in9: cheb(b5, C) <= 4 })
     }
     const winCount = scan.filter((s) => s.score !== null && s.score > 20000).length
-    // 指南模式：可用與否以指南為準（名人整理），本站精算的必勝點數另存供交叉比對
+    // 指南模式：可用與否以指南為準（漱星閣群組整理），本站精算的必勝點數另存供交叉比對
     const viable = r.guide ? true : winCount < 10
     // 2) 陷阱：9×9 內、已分勝負（必勝或 |分數| ≥ 800）的黑 5，沿主變化走勝方接下來 3 次落子，
     //    每次數「仍保持勝勢」的著手數（多 PV）

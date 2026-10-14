@@ -1097,3 +1097,23 @@ footer {
   gap: 4px 12px;
   margin-bottom: 4px;
 }
+
+/* ---- 玄庫看譜（#/lib）---- */
+.lib-side h2 { margin-top: 0.6rem; }
+.lib-nexts { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.6rem 0; align-items: center; }
+.lib-next {
+  border: 1.5px solid var(--line, #888);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.lib-next:hover { background: rgba(255, 255, 255, 0.08); }
+.lib-comment { white-space: pre-wrap; background: rgba(255, 212, 59, 0.1); border-radius: 6px; padding: 0.4rem 0.6rem; }
+.lib-legend { margin-top: 0.8rem; }
+.lib-legend pre { white-space: pre-wrap; font-family: inherit; margin: 0.4rem 0; }
+.linklike { background: none; border: none; padding: 0; color: var(--accent, #e0a336); cursor: pointer; text-decoration: underline; font: inherit; }
+.xuan-lock { max-width: 520px; }
+.xuan-lock input[type='password'] { flex: 1; min-width: 10rem; padding: 0.4rem 0.6rem; }

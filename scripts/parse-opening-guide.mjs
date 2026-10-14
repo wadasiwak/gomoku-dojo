@@ -1,4 +1,4 @@
-// 解析《漱星閣開局指南》（現任名人提供，2026.4.3 版）PDF → 每個白 4 變化的結構化資料。
+// 解析《漱星閣開局指南》（中國漱星閣群組整理，2026.4.3 版）PDF → 每個白 4 變化的結構化資料。
 //   pdftotext -bbox 漱星阁开局指南2026.4.3.pdf guide.html   # brew install poppler
 //   node scripts/parse-opening-guide.mjs guide.html > scratch/white4/guide.json
 //

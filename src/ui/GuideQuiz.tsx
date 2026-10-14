@@ -1,4 +1,5 @@
-// 打點複習頁（#/guide）：《漱星閣開局指南》（現任名人整理，經同意收錄）的打點記憶練習。
+// 打點複習頁（#/guide）：《漱星閣開局指南》（中國「漱星閣」群組整理）／《玄》棋譜庫（名人林書玄整理）
+// 的打點記憶練習（資料來源可切換；玄的評等 A～G 直接對到黑優／平衡／白優）。
 // 題目＝開局＋白 4（照 PDF 原方位），在盤上標出目標打點後對答案；對完攤開指南全部打點
 // 與註記。目標可選：黑優＋平衡分兩色標（預設；國手：平衡點是比賽最常出現的）／只標黑必勝／
 // 黑優（必勝＋偏黑）／不輸（＋平衡，不分色）。分兩色模式：點一下黑優（黃）、兩下平衡（藍）、三下取消。
@@ -20,10 +21,13 @@ import {
   type TargetMode,
 } from '../guide/quiz.ts'
 import { loadGuideProgress, saveGuideProgress, type GuideProgress } from '../storage.ts'
+import { xuanIfUnlocked } from '../renlib/vault.ts'
+import XuanUnlock from './XuanUnlock.tsx'
 
 const COL = 'ABCDEFGHIJKLMNO'
 const nm = (x: number, y: number) => `${COL[x]}${15 - y}`
 type Mode = TargetMode | 'split'
+const GRADE_NAME: Record<string, string> = { A: '黑必勝', B: '黑大優', C: '黑優', D: '均勢', E: '白優', F: '白大優', G: '白必勝' }
 const TARGET_LABEL: Record<Mode, string> = {
   split: '黑優點與平衡點',
   black: '黑優點（黑必勝＋偏黑）',
@@ -31,6 +35,16 @@ const TARGET_LABEL: Record<Mode, string> = {
   notlose: '不輸點（黑必勝＋偏黑＋平衡）',
 }
 const MARK_COLOR = { black: '#ffd43b', equal: '#4dabf7' } as const
+/** 玄的評等字母顏色（對答案後攤開）：A 綠、B/C 藍、D 灰、E/F 橘、G 紅。 */
+const GRADE_COLOR: Record<string, string> = {
+  A: '#2f9e44',
+  B: '#1c7ed6',
+  C: '#1c7ed6',
+  D: '#495057',
+  E: '#f08c00',
+  F: '#f08c00',
+  G: '#e03131',
+}
 
 export default function GuideQuiz() {
   const [data, setData] = useState<GuideItem[] | null>(null)
@@ -43,9 +57,16 @@ export default function GuideQuiz() {
   const [askInput, setAskInput] = useState('')
   const [shuffleSeed, setShuffleSeed] = useState(0)
 
+  const xuan = cfg.src === 'xuan'
+  // 玄是加密資料：本機記得金鑰就直接解，否則顯示密碼框（locked）
+  const [locked, setLocked] = useState(false)
   useEffect(() => {
-    import('../guide/guide-data.json').then((m) => setData(m.default as unknown as GuideItem[]))
-  }, [])
+    setData(null)
+    setLocked(false)
+    if (xuan)
+      xuanIfUnlocked().then((b) => (b ? setData(b.items) : setLocked(true)))
+    else import('../guide/guide-data.json').then((m) => setData(m.default as unknown as GuideItem[]))
+  }, [xuan])
 
   const list = useMemo(() => {
     if (!data) return []
@@ -148,13 +169,34 @@ export default function GuideQuiz() {
     saveGuideProgress(next)
   }
 
-  if (!data) return <div className="page">載入指南資料中…</div>
+  if (!data)
+    return (
+      <div className="page guide-page">
+        {locked ? (
+          <>
+            <XuanUnlock
+              onOpen={(b) => {
+                setLocked(false)
+                setData(b.items)
+              }}
+            />
+            <p>
+              <button className="btn" onClick={() => setCfg({ src: '' })}>
+                改用漱星閣指南
+              </button>
+            </p>
+          </>
+        ) : (
+          '載入指南資料中…'
+        )}
+      </div>
+    )
 
   const notes = item ? parseNotes(item.notes) : new Map()
   const syms = item ? stabilizer(item.stones) : []
   const rec = item ? prog.v[item.page] : undefined
   const perfect = !!result && !result.reveal && result.perfect && (asked === null || asked.ok)
-  const wrongTotal = Object.values(prog.v).filter((s) => s.wrong).length
+  const wrongTotal = data.filter((v) => prog.v[v.page]?.wrong).length
 
   // ---- 棋盤（PDF 原方位）----
   const S = 36
@@ -247,8 +289,10 @@ export default function GuideQuiz() {
         item?.labels.map((l) => {
           const [x, y, kind, rank, prime] = l
           const cat = labelEval(item, l, notes)
-          const col =
-            kind === 'win' || kind === 'winq'
+          const grade = item.grades?.[item.labels.indexOf(l)]
+          const col = grade
+            ? GRADE_COLOR[grade[0]]
+            : kind === 'win' || kind === 'winq'
               ? '#2f9e44'
               : kind === 'near'
                 ? '#f08c00'
@@ -257,14 +301,18 @@ export default function GuideQuiz() {
                   : cat === 'black'
                     ? '#1c7ed6'
                     : '#495057'
-          const txt = `${kind === 'win' || kind === 'winq' ? 'a' : kind === 'near' || kind === 'lose' ? 'c' : ''}${rank}${prime ? "'" : ''}`
+          const txt =
+            grade ?? `${kind === 'win' || kind === 'winq' ? 'a' : kind === 'near' || kind === 'lose' ? 'c' : ''}${rank}${prime ? "'" : ''}`
+          // 玄的 G（白必勝）一盤常二三十個：淡一點，不搶黑優點的眼
+          const faint = grade?.[0] === 'G'
           return (
             <text
               key={`l${x},${y}`}
               x={c(x)}
               y={c(y) + 5}
-              fontSize="14"
+              fontSize={faint ? 11 : 14}
               fontWeight="800"
+              opacity={faint ? 0.55 : 1}
               textAnchor="middle"
               fill={col}
               stroke="#fff8e6"
@@ -302,11 +350,25 @@ export default function GuideQuiz() {
       <div className="page-head">
         <h1>打點複習</h1>
         <p className="muted">
-          資料：《漱星閣開局指南》2026.4.3 版（現任名人整理，經同意收錄），共 {data.length} 個「開局＋白 4」變化；
-          棋盤照指南原方位。標出指定的打點後對答案——白 4 之後該記的就是「哪幾打黑優」，其餘多半是白優。
+          {xuan ? (
+            <>
+              資料：《玄》棋譜庫（名人林書玄整理），共 {data.length} 個「開局＋白 4」變化；評等 A 黑必勝、B 黑大優、C 黑優、D 均勢、
+              E 白優、F 白大優、G 白必勝（A～C 算黑優點、D 算平衡點）。完整變化可到<a href="#/lib">玄庫看譜</a>一路點下去。
+            </>
+          ) : (
+            <>資料：《漱星閣開局指南》2026.4.3 版（中國「漱星閣」群組整理），共 {data.length} 個「開局＋白 4」變化；棋盤照指南原方位。</>
+          )}
+          標出指定的打點後對答案——白 4 之後該記的就是「哪幾打黑優」，其餘多半是白優。
         </p>
       </div>
       <div className="guide-filters">
+        <label>
+          資料
+          <select value={cfg.src ?? ''} onChange={(e) => setCfg({ src: e.target.value, opening: cfg.opening, scope: cfg.scope === 'wrong' ? 'all' : cfg.scope })} aria-label="資料來源">
+            <option value="">漱星閣指南（249）</option>
+            <option value="xuan">玄・林書玄（979，需密碼）</option>
+          </select>
+        </label>
         <label>
           開局
           <select value={cfg.opening} onChange={(e) => setCfg({ opening: e.target.value })} aria-label="開局">
@@ -330,7 +392,7 @@ export default function GuideQuiz() {
         <label>
           順序
           <select value={cfg.order} onChange={(e) => setCfg({ order: e.target.value })} aria-label="順序">
-            <option value="page">照指南頁序</option>
+            <option value="page">{xuan ? '照開局順序' : '照指南頁序'}</option>
             <option value="random">隨機</option>
           </select>
         </label>
@@ -360,7 +422,9 @@ export default function GuideQuiz() {
               <span>⬚ 漏標（框色＝該標的類別）</span>
               <span style={{ color: '#ff6b6b' }}>✕ 標錯</span>
             </span>
-            對答案後攤開指南打點：綠 a＝黑必勝、藍＝偏黑、灰＝平衡／偏白、橘 c?＝白近勝、紅 c＝黑敗。
+            {xuan
+              ? '對答案後攤開玄的評等：綠 A＝黑必勝、藍 B/C＝黑大優/黑優、灰 D＝均勢、橘 E/F＝白優/白大優、淡紅 G＝白必勝。'
+              : '對答案後攤開指南打點：綠 a＝黑必勝、藍＝偏黑、灰＝平衡／偏白、橘 c?＝白近勝、紅 c＝黑敗。'}
           </p>
         </div>
         <aside className="panel guide-side">
@@ -372,7 +436,7 @@ export default function GuideQuiz() {
                 {opName}・<b>{item.name}</b>
               </h2>
               <p className="muted small">
-                第 {idx + 1}/{list.length} 題・指南第 {item.page} 頁
+                第 {idx + 1}/{list.length} 題{xuan ? '・玄' : `・指南第 ${item.page} 頁`}
                 {item.viable ? <span className="pill v">防十打</span> : <span className="pill x">可十打</span>}
                 {item.hard && <span className="pill h">困難</span>}
                 {rec && `　答過 ${rec.seen} 次・連對 ${rec.streak}${rec.wrong ? '・在錯題本' : ''}`}
@@ -457,6 +521,19 @@ export default function GuideQuiz() {
                       )}
                       {result.wrong.length > 0 && <span className="err-text">，多標 {result.wrong.map(([x, y]) => nm(x, y)).join('、')}</span>}
                     </span>
+                  )}
+                  {item.grades && (
+                    <div className="guide-notes">
+                      {[...'ABCDEFG']
+                        .map((g) => [g, item.grades!.filter((s) => s[0] === g).length] as const)
+                        .filter(([, n]) => n > 0)
+                        .map(([g, n]) => (
+                          <span key={g} style={{ color: GRADE_COLOR[g] }}>
+                            {g}（{GRADE_NAME[g]}）× {n}
+                          </span>
+                        ))}
+                      <a href={`#/lib/${item.stones.map(([x, y]) => String.fromCharCode(97 + x, 97 + y)).join('')}`}>在玄庫看後續變化 →</a>
+                    </div>
                   )}
                   <div className="guide-notes">
                     {[...notes.entries()]

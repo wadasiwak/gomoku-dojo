@@ -25,8 +25,10 @@ export interface BoardMark {
 export interface LabelMark {
   x: number
   y: number
-  /** 圈內字母（規約兩打 A/B、圖鑑標點用）。 */
+  /** 圈內字母（規約兩打 A/B、圖鑑標點用）；空字串＝只畫小圓點（看譜頁：庫內有、沒標字的下一手）。 */
   label: string
+  /** 圈與字的顏色（預設金色；看譜頁依評等上色）。 */
+  color?: string
 }
 
 interface Props {
@@ -224,34 +226,43 @@ export default function Board({
           </g>
         ),
       )}
-      {marks.map((m) => (
-        <g
-          key={`k${m.x}-${m.y}`}
-          className="pt-mark"
-          data-mark={m.label}
-          data-pos={`${m.x},${m.y}`}
-          pointerEvents="none"
-        >
-          <circle
-            cx={cx(m.x)}
-            cy={cx(m.y)}
-            r={CELL * 0.42}
-            fill="rgba(224, 163, 54, 0.16)"
-            stroke="#e0a336"
-            strokeWidth="2.5"
-          />
-          <text
-            x={cx(m.x)}
-            y={cx(m.y) + 6}
-            textAnchor="middle"
-            fill="#e0a336"
-            fontSize="17"
-            fontWeight="700"
+      {marks.map((m) => {
+        const col = m.color ?? '#e0a336'
+        return (
+          <g
+            key={`k${m.x}-${m.y}`}
+            className="pt-mark"
+            data-mark={m.label}
+            data-pos={`${m.x},${m.y}`}
+            pointerEvents="none"
           >
-            {m.label}
-          </text>
-        </g>
-      ))}
+            {m.label === '' ? (
+              <circle cx={cx(m.x)} cy={cx(m.y)} r={CELL * 0.14} fill={col} />
+            ) : (
+              <>
+                <circle
+                  cx={cx(m.x)}
+                  cy={cx(m.y)}
+                  r={CELL * 0.42}
+                  fill={m.color ? 'rgba(255, 255, 255, 0.55)' : 'rgba(224, 163, 54, 0.16)'}
+                  stroke={col}
+                  strokeWidth="2.5"
+                />
+                <text
+                  x={cx(m.x)}
+                  y={cx(m.y) + (m.label.length >= 3 ? 4 : 6)}
+                  textAnchor="middle"
+                  fill={col}
+                  fontSize={m.label.length >= 3 ? 11 : m.label.length === 2 ? 14 : 17}
+                  fontWeight="700"
+                >
+                  {m.label}
+                </text>
+              </>
+            )}
+          </g>
+        )
+      })}
       {forbidden.map((m) => (
         <g
           key={`f${m.x}-${m.y}`}

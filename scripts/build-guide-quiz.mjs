@@ -2,7 +2,7 @@
 //   node scripts/parse-opening-guide.mjs guide.html > scratch/white4/guide.json
 //   node scripts/build-guide-quiz.mjs [--out ~/opening-guide-quiz.html]
 //
-// ⚠️ 指南是現任名人整理的內容：只產生離線檔給國手自己複習，不放道場網站、不進 git
+// ⚠️ 指南是中國漱星閣群組整理的內容：只產生離線檔給國手自己複習，不放道場網站、不進 git
 // （要公開需名人同意）。
 //
 // 玩法：題目＝開局＋白 4（照 PDF 原方位），使用者在盤上標出「目標打點」後對答案。
@@ -73,7 +73,7 @@ button:disabled{opacity:.45;cursor:default}
 .pill.v{background:#2b8a3e}.pill.h{background:#e67700}.pill.x{background:#c92a2a}
 </style></head><body><div class="wrap">
 <h1>漱星閣開局指南・打點複習</h1>
-<p class="muted">資料：現任名人提供的《漱星閣開局指南》2026.4.3 版（共 ${data.length} 個白 4 變化）。僅供個人複習，請勿上傳網路或外流。棋盤照 PDF 原方位。</p>
+<p class="muted">資料：中國「漱星閣」群組整理的《漱星閣開局指南》2026.4.3 版（共 ${data.length} 個白 4 變化）。僅供個人複習，請勿上傳網路或外流。棋盤照 PDF 原方位。</p>
 <div class="bar">
   <label>開局 <select id="fOpening"><option value="">全部</option>${openings.map(([id, n]) => `<option value="${id}">${n}</option>`).join('')}</select></label>
   <label>範圍 <select id="fScope"><option value="all">全部變化</option><option value="viable">只看防十打（黑必勝 &lt;10）</option><option value="hard">只看困難變化</option><option value="wrong">錯題本</option></select></label>

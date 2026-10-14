@@ -7,6 +7,7 @@ export type Route =
   | { name: 'play'; record?: string }
   | { name: 'tara' }
   | { name: 'guide' }
+  | { name: 'lib'; path: string }
   | { name: 'puzzles'; tab: string }
   | { name: 'puzzle'; id: string }
   | { name: 'records' }
@@ -27,6 +28,8 @@ export function parseHash(hash: string): Route {
       return { name: 'tara' }
     case 'guide':
       return { name: 'guide' }
+    case 'lib':
+      return { name: 'lib', path: rest.join('') }
     case 'puzzles':
       return { name: 'puzzles', tab: rest[0] ?? 'all' }
     case 'puzzle':

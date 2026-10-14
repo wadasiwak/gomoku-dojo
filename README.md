@@ -16,10 +16,16 @@
   交換看執色優劣、十打值＞0 才十打否則持白、擇一挑對黑最差點，見 `src/tara/ai.ts`）；開局後 Rapfi 強度四級（全力／深度上限
   14／10／6）；加秒制棋鐘（30+30 名人賽資格賽、60+30 循環圈等），人方超時判負。
   `node scripts/tara-ai-sim.mjs` 可在 node 讓 AI 對 AI 走完開局看每步決策與耗時。
-- **打點複習**（`#/guide`）：《漱星閣開局指南》2026.4.3 版（現任名人整理，經同意收錄）
+- **打點複習**（`#/guide`）：《漱星閣開局指南》2026.4.3 版（中國「漱星閣」群組整理）
   249 個「開局＋白 4」變化，照指南原方位出題，在盤上標出黑優打點（黑必勝＋偏黑，可切只黑必勝／
   不輸）後對答案，攤開指南全部打點與註記；錯題本（連對 2 次出本）。資料由 PDF 解析
   （`scripts/parse-opening-guide.mjs` → `scripts/build-guide-data.mjs` → `src/guide/guide-data.json`）。
+  另可切換資料來源為《玄》棋譜庫（名人林書玄整理）979 個白 4，評等 A～C＝黑優、D＝平衡（需密碼，見下）。
+- **玄庫看譜**（`#/lib/<著手串>`）：《玄》RenLib 棋譜庫（約 110 萬節點）一路點到最後的變化，評等上色、
+  庫外可續擺並接 Rapfi 分析／開到擺譜；也能開本機 .lib（瀏覽器內解析不上傳）。解析器 `src/renlib/renlib.ts`
+  （照 RenLib 原始碼移植）。**玄的資料加密**（限知道密碼的人）：`XUAN_PASSWORD=… node scripts/build-xuan.mjs ~/Downloads/玄.TXT`
+  產生 `public/xuan/xuan.vault`（.lib 去實戰棋手資訊＋打點資料，gzip＋AES-256-GCM、PBKDF2 60 萬次，見 `src/renlib/vault.ts`）；
+  repo 只有加密檔，明文只寫到 gitignored 的 `scratch/xuan/`（單元測試／e2e 用，e2e 密碼讀 `scratch/xuan/.password`）。
 - **對弈難度 5＝Rapfi**：自由／規約模式都能直接對 Rapfi（每手 3 秒）。
 - **題庫闖關**：VCF（連續衝四取勝）題庫，依最小 VCF 深度分
   初級（2–3 手）/中級（4–7 手）/高級（8+ 手）。答題判定用引擎**即時驗證**

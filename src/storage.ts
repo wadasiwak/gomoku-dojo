@@ -196,10 +196,10 @@ export const saveTaraSettings = (s: TaraSettings): void => save(TARA_KEY, s)
 
 // ---- 打點複習（#/guide）進度與設定 -------------------------------------
 export interface GuideProgress {
-  /** key＝指南頁碼：答過幾次、目前連對、是否在錯題本。 */
+  /** key＝題號（漱星閣＝指南頁碼、玄＝局面雜湊 ≥100000）：答過幾次、目前連對、是否在錯題本。 */
   v: Record<string, { seen: number; streak: number; wrong: boolean }>
-  /** v＝設定版本（2＝預設改為分兩色標，舊設定一次性遷移）。 */
-  cfg: { opening: string; scope: string; order: string; target: string; askCount: boolean; v?: number }
+  /** v＝設定版本（2＝預設改為分兩色標，舊設定一次性遷移）；src＝資料來源（缺＝漱星閣、'xuan'＝玄）。 */
+  cfg: { opening: string; scope: string; order: string; target: string; askCount: boolean; v?: number; src?: string }
 }
 const GUIDE_KEY = 'gomoku-dojo-guide-v1'
 export const loadGuideProgress = (): GuideProgress =>

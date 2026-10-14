@@ -48,8 +48,14 @@ export default function Home() {
         <button className="entry-card" onClick={() => navigate('guide')}>
           <span className="entry-icon">📍</span>
           <h2>打點複習</h2>
-          <p>《漱星閣開局指南》249 個白 4 變化：在盤上標出黑優打點，對答案、錯題本複習。</p>
-          <p className="entry-stat">現任名人整理・經同意收錄</p>
+          <p>《漱星閣開局指南》249 個＋《玄》979 個白 4 變化：在盤上標出黑優與平衡打點，對答案、錯題本複習。</p>
+          <p className="entry-stat">漱星閣群組／名人林書玄整理</p>
+        </button>
+        <button className="entry-card" onClick={() => navigate('lib')}>
+          <span className="entry-icon">📚</span>
+          <h2>玄庫看譜</h2>
+          <p>名人林書玄整理的《玄》棋譜庫：26 開局一路點到最後的變化，評等 A～G 上色，庫外可接 Rapfi 研究。</p>
+          <p className="entry-stat">🔒 需密碼・名人林書玄整理</p>
         </button>
         <button className="entry-card" onClick={() => navigate('puzzles')}>
           <span className="entry-icon">🧩</span>
