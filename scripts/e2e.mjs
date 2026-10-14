@@ -777,6 +777,28 @@ try {
     }
   })
 
+  // ---- 16. 打點複習（漱星閣開局指南）----------------------------------------
+  await step('打點複習：寒預標 7 個黑優點→全對；漏標→進錯題本', async () => {
+    await page.goto(`${BASE}/#/`)
+    await page.locator('nav a', { hasText: '打點' }).click()
+    await page.locator('select[aria-label="開局"]').selectOption('d1')
+    await page.locator('.guide-title', { hasText: '寒預' }).waitFor({ timeout: 10000 })
+    const prompt = await page.locator('.guide-prompt').innerText()
+    if (!/共 7 個/.test(prompt)) throw new Error(`寒預應標 7 個：${prompt}`)
+    // 寒預 PDF 原方位的黑優點：a1 I9、a2 I7、a3 J8、a4 I8、a5 J10、a6 I10、7 H7
+    const pts = [[8, 6], [8, 8], [9, 7], [8, 7], [9, 5], [8, 5], [7, 8]]
+    const g = (x, y) => page.locator(`.guide-board rect[aria-label="(${x},${y})"]`)
+    for (const [x, y] of pts) await g(x, y).click()
+    await page.locator('button', { hasText: '對答案' }).click()
+    await page.locator('.guide-result', { hasText: '全對' }).waitFor({ timeout: 3000 })
+    await page.locator('button', { hasText: '下一題' }).click()
+    await page.locator('button', { hasText: '對答案' }).click() // 什麼都沒標 → 錯
+    await page.locator('.guide-result', { hasText: '再加油' }).waitFor({ timeout: 3000 })
+    await page.locator('select[aria-label="範圍"]').selectOption('wrong')
+    await page.locator('.guide-title').waitFor({ timeout: 3000 })
+    if (!/錯題本（1）/.test(await page.locator('select[aria-label="範圍"]').innerText())) throw new Error('錯題本計數不對')
+  })
+
   // ---- 15. 對弈頁難度 5＝Rapfi ----------------------------------------------
   await step('對弈：難度 5（Rapfi）落子→Rapfi 回手', async () => {
     await page.goto(`${BASE}/#/play`)

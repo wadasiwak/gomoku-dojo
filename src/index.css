@@ -955,3 +955,138 @@ footer {
   white-space: nowrap;
   max-width: 100%;
 }
+
+/* ---- 打點複習（#/guide）---- */
+.guide-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.guide-filters label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+.guide-filters select {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+
+.guide-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.guide-board {
+  width: min(100%, 600px);
+  display: block;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+@media (max-width: 760px) {
+  .guide-main {
+    grid-template-columns: 1fr;
+  }
+  /* 手機：題目卡在棋盤上方，不用先捲動才知道要標幾個 */
+  .guide-side {
+    order: 1;
+  }
+  .guide-board-col {
+    order: 2;
+  }
+}
+
+.guide-title {
+  margin: 0 0 4px;
+}
+
+.guide-title b {
+  color: #ffd43b;
+}
+
+.guide-prompt {
+  font-size: 1.02rem;
+}
+
+.guide-count {
+  color: #ffd43b;
+}
+
+.guide-ask {
+  width: 64px;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.guide-result {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+
+.guide-notes {
+  margin-top: 6px;
+}
+
+.guide-notes span {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 0.88em;
+}
+
+.ok-text {
+  color: var(--ok);
+}
+
+.err-text {
+  color: var(--err);
+}
+
+.warn-text {
+  color: #ffd43b;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  margin-left: 6px;
+  color: #fff;
+}
+
+.pill.v {
+  background: #2b8a3e;
+}
+
+.pill.h {
+  background: #e67700;
+}
+
+.pill.x {
+  background: #c92a2a;
+}

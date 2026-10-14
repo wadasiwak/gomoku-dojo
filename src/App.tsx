@@ -3,6 +3,7 @@
 import Home from './ui/Home.tsx'
 import Play from './ui/Play.tsx'
 import TaraPlay from './ui/TaraPlay.tsx'
+import GuideQuiz from './ui/GuideQuiz.tsx'
 import Puzzles from './ui/Puzzles.tsx'
 import PuzzlePlay from './ui/PuzzlePlay.tsx'
 import Replay from './ui/Replay.tsx'
@@ -19,6 +20,7 @@ const NAV = [
   { hash: '', label: '首頁', match: ['home'] },
   { hash: 'play', label: '對弈', match: ['play'] },
   { hash: 'tara', label: '特訓', match: ['tara'] },
+  { hash: 'guide', label: '打點', match: ['guide'] },
   { hash: 'puzzles', label: '題庫', match: ['puzzles', 'puzzle'] },
   { hash: 'openings', label: '開局', match: ['openings'] },
   { hash: 'records', label: '棋譜', match: ['records', 'replay'] },
@@ -56,6 +58,7 @@ export default function App() {
         {route.name === 'home' && <Home />}
         {route.name === 'play' && <Play key={route.record ?? ''} record={route.record} />}
         {route.name === 'tara' && <TaraPlay />}
+        {route.name === 'guide' && <GuideQuiz />}
         {route.name === 'puzzles' && <Puzzles tab={route.tab} />}
         {route.name === 'puzzle' && <PuzzlePlay id={route.id} key={route.id} />}
         {route.name === 'replay' && <Replay record={route.record} />}

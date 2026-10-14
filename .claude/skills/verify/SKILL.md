@@ -105,6 +105,17 @@ dev/preview 5310、e2e 5311、截圖 5312、Rapfi e2e 5313。
   棋鐘測試用獨立 page＋`page.clock`（假時鐘快轉判超時，零手的局不存檔所以先下天元）。
 - 已知簡化：棋鐘每次交棒都加秒（含交換/選擇決定）。
 
+## 打點複習（#/guide，漱星閣開局指南）
+
+- 資料管線：`pdftotext -bbox 指南.pdf > guide.html`（brew install poppler）→
+  `node scripts/parse-opening-guide.mjs guide.html > scratch/white4/guide.json` →
+  `node scripts/build-guide-data.mjs`（→ src/guide/guide-data.json，進頁才 lazy import）。
+- 解析要點：格距 20pt、第 1 手在天元定原點；棋子字高 23 vs 標籤 21.3；aN 綠＝黑必勝、純數字＝看註記、
+  cN?＝白近勝、cN＝黑敗；N'＝近似對稱（軸不在盤中央）另一側，是**不同點**都要標；註記區 x>352
+  （數字欄靠左，曾漏數字）；用詞含 黑近胜／白有望胜／有望胜／「7打56%」百分比。
+- vitest `src/guide/__tests__/quiz.test.ts` 含 249 題完整性（每個平衡類打點都對得到註記）。
+- 名人指南內容：國手轉達名人同意收錄（2026-10-14），頁面註明出處。
+
 ## 開局書（src/openings/＋scripts/gen-opening-book.mjs）
 
 - **產書**：`npm run gen:book`（Rapfi WASM node 離線深算，預設 10s/局面、全量

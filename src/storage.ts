@@ -193,3 +193,17 @@ export const loadTaraSettings = (): TaraSettings =>
     showEval: false,
   })
 export const saveTaraSettings = (s: TaraSettings): void => save(TARA_KEY, s)
+
+// ---- 打點複習（#/guide）進度與設定 -------------------------------------
+export interface GuideProgress {
+  /** key＝指南頁碼：答過幾次、目前連對、是否在錯題本。 */
+  v: Record<string, { seen: number; streak: number; wrong: boolean }>
+  cfg: { opening: string; scope: string; order: string; target: string; askCount: boolean }
+}
+const GUIDE_KEY = 'gomoku-dojo-guide-v1'
+export const loadGuideProgress = (): GuideProgress =>
+  load<GuideProgress>(GUIDE_KEY, {
+    v: {},
+    cfg: { opening: '', scope: 'all', order: 'page', target: 'black', askCount: false },
+  })
+export const saveGuideProgress = (p: GuideProgress): void => save(GUIDE_KEY, p)

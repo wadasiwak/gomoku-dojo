@@ -45,6 +45,12 @@ export default function Home() {
           <p>塔拉山口-10 開局對 Rapfi（交換／十打／最後選黑白），可開 30 分＋30 秒棋鐘。</p>
           <p className="entry-stat">對手：Gomocup 冠軍級引擎</p>
         </button>
+        <button className="entry-card" onClick={() => navigate('guide')}>
+          <span className="entry-icon">📍</span>
+          <h2>打點複習</h2>
+          <p>《漱星閣開局指南》249 個白 4 變化：在盤上標出黑優打點，對答案、錯題本複習。</p>
+          <p className="entry-stat">現任名人整理・經同意收錄</p>
+        </button>
         <button className="entry-card" onClick={() => navigate('puzzles')}>
           <span className="entry-icon">🧩</span>
           <h2>題庫闖關</h2>
