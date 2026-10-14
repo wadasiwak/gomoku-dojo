@@ -22,23 +22,19 @@
     <meta property="og:url" content="https://wadasiwak.github.io/gomoku-dojo/" />
     <meta name="twitter:card" content="summary" />
     <script>
-      // Rapfi 多執行緒版需要 crossOriginIsolated；GitHub Pages 設不了 COOP/COEP header，
-      // 由 coi-serviceworker（MIT）以 Service Worker 補上。首次造訪會自動重新載入一次。
-      // - 只在桌機註冊：行動裝置（尤其 iOS）未實機驗證、記憶體吃緊，維持單執行緒版。
-      // - v0.1.7 在 updatefound 就 reload，SW 常尚未接管 → 改成等 controllerchange 再 reload
-      //  （實測原版 4 次有 3 次第二次載入仍未隔離）。
-      // - 保留原版防無限重載：剛自己重載過就不再註冊（旗標要在函式庫清掉前先讀）。
-      var coiReloadedBySelf = sessionStorage.getItem('coiReloadedBySelf')
+      // 多執行緒版 Rapfi 已關閉（2026-10-14，連續搜尋偶發卡死，見 src/analysis/rapfi.ts
+      // MULTI_THREAD_ENABLED）。先前在桌機造訪過的瀏覽器已註冊 coi-serviceworker（補 COOP/COEP）→
+      // 這裡改成「不再註冊、已註冊的就註銷」：既有訪客下次造訪會自動重整一次回到一般頁面。
+      // 等所有訪客都清掉後可整段連同 public/coi-serviceworker.js 移除。
       window.coi = {
         shouldRegister: function () {
-          return !coiReloadedBySelf && !/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent)
+          return false
         },
-        doReload: function () {
-          var sw = navigator.serviceWorker
-          if (sw && !sw.controller) {
-            sw.addEventListener('controllerchange', function () { location.reload() }, { once: true })
-            setTimeout(function () { location.reload() }, 4000)
-          } else location.reload()
+        shouldDeregister: function () {
+          return true
+        },
+        coepDegrade: function () {
+          return false
         },
       }
     </script>

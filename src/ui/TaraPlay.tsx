@@ -550,7 +550,7 @@ export default function TaraPlay() {
             ? `（多執行緒：${getRapfi().threads} 緒）`
             : multiThreadDisabledByCrashGuard()
               ? '（單執行緒：上次多執行緒引擎在思考中中斷，本分頁改用穩定版；關掉分頁重開即恢復）'
-              : '（單執行緒；桌機版瀏覽器會自動啟用多執行緒）'}
+              : ''}
         </p>
         {humanTurn && phase === 'swap' && (
           <div className="btn-row">

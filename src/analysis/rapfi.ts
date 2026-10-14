@@ -111,7 +111,16 @@ export function multiThreadDisabledByCrashGuard(): boolean {
   return session()?.getItem(MT_OFF) === '1'
 }
 
+/**
+ * 多執行緒總開關：2026-10-14 關閉（國手決定，名人賽前求穩）。node 實測多執行緒版連續搜尋一段時間後
+ * 會不定時卡死（同局面單獨重算又正常＝引擎內部競態；START 後立刻送 THREAD_NUM 也會死鎖），
+ * 單執行緒版同批局面全過。查清楚前一律單執行緒；要恢復：改 true，並把 index.html 的
+ * coi-serviceworker 設定改回註冊（shouldRegister）。
+ */
+export const MULTI_THREAD_ENABLED = false
+
 function multiThreadCount(): number {
+  if (!MULTI_THREAD_ENABLED) return 1
   if (typeof self === 'undefined' || typeof navigator === 'undefined') return 1
   const ss = session()
   if (ss?.getItem(MT_BUSY)) {
