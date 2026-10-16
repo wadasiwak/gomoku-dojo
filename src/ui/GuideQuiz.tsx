@@ -10,6 +10,7 @@ import {
   grade,
   gradeSplit,
   labelEval,
+  matchedMark,
   parseNotes,
   stabilizer,
   targetsOf,
@@ -258,12 +259,17 @@ export default function GuideQuiz() {
           strokeWidth="2"
         />
       ))}
-      {result?.hit.map(({ label: t }) => (
-        <circle key={`h${t[0]},${t[1]}`} cx={c(t[0])} cy={c(t[1])} r="16" fill="none" stroke="#51cf66" strokeWidth="3.5" />
-      ))}
-      {result?.swapped.map(({ label: t }) => (
-        <circle key={`sw${t[0]},${t[1]}`} cx={c(t[0])} cy={c(t[1])} r="16" fill="none" stroke="#ff922b" strokeWidth="3.5" strokeDasharray="4 3" />
-      ))}
+      {/* 標對／標反的圈畫在使用者標的那顆（可能是鏡像點），不是資料原本的那一邊 */}
+      {result?.hit.map(({ label: t }) => {
+        const m = item && matchedMark(item, marks, t)
+        const [x, y] = m ? [m.x, m.y] : [t[0], t[1]]
+        return <circle key={`h${t[0]},${t[1]}`} className="guide-hit" cx={c(x)} cy={c(y)} r="16" fill="none" stroke="#51cf66" strokeWidth="3.5" />
+      })}
+      {result?.swapped.map(({ label: t }) => {
+        const m = item && matchedMark(item, marks, t)
+        const [x, y] = m ? [m.x, m.y] : [t[0], t[1]]
+        return <circle key={`sw${t[0]},${t[1]}`} cx={c(x)} cy={c(y)} r="16" fill="none" stroke="#ff922b" strokeWidth="3.5" strokeDasharray="4 3" />
+      })}
       {result?.miss.map(({ label: t, cat }) => (
         <rect
           key={`ms${t[0]},${t[1]}`}
@@ -305,11 +311,14 @@ export default function GuideQuiz() {
             grade ?? `${kind === 'win' || kind === 'winq' ? 'a' : kind === 'near' || kind === 'lose' ? 'c' : ''}${rank}${prime ? "'" : ''}`
           // 玄的 G（白必勝）一盤常二三十個：淡一點，不搶黑優點的眼
           const faint = grade?.[0] === 'G'
-          return (
+          // 使用者標在鏡像點：標籤字也畫到那顆上（原位置照畫）
+          const mm = matchedMark(item, marks, l)
+          const mirror = mm && (mm.x !== x || mm.y !== y) ? mm : null
+          return [{ x, y }, ...(mirror ? [mirror] : [])].map((at) => (
             <text
-              key={`l${x},${y}`}
-              x={c(x)}
-              y={c(y) + 5}
+              key={`l${at.x},${at.y}`}
+              x={c(at.x)}
+              y={c(at.y) + 5}
               fontSize={faint ? 11 : 14}
               fontWeight="800"
               opacity={faint ? 0.55 : 1}
@@ -321,7 +330,7 @@ export default function GuideQuiz() {
             >
               {txt}
             </text>
-          )
+          ))
         })}
       {Array.from({ length: 225 }, (_, i) => {
         const x = i % 15

@@ -132,3 +132,33 @@ describe.skipIf(!existsSync(XUAN_FILE))('《玄》資料（林書玄整理）', 
     expect(['A1', 'B', 'C3', 'D!', 'E', 'F9', 'G?'].map(gradeCat)).toEqual(['black', 'black', 'black', 'equal', 'white', 'white', 'white'])
   })
 })
+
+describe('對稱盤面', () => {
+  it('寒預（左右對稱）：標在鏡像點算對，matchedMark 指回使用者標的那顆', async () => {
+    const { matchedMark } = await import('../quiz.ts')
+    const v = byName('寒預')
+    const f = stabilizer(v.stones)[1]
+    const t = targetsSplit(v)
+    const marks = [
+      ...t.black.map((l) => { const [x, y] = f(l[0], l[1]); return { x, y, cat: 'black' as const } }),
+      ...t.equal.map((l) => { const [x, y] = f(l[0], l[1]); return { x, y, cat: 'equal' as const } }),
+    ]
+    expect(gradeSplit(v, marks).perfect).toBe(true)
+    const l = t.black.find((k) => f(k[0], k[1]).join() !== `${k[0]},${k[1]}`)!
+    expect(matchedMark(v, marks, l)).toMatchObject({ x: f(l[0], l[1])[0], y: f(l[0], l[1])[1] })
+  })
+  it.skipIf(!existsSync(XUAN_FILE))('玄 丘謝：兩邊都標的鏡像點只算一個', async () => {
+    const { dedupeSym } = await import('../quiz.ts')
+    const XUAN = JSON.parse(readFileSync(XUAN_FILE, 'utf8')) as GuideItem[]
+    const v = XUAN.find((w) => w.name === '丘謝')!
+    const t = targetsSplit(v)
+    expect(dedupeSym(v, v.labels).length).toBeLessThan(v.labels.length)
+    // 每對鏡像只留一邊
+    const f = stabilizer(v.stones)[1]
+    const keys = new Set(t.black.map((l) => `${l[0]},${l[1]}`))
+    for (const l of t.black) {
+      const m = f(l[0], l[1]).join(',')
+      if (m !== `${l[0]},${l[1]}`) expect(keys.has(m)).toBe(false)
+    }
+  })
+})

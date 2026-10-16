@@ -87,7 +87,7 @@ export function labelEval(item: GuideItem, l: GuideLabel, notes = parseNotes(ite
 
 export function targetsOf(item: GuideItem, mode: TargetMode): GuideLabel[] {
   const notes = parseNotes(item.notes)
-  return item.labels.filter((l) => {
+  return dedupeSym(item, item.labels).filter((l) => {
     const [, , kind] = l
     if (kind === 'win' || kind === 'winq') return true
     if (mode === 'win') return false
@@ -116,6 +116,36 @@ export function stabilizer(stones: [number, number][]): Sym[] {
       .join(';')
   const k0 = key(stones)
   return SYMS.filter((f) => key(stones.map(([x, y]) => f(x, y))) === k0)
+}
+
+/** 對稱盤面兩邊都標了的打點（玄有幾題如此）只留一邊——鏡像點本來就算對，
+ *  不去重的話題目會要人標兩倍的點。例：丘謝（左右對稱）F9/G10 兩點都標 A → 只算一個。 */
+export function dedupeSym(item: GuideItem, labels: GuideLabel[]): GuideLabel[] {
+  const syms = stabilizer(item.stones)
+  if (syms.length < 2) return labels
+  const seen = new Set<string>()
+  return labels.filter((l) => {
+    const keys = syms.map((f) => f(l[0], l[1]).join(','))
+    if (keys.some((k) => seen.has(k))) return false
+    keys.forEach((k) => seen.add(k))
+    return true
+  })
+}
+
+/** 對到這個打點的標記（可能標在鏡像位置）；對答案時圈要畫在使用者標的那顆上。 */
+export function matchedMark<M extends { x: number; y: number } | [number, number]>(
+  item: GuideItem,
+  marks: M[],
+  l: GuideLabel,
+): M | undefined {
+  const syms = stabilizer(item.stones)
+  return marks.find((m) => {
+    const [mx, my] = Array.isArray(m) ? m : [m.x, m.y]
+    return syms.some((f) => {
+      const [x, y] = f(mx, my)
+      return x === l[0] && y === l[1]
+    })
+  })
 }
 
 export interface GradeResult {
@@ -158,7 +188,7 @@ export function targetsSplit(item: GuideItem): { black: GuideLabel[]; equal: Gui
   const notes = parseNotes(item.notes)
   const black: GuideLabel[] = []
   const equal: GuideLabel[] = []
-  for (const l of item.labels) {
+  for (const l of dedupeSym(item, item.labels)) {
     const cat = labelEval(item, l, notes)
     if (cat === 'black') black.push(l)
     else if (cat === 'equal' && l[2] === 'bal') equal.push(l)
