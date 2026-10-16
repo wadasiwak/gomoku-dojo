@@ -16,6 +16,7 @@ import { BLACK, WHITE, type Pos } from '../engine/types.ts'
 import { findOpeningByMoves, OPENINGS } from '../content/openings.ts'
 import { children, commentText, isMove, movesTo, parseRenlib, posToXY, type RenTree } from '../renlib/renlib.ts'
 import { loadPvShow, savePvShow } from '../storage.ts'
+import { remainingPv, type PvAnchor } from './pvFollow.ts'
 import { lockXuan, xuanIfUnlocked, type XuanBundle } from '../renlib/vault.ts'
 import XuanUnlock from './XuanUnlock.tsx'
 
@@ -95,7 +96,8 @@ export default function LibViewer({ path }: { path: string }) {
   const [err, setErr] = useState('')
   const [locked, setLocked] = useState(false)
   const [pvShow, setPvShow] = useState(loadPvShow)
-  const [pv, setPv] = useState<{ key: string; line: Pos[] } | null>(null)
+  // Rapfi 建議路線錨點（同擺譜頁）：照著路線點下去會一路顯示，走別的才收掉
+  const [pvAnchor, setPvAnchor] = useState<PvAnchor | null>(null)
 
   const openXuanLib = (b: XuanBundle) => {
     cached = buildLib(b.lib, XUAN_NAME)
@@ -216,7 +218,8 @@ export default function LibViewer({ path }: { path: string }) {
   const legend = lib.tree.comment.get(0) ? decodeText(commentText(lib.tree.comment.get(0)!)) : ''
   const op = moves.length >= 3 ? findOpeningByMoves(moves.slice(0, 3)) : null
   const toMove = moves.length % 2 === 0 ? BLACK : WHITE
-  const pvLine = pv && pv.key === path ? (pvShow === 0 ? pv.line : pv.line.slice(0, pvShow)) : []
+  const pvAll = remainingPv(pvAnchor, board)
+  const pvLine = pvShow === 0 ? pvAll : pvAll.slice(0, pvShow)
   const graded = nexts.filter((n) => n.text)
 
   return (
@@ -236,7 +239,7 @@ export default function LibViewer({ path }: { path: string }) {
           lastMove={moves[moves.length - 1] ?? null}
           numbered={moves}
           marks={marks}
-          pv={pvLine.map((p, i) => ({ pos: p, color: (moves.length + i) % 2 === 0 ? BLACK : WHITE }))}
+          pv={pvLine}
           pvStart={moves.length + 1}
           onCell={onCell}
           onRightClick={back}
@@ -333,14 +336,14 @@ export default function LibViewer({ path }: { path: string }) {
         <RapfiPanel
           buildInput={() => ({ moves })}
           rule="renju"
-          positionKey={path}
+          positionKey={pvAll.length > 0 && pvAnchor ? pvAnchor.key : path}
           toMoveLabel={toMove === BLACK ? '黑' : '白'}
           pvShow={pvShow}
           onPvShow={(n) => {
             setPvShow(n)
             savePvShow(n)
           }}
-          onResult={(a, key) => setPv({ key, line: a.pv })}
+          onResult={(a, key) => setPvAnchor({ root: Uint8Array.from(board), line: a.pv, color: toMove, key })}
         />
         <p>
           <a className="btn" href={`#/study/${serializeRecord({ rule: 'renju', moves })}`}>

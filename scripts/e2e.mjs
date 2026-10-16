@@ -878,6 +878,18 @@ try {
     await page.locator('a', { hasText: '在擺譜開啟這個局面' }).click()
     await page.waitForURL(/#\/study\/r1:[a-o]{6}$/, { timeout: 5000 })
     if (!firstChip) throw new Error('變化按鈕沒文字')
+    // Rapfi 建議路線：照建議下一手後，下一手建議還在（同擺譜頁的跟著走）
+    await page.goto(`${BASE}/#/lib/hhhgig`)
+    await page.locator('select[aria-label="Rapfi 思考時間"]').selectOption('1000')
+    await page.locator('button', { hasText: 'Rapfi 分析' }).click()
+    await page.locator('.rapfi-result').waitFor({ timeout: 60000 })
+    for (let i = 0; i < 2; i++) {
+      const pos = await page.locator('svg[aria-label="玄庫棋盤"] [data-pv="1"]').getAttribute('data-pos', { timeout: 3000 })
+      const [px, py] = pos.split(',').map(Number)
+      await page.locator(`svg[aria-label="玄庫棋盤"] rect[aria-label="(${px},${py})"]`).click()
+      await page.locator('.status', { hasText: `第 ${4 + i} 手` }).waitFor({ timeout: 3000 })
+    }
+    if ((await page.locator('svg[aria-label="玄庫棋盤"] [data-pv]').count()) === 0) throw new Error('玄庫照路線走兩手後建議路線消失')
     // 鎖上 → 回到密碼框（本機金鑰清掉，重新整理也要再輸入）
     await page.goto(`${BASE}/#/lib`)
     await page.locator('button', { hasText: '鎖上' }).click()
