@@ -114,9 +114,17 @@ export default function Rules() {
         活三的「真活性」是遞迴判定的：能延伸成活四的點若本身是禁手，該三不算活三——
         引擎與題庫都依這套嚴格定義。
       </p>
-      <p className="muted small">
-        想讀 RIF 官方規則全文與更多外部資源？看 <a href="#/resources">資源頁</a>。
-      </p>
+      <section className="res-note">
+        <h2>延伸閱讀：完整規則教學</h2>
+        <p>
+          本頁只講禁手三型。開局規則（指定開局、五手二打、三手交換）、無禁開局與其他玩法，
+          請看台灣連珠推廣站的中文規則教學（經站方同意連結）：{' '}
+          <a href="https://587.renju.org.tw/rule.htm" target="_blank" rel="noreferrer">
+            587.renju.org.tw 規則 ↗
+          </a>
+          。RIF 官方規則全文與更多外部資源見 <a href="#/resources">資源頁</a>。
+        </p>
+      </section>
     </div>
   )
 }
