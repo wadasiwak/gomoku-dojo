@@ -1,9 +1,10 @@
 // 規則科普：禁手三型各一個小盤例圖＋一句話。例圖直接用引擎測資局面渲染，
 // ✕ 點的禁手類別由 isForbiddenMove 現場判定（引擎掛保證，不是手畫的）。
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import Board from './Board.tsx'
 import { parseBoard } from '../engine/testutils.ts'
 import { isForbiddenMove } from '../engine/forbidden.ts'
+import { RULE_SECTIONS, RULE_SOURCE } from '../content/rulesText.ts'
 
 interface Example {
   title: string
@@ -70,7 +71,29 @@ const KIND_LABEL: Record<string, string> = {
   'double-three': '三三',
 }
 
+// 原文每行以開頭符號分型：◎ 小標、● 條列、○ 子選項、１２３ 步驟、※ 附註、其餘為段落。
+function lineKind(l: string): 'head' | 'bullet' | 'sub' | 'step' | 'note' | 'para' {
+  const c = l[0]
+  if (c === '◎') return 'head'
+  if (c === '●') return 'bullet'
+  if (c === '○') return 'sub'
+  if (c === '※') return 'note'
+  if (/^[０-９]/.test(c)) return 'step'
+  return 'para'
+}
+
+// #/rules/<節名> 捲到該節（router 對 rules 之後的路徑段不理會，這裡自己讀）。
+function scrollToHashSection() {
+  const sub = decodeURIComponent(location.hash.replace(/^#\/rules\/?/, ''))
+  if (sub) document.getElementById(sub)?.scrollIntoView({ behavior: 'smooth' })
+}
+
 export default function Rules() {
+  useEffect(() => {
+    scrollToHashSection()
+    window.addEventListener('hashchange', scrollToHashSection)
+    return () => window.removeEventListener('hashchange', scrollToHashSection)
+  }, [])
   const examples = useMemo(
     () =>
       EXAMPLES.map((e) => {
@@ -114,16 +137,43 @@ export default function Rules() {
         活三的「真活性」是遞迴判定的：能延伸成活四的點若本身是禁手，該三不算活三——
         引擎與題庫都依這套嚴格定義。
       </p>
-      <section className="res-note">
-        <h2>延伸閱讀：完整規則教學</h2>
-        <p>
-          本頁只講禁手三型。開局規則（指定開局、五手二打、三手交換）、無禁開局與其他玩法，
-          請看台灣連珠推廣站的中文規則教學（經站方同意連結）：{' '}
-          <a href="https://587.renju.org.tw/rule.htm" target="_blank" rel="noreferrer">
-            587.renju.org.tw 規則 ↗
-          </a>
-          。RIF 官方規則全文與更多外部資源見 <a href="#/resources">資源頁</a>。
+      <section className="rules-full">
+        <h2 id="full">完整規則</h2>
+        <p className="muted small">
+          以下四節轉載自台灣連珠推廣站《規則》（經站方同意收錄，文字逐字照錄）。原站若有更新以{' '}
+          <a href={RULE_SOURCE} target="_blank" rel="noreferrer">
+            原站 ↗
+          </a>{' '}
+          為準。RIF 官方規則全文與更多外部資源見 <a href="#/resources">資源頁</a>。
         </p>
+        <nav className="rules-toc">
+          {RULE_SECTIONS.map((sec) => (
+            <a key={sec.title} href={`#/rules/${sec.title}`} className="badge">
+              {sec.title}
+            </a>
+          ))}
+        </nav>
+        {RULE_SECTIONS.map((sec) => (
+          <section key={sec.title} className="rule-text" id={sec.title}>
+            <h3>{sec.title}</h3>
+            {sec.lines.map((l, i) => {
+              const kind = lineKind(l)
+              if (kind === 'head') return <h4 key={i}>{l.slice(1)}</h4>
+              if (kind === 'para') return <p key={i}>{l}</p>
+              return (
+                <p key={i} className={`rl rl-${kind}`}>
+                  {l}
+                </p>
+              )
+            })}
+            <p className="muted small">
+              出處：
+              <a href={sec.source} target="_blank" rel="noreferrer">
+                {sec.source.replace('https://', '')} ↗
+              </a>
+            </p>
+          </section>
+        ))}
       </section>
     </div>
   )
