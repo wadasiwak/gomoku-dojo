@@ -16,6 +16,7 @@
 // 與本站原創引擎（src/engine/client.ts EngineClient）完全獨立：Rapfi 只做
 // 「分析」（研棋/擺譜的第二意見），對弈預設仍是本站引擎。
 import { BLACK, WHITE, type Color, type Pos, type Rule } from '../engine/types.ts'
+import { t } from '../i18n/index.ts'
 import {
   buildBoardCommand,
   buildThinkSetup,
@@ -183,7 +184,7 @@ export class RapfiClient {
       const worker = new Worker(this.baseUrl + (multi ? 'rapfi-multi.worker.js' : 'rapfi.worker.js')) // classic worker
       this.worker = worker
       const timer = setTimeout(() => {
-        fail(new Error(`Rapfi 載入逾時（${LOAD_TIMEOUT_MS / 1000}s）`))
+        fail(new Error(t('Rapfi 載入逾時（{s}s）', { s: LOAD_TIMEOUT_MS / 1000 })))
       }, LOAD_TIMEOUT_MS)
       const fail = (err: Error) => {
         clearTimeout(timer)
@@ -199,7 +200,7 @@ export class RapfiClient {
         }
         reject(err)
       }
-      worker.onerror = (ev) => fail(new Error(`Rapfi worker 錯誤：${ev.message || 'unknown'}`))
+      worker.onerror = (ev) => fail(new Error(t('Rapfi worker 錯誤：{msg}', { msg: ev.message || 'unknown' })))
       worker.onmessage = (ev: MessageEvent<WorkerMsg>) => {
         const msg = ev.data
         switch (msg.type) {
@@ -213,7 +214,7 @@ export class RapfiClient {
             resolve()
             break
           case 'load-error':
-            fail(new Error(`Rapfi 載入失敗：${msg.data}`))
+            fail(new Error(t('Rapfi 載入失敗：{msg}', { msg: String(msg.data) })))
             break
           case 'status': {
             // Emscripten setStatus："Downloading data... (loaded/total)"
@@ -240,7 +241,7 @@ export class RapfiClient {
       // 引擎行程結束（多執行緒版讀到 EOF 等異常）→ 在途思考立即報錯、下次呼叫重載
       const handler = this.lineHandler
       this.stop()
-      handler?.(`ERROR 引擎意外結束（exit ${msg.data}）`)
+      handler?.(`ERROR ${t('引擎意外結束（exit {code}）', { code: String(msg.data) })}`)
     }
     // stderr/status 在運轉期只當雜訊
   }
@@ -288,7 +289,7 @@ export class RapfiClient {
         // 思考 timeout 保險絲：引擎自身會守 TIMEOUT_TURN，這裡給寬裕邊際防 worker 卡死。
         const timer = setTimeout(() => {
           this.lineHandler = null
-          reject(new Error(`Rapfi 思考逾時（>${thinkTimeMs + 30_000}ms），worker 可能異常`))
+          reject(new Error(t('Rapfi 思考逾時（>{ms}ms），worker 可能異常', { ms: thinkTimeMs + 30_000 })))
         }, thinkTimeMs + 30_000)
 
         this.lineHandler = (line) => {
@@ -378,7 +379,7 @@ export class RapfiClient {
         let cur: (RapfiPvLine & { index: number }) | null = null
         const timer = setTimeout(() => {
           this.lineHandler = null
-          reject(new Error(`Rapfi 思考逾時（>${thinkTimeMs + 30_000}ms），worker 可能異常`))
+          reject(new Error(t('Rapfi 思考逾時（>{ms}ms），worker 可能異常', { ms: thinkTimeMs + 30_000 })))
         }, thinkTimeMs + 30_000)
 
         this.lineHandler = (line) => {

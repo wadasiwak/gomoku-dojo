@@ -14,6 +14,7 @@ import { BLACK, WHITE, SIZE, idx, opponent, type Color, type Pos } from '../engi
 import { canonicalBoardKey } from '../engine/symmetry.ts'
 import { findOpeningByMoves, getOpening } from '../content/openings.ts'
 import type { GameRecord } from '../engine/record.ts'
+import { t } from '../i18n/index.ts'
 
 export interface RifMeta {
   openingId: string | null
@@ -87,16 +88,16 @@ export function rifReduce(s: RifState, action: RifAction): { next: RifState; err
   switch (action.type) {
     case 'place': {
       const p = action.pos
-      if (!inBoard(p)) return err('落子在盤外')
-      if (occupied(s.moves, p)) return err('該點已有棋子')
+      if (!inBoard(p)) return err(t('落子在盤外'))
+      if (occupied(s.moves, p)) return err(t('該點已有棋子'))
       if (phase === 'opening') {
         const n = s.moves.length
-        if (n === 0 && !same(p, RIF_CENTER)) return err('規約第 1 手必須下在天元（H8）')
-        if (n === 1 && cheb(p, RIF_CENTER) !== 1) return err('規約第 2 手須在天元周圍 3×3 內')
+        if (n === 0 && !same(p, RIF_CENTER)) return err(t('規約第 1 手必須下在天元（H8）'))
+        if (n === 1 && cheb(p, RIF_CENTER) !== 1) return err(t('規約第 2 手須在天元周圍 3×3 內'))
         if (n === 2) {
-          if (cheb(p, RIF_CENTER) > 2) return err('規約第 3 手須在中央 5×5 內')
+          if (cheb(p, RIF_CENTER) > 2) return err(t('規約第 3 手須在中央 5×5 內'))
           const o = findOpeningByMoves([...s.moves, p])
-          if (!o) return err('前三手不構成 26 種合法開局珠型')
+          if (!o) return err(t('前三手不構成 26 種合法開局珠型'))
           return {
             next: { moves: [...s.moves, p], meta: { ...s.meta, openingId: o.id } },
             error: null,
@@ -107,26 +108,26 @@ export function rifReduce(s: RifState, action: RifAction): { next: RifState; err
       if (phase === 'move4' || phase === 'normal') {
         return { next: { ...s, moves: [...s.moves, p] }, error: null }
       }
-      return err('現在不是落子階段')
+      return err(t('現在不是落子階段'))
     }
     case 'swap': {
-      if (phase !== 'swap') return err('現在不是換邊決定階段')
+      if (phase !== 'swap') return err(t('現在不是換邊決定階段'))
       return { next: { ...s, meta: { ...s.meta, swapped: action.swap } }, error: null }
     }
     case 'offer': {
-      if (phase !== 'offer5') return err('現在不是黑方兩打階段')
+      if (phase !== 'offer5') return err(t('現在不是黑方兩打階段'))
       const { a, b } = action
-      if (!inBoard(a) || !inBoard(b)) return err('兩打候選在盤外')
-      if (same(a, b)) return err('兩打必須是兩個不同的點')
-      if (occupied(s.moves, a) || occupied(s.moves, b)) return err('兩打候選不可落在已有棋子的點')
+      if (!inBoard(a) || !inBoard(b)) return err(t('兩打候選在盤外'))
+      if (same(a, b)) return err(t('兩打必須是兩個不同的點'))
+      if (occupied(s.moves, a) || occupied(s.moves, b)) return err(t('兩打候選不可落在已有棋子的點'))
       if (offersEquivalent(s.moves, a, b))
-        return err('兩打兩點對稱等價（等於只提示一點），規約不允許')
+        return err(t('兩打兩點對稱等價（等於只提示一點），規約不允許'))
       return { next: { ...s, meta: { ...s.meta, offers: [a, b] } }, error: null }
     }
     case 'choose': {
-      if (phase !== 'choose5') return err('現在不是白方擇打階段')
+      if (phase !== 'choose5') return err(t('現在不是白方擇打階段'))
       const off = s.meta.offers!
-      if (!off.some((p) => same(p, action.pos))) return err('第 5 手必須從兩打候選中擇一')
+      if (!off.some((p) => same(p, action.pos))) return err(t('第 5 手必須從兩打候選中擇一'))
       return { next: { ...s, moves: [...s.moves, action.pos] }, error: null }
     }
   }

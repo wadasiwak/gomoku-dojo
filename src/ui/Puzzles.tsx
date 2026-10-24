@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { PUZZLES, DIFF_LABEL, type Difficulty } from '../puzzles/index.ts'
 import { loadPuzzleProgress } from '../storage.ts'
 import { navigate } from '../router.ts'
+import { useT } from '../i18n/index.ts'
 
 const TABS: { key: string; label: string }[] = [
   { key: 'all', label: '全部' },
@@ -13,6 +14,7 @@ const TABS: { key: string; label: string }[] = [
 ]
 
 export default function Puzzles({ tab }: { tab: string }) {
+  const t = useT()
   const progress = useMemo(loadPuzzleProgress, [tab])
   const wrongIds = Object.keys(progress.wrong)
 
@@ -28,26 +30,26 @@ export default function Puzzles({ tab }: { tab: string }) {
   return (
     <div className="page">
       <div className="page-head">
-        <h1>題庫闖關（VCF 連續衝四）</h1>
+        <h1>{t('題庫闖關（VCF 連續衝四）')}</h1>
         <p className="muted">
-          進度 {solvedCount}/{PUZZLES.length}
-          {wrongIds.length > 0 && <>　·　錯題本 {wrongIds.length} 題（連對 2 次出本）</>}
+          {t('進度 {a}/{b}', { a: solvedCount, b: PUZZLES.length })}
+          {wrongIds.length > 0 && <>　·　{t('錯題本 {n} 題（連對 2 次出本）', { n: wrongIds.length })}</>}
         </p>
       </div>
-      <nav className="tabs" aria-label="題庫分頁">
-        {TABS.map((t) => (
+      <nav className="tabs" aria-label={t('題庫分頁')}>
+        {TABS.map((tb) => (
           <button
-            key={t.key}
-            className={`tab${tab === t.key ? ' active' : ''}`}
-            onClick={() => navigate(`puzzles/${t.key}`)}
+            key={tb.key}
+            className={`tab${tab === tb.key ? ' active' : ''}`}
+            onClick={() => navigate(`puzzles/${tb.key}`)}
           >
-            {t.label}
-            {t.key === 'wrong' && wrongIds.length > 0 ? `（${wrongIds.length}）` : ''}
+            {t(tb.label)}
+            {tb.key === 'wrong' && wrongIds.length > 0 ? `（${wrongIds.length}）` : ''}
           </button>
         ))}
       </nav>
       {list.length === 0 && (
-        <p className="muted">{tab === 'wrong' ? '錯題本是空的——太強了。' : '沒有題目。'}</p>
+        <p className="muted">{tab === 'wrong' ? t('錯題本是空的——太強了。') : t('沒有題目。')}</p>
       )}
       <ul className="puzzle-list">
         {list.map((p) => {
@@ -59,16 +61,16 @@ export default function Puzzles({ tab }: { tab: string }) {
                 className={`puzzle-card${done ? ' done' : ''}`}
                 onClick={() => navigate(`puzzle/${p.id}`)}
               >
-                <span className={`badge ${p.difficulty}`}>{DIFF_LABEL[p.difficulty]}</span>
+                <span className={`badge ${p.difficulty}`}>{t(DIFF_LABEL[p.difficulty])}</span>
                 <span className="pz-title">
-                  {p.id}　{p.attacker === 'black' ? '黑先' : '白先'} · VCF {p.vcfDepth} 手
+                  {p.id}　{p.attacker === 'black' ? t('黑先') : t('白先')} · {t('VCF {n} 手', { n: p.vcfDepth })}
                 </span>
                 <span className="muted small">
-                  {p.rule === 'renju' ? '連珠' : '無禁手'} · {p.stones} 子
+                  {p.rule === 'renju' ? t('連珠') : t('無禁手')} · {t('{n} 子', { n: p.stones })}
                 </span>
                 <span className="pz-state">
                   {done ? '✓' : ''}
-                  {wrong ? ` ↻${wrong.streak > 0 ? ` 連對${wrong.streak}` : ''}` : ''}
+                  {wrong ? ` ↻${wrong.streak > 0 ? ` ${t('連對{n}', { n: wrong.streak })}` : ''}` : ''}
                 </span>
               </button>
             </li>

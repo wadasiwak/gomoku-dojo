@@ -10,6 +10,7 @@ import { judgeAttackerMove, type WrongReason } from '../puzzle/judge.ts'
 import { getPuzzle, nextPuzzleId, DIFF_LABEL } from '../puzzles/index.ts'
 import { recordPuzzleAttempt } from '../storage.ts'
 import { navigate } from '../router.ts'
+import { useT } from '../i18n/index.ts'
 
 const WRONG_TEXT: Record<WrongReason, string> = {
   forbidden: '這一點是黑棋禁手，下不得。',
@@ -19,6 +20,7 @@ const WRONG_TEXT: Record<WrongReason, string> = {
 }
 
 export default function PuzzlePlay({ id }: { id: string }) {
+  const t = useT()
   const puzzle = getPuzzle(id)
   const clientRef = useRef<EngineClient | null>(null)
   if (!clientRef.current) clientRef.current = new EngineClient()
@@ -53,9 +55,9 @@ export default function PuzzlePlay({ id }: { id: string }) {
   if (!puzzle || !base) {
     return (
       <div className="page">
-        <p>找不到這一題。</p>
+        <p>{t('找不到這一題。')}</p>
         <button className="btn" onClick={() => navigate('puzzles')}>
-          回題庫
+          {t('回題庫')}
         </button>
       </div>
     )
@@ -72,7 +74,7 @@ export default function PuzzlePlay({ id }: { id: string }) {
 
   const finish = (how: string) => {
     setSolved(true)
-    setMsg({ ok: true, text: `完成！${how}` })
+    setMsg({ ok: true, text: t('完成！{how}', { how }) })
     if (!recordedRef.current) {
       recordedRef.current = true
       recordPuzzleAttempt(puzzle.id, true, missed)
@@ -102,17 +104,17 @@ export default function PuzzlePlay({ id }: { id: string }) {
       )
       if (verdict.kind === 'wrong') {
         markMiss()
-        setMsg({ ok: false, text: `判錯：${WRONG_TEXT[verdict.reason]}　可重試，或看解答。` })
+        setMsg({ ok: false, text: t('判錯：{why}　可重試，或看解答。', { why: t(WRONG_TEXT[verdict.reason]) }) })
       } else if (verdict.kind === 'solved') {
         setLine((prev) => [...prev, { x, y }])
         finish(
           verdict.how === 'five'
-            ? '成五取勝。'
-            : '對方唯一擋點是禁手，擋不了——逼禁手取勝。',
+            ? t('成五取勝。')
+            : t('對方唯一擋點是禁手，擋不了——逼禁手取勝。'),
         )
       } else {
         setLine((prev) => [...prev, { x, y }, verdict.reply])
-        setMsg({ ok: true, text: '正確！對方已擋，繼續。' })
+        setMsg({ ok: true, text: t('正確！對方已擋，繼續。') })
       }
     } finally {
       setJudging(false)
@@ -133,7 +135,7 @@ export default function PuzzlePlay({ id }: { id: string }) {
   const showSolution = () => {
     markMiss() // 看解答視同出錯，進錯題本
     setSolutionStep(puzzle.solution.length)
-    setMsg({ ok: true, text: '主變化如下（可逐步前後）。' })
+    setMsg({ ok: true, text: t('主變化如下（可逐步前後）。') })
   }
 
   const nextId = nextPuzzleId(puzzle.id)
@@ -145,12 +147,14 @@ export default function PuzzlePlay({ id }: { id: string }) {
       <div className="board-col">
         <p className="status">
           <b>
-            {puzzle.attacker === 'black' ? '黑先' : '白先'}——連續衝四取勝（VCF{' '}
-            {puzzle.vcfDepth} 手）
+            {t('{who}——連續衝四取勝（VCF {n} 手）', {
+              who: puzzle.attacker === 'black' ? t('黑先') : t('白先'),
+              n: puzzle.vcfDepth,
+            })}
           </b>
           <span className="muted">
-            　{DIFF_LABEL[puzzle.difficulty]}／
-            {puzzle.rule === 'renju' ? '連珠' : '無禁手'}／{puzzle.id}
+            　{t(DIFF_LABEL[puzzle.difficulty])}／
+            {puzzle.rule === 'renju' ? t('連珠') : t('無禁手')}／{puzzle.id}
           </span>
         </p>
         <Board
@@ -165,16 +169,17 @@ export default function PuzzlePlay({ id }: { id: string }) {
             {msg.text}
           </p>
         )}
-        {judging && <p className="muted small">引擎驗證中…</p>}
+        {judging && <p className="muted small">{t('引擎驗證中…')}</p>}
       </div>
       <aside className="panel">
-        <h2>題目資訊</h2>
+        <h2>{t('題目資訊')}</h2>
         <p className="muted small">
-          規則：{puzzle.rule === 'renju' ? '連珠（黑有禁手）' : '無禁手五子棋'}
+          {t('規則：{rule}', { rule: puzzle.rule === 'renju' ? t('連珠（黑有禁手）') : t('無禁手五子棋') })}
           <br />
-          {puzzle.attacker === 'black' ? '黑' : '白'}先，最短 {puzzle.vcfDepth} 手 VCF
-          （引擎已證明）。每一手都會由引擎即時驗證——走出另一條同樣成立的 VCF
-          也算對。
+          {t('{who}，最短 {n} 手 VCF（引擎已證明）。每一手都會由引擎即時驗證——走出另一條同樣成立的 VCF 也算對。', {
+            who: puzzle.attacker === 'black' ? t('黑先') : t('白先'),
+            n: puzzle.vcfDepth,
+          })}
         </p>
         {inSolution && (
           <div className="btn-row">
@@ -183,7 +188,7 @@ export default function PuzzlePlay({ id }: { id: string }) {
               onClick={() => setSolutionStep((s) => Math.max(0, (s ?? 0) - 1))}
               disabled={(solutionStep ?? 0) <= 0}
             >
-              ◀ 上一步
+              ◀ {t('上一步')}
             </button>
             <button
               className="btn"
@@ -192,33 +197,33 @@ export default function PuzzlePlay({ id }: { id: string }) {
               }
               disabled={(solutionStep ?? 0) >= puzzle.solution.length}
             >
-              下一步 ▶
+              {t('下一步')} ▶
             </button>
           </div>
         )}
         <div className="btn-row">
           <button className="btn" onClick={retry}>
-            重來
+            {t('重來')}
           </button>
           {!inSolution && (
             <button className="btn" onClick={showSolution} disabled={solved}>
-              看解答
+              {t('看解答')}
             </button>
           )}
           {inSolution && (
             <button className="btn" onClick={retry}>
-              回到答題
+              {t('回到答題')}
             </button>
           )}
         </div>
         <div className="btn-row">
           {solved && nextId && (
             <button className="btn primary" onClick={() => navigate(`puzzle/${nextId}`)}>
-              下一題
+              {t('下一題')}
             </button>
           )}
           <button className="btn" onClick={() => navigate('puzzles')}>
-            回題庫
+            {t('回題庫')}
           </button>
         </div>
       </aside>

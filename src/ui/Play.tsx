@@ -64,6 +64,7 @@ import {
   type Settings,
 } from '../storage.ts'
 import { navigate } from '../router.ts'
+import { useT } from '../i18n/index.ts'
 
 const KIND_LABEL: Record<string, string> = {
   overline: '長連',
@@ -97,6 +98,7 @@ const RAPFI_LEVEL = 5
 const RAPFI_PLAY_MS = 3000
 
 export default function Play({ record }: { record?: string }) {
+  const t = useT()
   const clientRef = useRef<EngineClient | null>(null)
   if (!clientRef.current) clientRef.current = new EngineClient()
   const client = clientRef.current
@@ -295,19 +297,19 @@ export default function Play({ record }: { record?: string }) {
       // AI 暫黑：從均衡池抽一型＋隨機對稱方位，逐手擺（每次 effect 擺一手）。
       if (!aiOpeningRef.current || aiOpeningRef.current.gameId !== gameId) {
         const o = BALANCED_POOL[Math.floor(Math.random() * BALANCED_POOL.length)]
-        const t = SYMMETRIES[Math.floor(Math.random() * SYMMETRIES.length)]
+        const sym = SYMMETRIES[Math.floor(Math.random() * SYMMETRIES.length)]
         aiOpeningRef.current = {
           gameId,
-          moves: openingMoves(o).map((m) => t(m.x, m.y)),
+          moves: openingMoves(o).map((m) => sym(m.x, m.y)),
           name: o.name,
         }
       }
       const pos = aiOpeningRef.current.moves[moves.length]
-      const name = aiOpeningRef.current.name
+      const name = t(aiOpeningRef.current.name)
       setTimeout(() => {
         if (pendingRef.current !== key) return
         dispatch({ type: 'place', pos })
-        if (moves.length === 2) setAiNotes((n) => [...n, `AI（暫黑）擺出開局：${name}`])
+        if (moves.length === 2) setAiNotes((n) => [...n, t('AI（暫黑）擺出開局：{name}', { name })])
       }, 300)
       return
     }
@@ -325,7 +327,7 @@ export default function Play({ record }: { record?: string }) {
           dispatch({ type: 'swap', swap })
           setAiNotes((n) => [
             ...n,
-            `AI（暫白）${swap ? '換邊改執黑' : '不換邊'}：${opening.name}主流評價${opening.tendency}`,
+            t('AI（暫白）{act}：{name}主流評價{tend}', { act: swap ? t('換邊改執黑') : t('不換邊'), name: opening.name, tend: t(opening.tendency) }),
           ])
         }, 300)
       } else {
@@ -341,9 +343,11 @@ export default function Play({ record }: { record?: string }) {
             dispatch({ type: 'swap', swap })
             setAiNotes((n) => [
               ...n,
-              `AI（暫白）${swap ? '換邊改執黑' : '不換邊'}：${
-                opening ? `${opening.name}主流約均衡，` : ''
-              }白方搜索評估 ${fmtScore(s)}`,
+              t('AI（暫白）{act}：{pre}白方搜索評估 {score}', {
+                act: swap ? t('換邊改執黑') : t('不換邊'),
+                pre: opening ? t('{name}主流約均衡，', { name: opening.name }) : '',
+                score: fmtScore(s),
+              }),
             ])
           })
           .finally(() => {
@@ -367,7 +371,7 @@ export default function Play({ record }: { record?: string }) {
         if (dispatch({ type: 'offer', a: pa, b: pb }))
           setAiNotes((n) => [
             ...n,
-            `AI（黑）兩打（${tag}）：A ${coordName(pa)}（${a.text}）／B ${coordName(pb)}（${b.text}）`,
+            t('AI（黑）兩打（{tag}）：A {a}（{ta}）／B {b}（{tb}）', { tag, a: coordName(pa), ta: a.text, b: coordName(pb), tb: b.text }),
           ])
       }
       const run = async () => {
@@ -384,7 +388,7 @@ export default function Play({ record }: { record?: string }) {
           const pair = pickInequivalentPair(board, BLACK, fromBook)
           if (pair) {
             offerNote(
-              '開局書',
+              t('開局書'),
               { cell: pair.a.cell, text: fmtScore(pair.a.score) },
               { cell: pair.b.cell, text: fmtScore(pair.b.score) },
             )
@@ -427,7 +431,7 @@ export default function Play({ record }: { record?: string }) {
         const sel = selectOfferPair(board, BLACK, scan)
         if (!sel) return
         offerNote(
-          sel.unsafeCount > 0 ? '引擎搜索，無安全打點' : '引擎搜索',
+          sel.unsafeCount > 0 ? t('引擎搜索，無安全打點') : t('引擎搜索'),
           { cell: sel.a.cell, text: fmtScore(sel.a.score) },
           { cell: sel.b.cell, text: fmtScore(sel.b.score) },
         )
@@ -452,7 +456,7 @@ export default function Play({ record }: { record?: string }) {
         if (dispatch({ type: 'choose', pos: pick }))
           setAiNotes((n) => [
             ...n,
-            `AI（白）擇 ${coordName(pick)}（${tag}）：黑方評分 ${fmtScore(low)}（棄 ${coordName(pickA ? b : a)} ${fmtScore(high)}）`,
+            t('AI（白）擇 {pick}（{tag}）：黑方評分 {low}（棄 {rej} {high}）', { pick: coordName(pick), tag, low: fmtScore(low), rej: coordName(pickA ? b : a), high: fmtScore(high) }),
           ])
       }
       const run = async () => {
@@ -462,7 +466,7 @@ export default function Play({ record }: { record?: string }) {
         if (va !== null && vb !== null) {
           await new Promise((r) => setTimeout(r, 300))
           if (pendingRef.current !== key) return
-          chooseNote(va <= vb, Math.min(va, vb), Math.max(va, vb), '開局書')
+          chooseNote(va <= vb, Math.min(va, vb), Math.max(va, vb), t('開局書'))
           return
         }
         // 2) Rapfi：兩點各短 think（落黑子後白手番）→ 黑視角＝白視角取負。
@@ -512,7 +516,7 @@ export default function Play({ record }: { record?: string }) {
           ra.score <= rb.score,
           Math.min(ra.score, rb.score),
           Math.max(ra.score, rb.score),
-          '引擎搜索',
+          t('引擎搜索'),
         )
       }
       run()
@@ -691,45 +695,49 @@ export default function Play({ record }: { record?: string }) {
   const last = moves[moves.length - 1] ?? null
   const stats = loadStats()[statKey(rule, level)] ?? { win: 0, loss: 0, draw: 0 }
 
-  const seatLabel = playerColor === BLACK ? '黑' : '白'
+  const seatLabel = playerColor === BLACK ? t('黑') : t('白')
   const rifStatus = (): string => {
     switch (phase) {
       case 'opening':
         return tentColor === BLACK
-          ? `你是暫黑：擺開局第 ${moves.length + 1} 手（1 天元、2 中央3×3、3 中央5×5）`
-          : 'AI（暫黑）擺開局中…'
+          ? t('你是暫黑：擺開局第 {n} 手（1 天元、2 中央3×3、3 中央5×5）', { n: moves.length + 1 })
+          : t('AI（暫黑）擺開局中…')
       case 'swap':
-        return tentColor === WHITE ? '你是暫白：決定是否換邊' : 'AI（暫白）評估換邊中…'
+        return tentColor === WHITE ? t('你是暫白：決定是否換邊') : t('AI（暫白）評估換邊中…')
       case 'move4':
-        return game.toMove === playerColor ? '輪到你下第 4 手（任意空點）' : 'AI 思考第 4 手…'
+        return game.toMove === playerColor ? t('輪到你下第 4 手（任意空點）') : t('AI 思考第 4 手…')
       case 'offer5':
         return playerColor === BLACK
-          ? `黑方兩打：點選兩個第 5 手候選（已選 ${offerPick.length}/2）`
-          : 'AI（黑）思考兩打…'
+          ? t('黑方兩打：點選兩個第 5 手候選（已選 {k}/2）', { k: offerPick.length })
+          : t('AI（黑）思考兩打…')
       case 'choose5':
-        return playerColor === WHITE ? '白方擇打：點 A 或 B 其中一點' : 'AI（白）擇打中…'
+        return playerColor === WHITE ? t('白方擇打：點 A 或 B 其中一點') : t('AI（白）擇打中…')
       default:
-        return game.toMove === playerColor ? '輪到你落子' : '等待 AI'
+        return game.toMove === playerColor ? t('輪到你落子') : t('等待 AI')
     }
   }
 
   const statusText = !ongoing
     ? result.kind === 'draw'
-      ? '和局'
-      : `${result.winner === playerColor ? '你獲勝' : 'AI 獲勝'}（${
-          { five: '五連', overline: '長連', forbidden: '黑踩禁手', resign: '認輸' }[
-            result.reason
-          ]
-        }）`
+      ? t('和局')
+      : t('{who}（{reason}）', {
+          who: result.winner === playerColor ? t('你獲勝') : t('AI 獲勝'),
+          reason: {
+            five: t('五連'),
+            overline: t('長連'),
+            forbidden: t('黑踩禁手'),
+            resign: t('認輸'),
+          }[result.reason],
+        })
     : thinking
       ? rapfiLoad !== null
-        ? `載入分析引擎中… ${rapfiLoad}%（首次約 40MB，之後走快取）`
-        : 'AI 思考中…'
+        ? t('載入分析引擎中… {p}%（首次約 40MB，之後走快取）', { p: rapfiLoad })
+        : t('AI 思考中…')
       : mode === 'rif'
         ? rifStatus()
         : game.toMove === playerColor
-          ? '輪到你落子'
-          : '等待 AI'
+          ? t('輪到你落子')
+          : t('等待 AI')
 
   const shareUrl = !ongoing ? `${location.origin}${location.pathname}#/replay/${recordStr}` : null
 
@@ -768,10 +776,10 @@ export default function Play({ record }: { record?: string }) {
       <div className="board-col">
         <p className={`status${thinking ? ' thinking' : ''}${!ongoing ? ' final' : ''}`}>
           <b>{statusText}</b>
-          <span className="muted">　第 {moves.length} 手</span>
-          {aiBook && <span className="muted">　AI 上一手：開局書</span>}
+          <span className="muted">　{t('第 {n} 手', { n: moves.length })}</span>
+          {aiBook && <span className="muted">　{t('AI 上一手：開局書')}</span>}
           {rule === 'renju' && forbidden.length > 0 && (
-            <span className="fb-note">　✕ 黑禁手點</span>
+            <span className="fb-note">　✕ {t('黑禁手點')}</span>
           )}
         </p>
         <Board
@@ -780,7 +788,7 @@ export default function Play({ record }: { record?: string }) {
           forbidden={forbidden.map((f) => ({
             x: f.index % 15,
             y: Math.floor(f.index / 15),
-            kind: KIND_LABEL[f.kind] ?? f.kind,
+            kind: KIND_LABEL[f.kind] ? t(KIND_LABEL[f.kind]) : f.kind,
           }))}
           marks={marks}
           onCell={onCell}
@@ -789,10 +797,10 @@ export default function Play({ record }: { record?: string }) {
         {!ongoing && shareUrl && (
           <div className="endgame-bar">
             <button className="btn primary" onClick={newGame}>
-              再來一局
+              {t('再來一局')}
             </button>
             <button className="btn" onClick={() => navigate(`replay/${recordStr}`)}>
-              重播棋譜
+              {t('重播棋譜')}
             </button>
             <button
               className="btn"
@@ -800,69 +808,69 @@ export default function Play({ record }: { record?: string }) {
                 navigator.clipboard?.writeText(shareUrl).then(() => setCopied(true))
               }}
             >
-              {copied ? '已複製連結' : '複製分享連結'}
+              {copied ? t('已複製連結') : t('複製分享連結')}
             </button>
-            <span className="muted small">已自動存入棋譜庫</span>
+            <span className="muted small">{t('已自動存入棋譜庫')}</span>
           </div>
         )}
       </div>
       <aside className="panel">
-        <h2>對局設定</h2>
+        <h2>{t('對局設定')}</h2>
         <label>
-          對局模式
+          {t('對局模式')}
           <select
             value={mode}
             onChange={(e) => updateSettings({ mode: e.target.value as Settings['mode'] }, true)}
-            aria-label="對局模式"
+            aria-label={t('對局模式')}
           >
-            <option value="free">自由對弈</option>
-            <option value="rif">正式規約（RIF）</option>
+            <option value="free">{t('自由對弈')}</option>
+            <option value="rif">{t('正式規約（RIF）')}</option>
           </select>
         </label>
         {mode === 'free' ? (
           <label>
-            規則
+            {t('規則')}
             <select
               value={rule}
               onChange={(e) => updateSettings({ rule: e.target.value as Rule }, true)}
-              aria-label="規則模式"
+              aria-label={t('規則模式')}
             >
-              <option value="renju">連珠（黑有禁手）</option>
-              <option value="gomoku">無禁手五子棋</option>
+              <option value="renju">{t('連珠（黑有禁手）')}</option>
+              <option value="gomoku">{t('無禁手五子棋')}</option>
             </select>
           </label>
         ) : (
-          <p className="rif-note">規約固定連珠規則（黑有禁手）。</p>
+          <p className="rif-note">{t('規約固定連珠規則（黑有禁手）。')}</p>
         )}
         <label>
-          先後手
+          {t('先後手')}
           <select
             value={player}
             onChange={(e) =>
               updateSettings({ player: e.target.value as 'black' | 'white' }, true)
             }
-            aria-label="先後手"
+            aria-label={t('先後手')}
           >
-            <option value="black">{mode === 'rif' ? '暫黑（擺開局）' : '執黑（先手）'}</option>
+            <option value="black">{mode === 'rif' ? t('暫黑（擺開局）') : t('執黑（先手）')}</option>
             <option value="white">
-              {mode === 'rif' ? '暫白（決定換邊）' : '執白（後手）'}
+              {mode === 'rif' ? t('暫白（決定換邊）') : t('執白（後手）')}
             </option>
           </select>
         </label>
         <label>
-          AI 難度
+          {t('AI 難度')}
           <select
             value={level}
             onChange={(e) =>
               updateSettings({ level: Number(e.target.value) as Settings['level'] }, false)
             }
-            aria-label="AI 難度"
+            aria-label={t('AI 難度')}
           >
-            <option value={1}>1 入門</option>
-            <option value={2}>2 進階</option>
-            <option value={3}>3 高手</option>
-            <option value={4}>4 本站最強</option>
-            {isRapfiSupported() && <option value={RAPFI_LEVEL}>5 Rapfi（頂尖引擎）</option>}
+            <option value={1}>{t('1 入門')}</option>
+            <option value={2}>{t('2 進階')}</option>
+            <option value={3}>{t('3 高手')}</option>
+            <option value={4}>{t('4 本站最強')}</option>
+            {isRapfiSupported() && <option value={RAPFI_LEVEL}>{t('5 Rapfi（頂尖引擎）')}</option>}
           </select>
         </label>
         {rule === 'renju' && (
@@ -872,7 +880,7 @@ export default function Play({ record }: { record?: string }) {
               checked={showForbidden}
               onChange={(e) => updateSettings({ showForbidden: e.target.checked }, false)}
             />
-            顯示黑禁手點 ✕
+            {t('顯示黑禁手點 ✕')}
           </label>
         )}
         {rule === 'renju' && (
@@ -882,54 +890,53 @@ export default function Play({ record }: { record?: string }) {
               checked={useBook}
               onChange={(e) => updateSettings({ useBook: e.target.checked }, false)}
             />
-            AI 使用開局書（開局階段全難度；中局著手僅最高難度）
+            {t('AI 使用開局書（開局階段全難度；中局著手僅最高難度）')}
           </label>
         )}
         {mode === 'rif' && phase === 'swap' && tentColor === WHITE && ongoing && (
           <div className="btn-row">
             <button className="btn primary" onClick={() => dispatch({ type: 'swap', swap: true })}>
-              換邊（改執黑）
+              {t('換邊（改執黑）')}
             </button>
             <button className="btn" onClick={() => dispatch({ type: 'swap', swap: false })}>
-              不換邊（續執白）
+              {t('不換邊（續執白）')}
             </button>
           </div>
         )}
         {mode === 'rif' && phase === 'offer5' && playerColor === BLACK && ongoing && (
           <div className="btn-row">
             <button className="btn primary" onClick={confirmOffer} disabled={offerPick.length !== 2}>
-              確定兩打
+              {t('確定兩打')}
             </button>
             <button className="btn" onClick={() => setOfferPick([])} disabled={offerPick.length === 0}>
-              重選
+              {t('重選')}
             </button>
           </div>
         )}
         {rifError && <p className="msg err">{rifError}</p>}
         {aiStalled && (
           <p className="msg err">
-            AI 沒有回應（已自動重試 2 次）。請按「重開」再試；若重複發生，請硬重新整理
-            （Cmd/Ctrl+Shift+R）更新版本後回報。
+            {t('AI 沒有回應（已自動重試 2 次）。請按「重開」再試；若重複發生，請硬重新整理（Cmd/Ctrl+Shift+R）更新版本後回報。')}
           </p>
         )}
         {mode === 'rif' && (moves.length > 0 || aiNotes.length > 0) && (
           <div className="rif-info">
             {opening && (
               <p>
-                開局：<b>{opening.name}</b>（{OPENING_KIND_LABEL[opening.kind]}第 {opening.index} 型）
+                {t('開局：')}<b>{t(opening.name)}</b>{t('（{kind}第 {i} 型）', { kind: t(OPENING_KIND_LABEL[opening.kind]), i: opening.index })}
               </p>
             )}
             {rifMeta.swapped !== null && (
               <p>
-                {rifMeta.swapped ? '暫白已換邊' : '暫白不換邊'} → 你執{seatLabel}
+                {rifMeta.swapped ? t('暫白已換邊') : t('暫白不換邊')} → {t('你執{c}', { c: seatLabel })}
               </p>
             )}
             {rifMeta.offers && (
               <p>
-                兩打：A {coordName(rifMeta.offers[0])}／B {coordName(rifMeta.offers[1])}
+                {t('兩打：A {a}／B {b}', { a: coordName(rifMeta.offers[0]), b: coordName(rifMeta.offers[1]) })}
                 {moves.length >= 5 && rejected5 && (
                   <>
-                    　白擇 <b>{coordName(moves[4])}</b>（棄 {coordName(rejected5)}）
+                    　{t('白擇')} <b>{coordName(moves[4])}</b>{t('（棄 {p}）', { p: coordName(rejected5) })}
                   </>
                 )}
               </p>
@@ -943,18 +950,18 @@ export default function Play({ record }: { record?: string }) {
         )}
         <div className="btn-row">
           <button className="btn" onClick={undo} disabled={!canUndo}>
-            悔棋
+            {t('悔棋')}
           </button>
           <button className="btn" onClick={resign} disabled={!ongoing || moves.length === 0}>
-            認輸
+            {t('認輸')}
           </button>
           <button className="btn" onClick={newGame}>
-            重開
+            {t('重開')}
           </button>
         </div>
-        <h2>本模式戰績</h2>
+        <h2>{t('本模式戰績')}</h2>
         <p className="stats-line" data-stats={statKey(rule, level)}>
-          勝 <b>{stats.win}</b>　敗 <b>{stats.loss}</b>　和 <b>{stats.draw}</b>
+          {t('勝')} <b>{stats.win}</b>　{t('敗')} <b>{stats.loss}</b>　{t('和')} <b>{stats.draw}</b>
         </p>
       </aside>
     </div>

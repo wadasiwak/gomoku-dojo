@@ -8,6 +8,7 @@ import { createBoard } from '../engine/board.ts'
 import { BLACK, WHITE, idx, type Pos } from '../engine/types.ts'
 import { BOOK_ENTRIES, BOOK_SIZE, BOOK_SOURCE } from '../openings/index.ts'
 import { findOpeningByMoves, OPENINGS, type Opening } from '../content/openings.ts'
+import { useT } from '../i18n/index.ts'
 
 interface Item {
   key: string
@@ -38,6 +39,7 @@ function cropFor(moves: Pos[], suggest: Pos) {
 }
 
 function EntryCard({ it }: { it: Item }) {
+  const t = useT()
   const board = useMemo(() => {
     const b = createBoard()
     it.moves.forEach((m, i) => {
@@ -45,7 +47,7 @@ function EntryCard({ it }: { it: Item }) {
     })
     return b
   }, [it])
-  const toMove = it.moves.length % 2 === 0 ? '黑' : '白'
+  const toMove = it.moves.length % 2 === 0 ? t('黑') : t('白')
   return (
     <div className="book-item">
       <Board
@@ -53,13 +55,13 @@ function EntryCard({ it }: { it: Item }) {
         numbered={it.moves}
         hint={it.suggest}
         crop={cropFor(it.moves, it.suggest)}
-        ariaLabel={`書局面 ${it.key || '空盤'}`}
+        ariaLabel={t('書局面 {key}', { key: it.key || t('空盤') })}
       />
       <p className="small">
-        第 {it.moves.length} 手局面 → 建議{toMove} <b>{coordName(it.suggest)}</b>
+        {t('第 {n} 手局面 → 建議{c}', { n: it.moves.length, c: toMove })} <b>{coordName(it.suggest)}</b>
         <br />
         <span className="muted">
-          分數 {it.score >= 0 ? `+${it.score}` : it.score}（行棋方視角）・深度 {it.depth}
+          {t('分數 {s}（行棋方視角）・深度 {d}', { s: it.score >= 0 ? `+${it.score}` : it.score, d: it.depth })}
         </span>
       </p>
     </div>
@@ -67,6 +69,7 @@ function EntryCard({ it }: { it: Item }) {
 }
 
 export default function BookExplorer() {
+  const t = useT()
   const [open, setOpen] = useState<string | null>(null)
 
   const { groups, byLen } = useMemo(() => {
@@ -96,18 +99,16 @@ export default function BookExplorer() {
   ]
   const lenLine = [...byLen.entries()]
     .sort((a, z) => a[0] - z[0])
-    .map(([n, c]) => `${n} 手×${c}`)
-    .join('、')
+    .map(([n, c]) => t('{n} 手×{c}', { n, c }))
+    .join(t('、'))
 
   return (
     <div className="page">
-      <h1>開局書檢視</h1>
+      <h1>{t('開局書檢視')}</h1>
       <p className="muted small">
-        隱藏頁（不在導覽列）。書由 {BOOK_SOURCE.engine} {BOOK_SOURCE.version}（
-        {BOOK_SOURCE.commit}）離線深算 {BOOK_SOURCE.thinkTimeMs / 1000}s/局面產生，
-        共 <b>{BOOK_SIZE}</b> 局面；手數分布：{lenLine}——最深為第 8 手局面，
-        即建議到第 9 手。分數為行棋方視角；每筆建議手皆經本站引擎合法性雙驗。
-        對局中 AI 的中局書手僅最高難度採用；規約兩打／擇打評值各難度皆用書值。
+        {t('隱藏頁（不在導覽列）。書由 {engine} {version}（{commit}）離線深算 {sec}s/局面產生，共', { engine: BOOK_SOURCE.engine, version: BOOK_SOURCE.version, commit: BOOK_SOURCE.commit, sec: BOOK_SOURCE.thinkTimeMs / 1000 })}{' '}
+        <b>{BOOK_SIZE}</b>{' '}
+        {t('局面；手數分布：{len}——最深為第 8 手局面，即建議到第 9 手。分數為行棋方視角；每筆建議手皆經本站引擎合法性雙驗。對局中 AI 的中局書手僅最高難度採用；規約兩打／擇打評值各難度皆用書值。', { len: lenLine })}
       </p>
       {ordered.map(({ gk, opening, items }) => (
         <details
@@ -118,8 +119,8 @@ export default function BookExplorer() {
           }}
         >
           <summary>
-            <b>{opening ? `${opening.name}（${opening.tendency}）` : '自由模式／其他'}</b>
-            <span className="muted">　{items.length} 局面</span>
+            <b>{opening ? `${t(opening.name)}（${t(opening.tendency)}）` : t('自由模式／其他')}</b>
+            <span className="muted">　{t('{n} 局面', { n: items.length })}</span>
           </summary>
           {open === gk && (
             <div className="book-grid">

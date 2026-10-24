@@ -5,6 +5,7 @@ import Board from './Board.tsx'
 import { parseBoard } from '../engine/testutils.ts'
 import { isForbiddenMove } from '../engine/forbidden.ts'
 import { RULE_SECTIONS, RULE_SOURCE } from '../content/rulesText.ts'
+import { useLang, useT } from '../i18n/index.ts'
 
 interface Example {
   title: string
@@ -89,6 +90,8 @@ function scrollToHashSection() {
 }
 
 export default function Rules() {
+  const t = useT()
+  const lang = useLang()
   useEffect(() => {
     scrollToHashSection()
     window.addEventListener('hashchange', scrollToHashSection)
@@ -107,55 +110,54 @@ export default function Rules() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1>連珠禁手速覽</h1>
+        <h1>{t('連珠禁手速覽')}</h1>
         <p className="muted">
-          連珠規則裡只有黑棋有禁手；踩禁手判負，但同一手若同時成「恰好五連」則黑勝（五連豁免）。
-          白棋無禁手、長連也算勝。下面 ✕ 的判定由本站引擎現場計算。
+          {t('連珠規則裡只有黑棋有禁手；踩禁手判負，但同一手若同時成「恰好五連」則黑勝（五連豁免）。白棋無禁手、長連也算勝。下面 ✕ 的判定由本站引擎現場計算。')}
         </p>
       </div>
       <div className="rules-grid">
         {examples.map((e) => (
           <section key={e.title} className="rule-card">
             <h2>
-              {e.title}
+              {t(e.title)}
               <span className="badge hard" data-verdict={e.verdict.kind}>
-                引擎判定：{e.verdict.forbidden ? (KIND_LABEL[e.verdict.kind!] ?? '') : '非禁手'}
+                {t('引擎判定：')}{e.verdict.forbidden ? t(KIND_LABEL[e.verdict.kind!] ?? '') : t('非禁手')}
               </span>
             </h2>
             <Board
               board={e.board}
-              forbidden={[{ ...e.point, kind: KIND_LABEL[e.verdict.kind ?? ''] }]}
+              forbidden={[{ ...e.point, kind: t(KIND_LABEL[e.verdict.kind ?? ''] ?? '') }]}
               crop={e.crop}
               showCoords={false}
-              ariaLabel={`${e.title}例圖`}
+              ariaLabel={t('{title}例圖', { title: t(e.title) })}
             />
-            <p className="muted">{e.desc}</p>
+            <p className="muted">{t(e.desc)}</p>
           </section>
         ))}
       </div>
       <p className="muted small">
-        活三的「真活性」是遞迴判定的：能延伸成活四的點若本身是禁手，該三不算活三——
-        引擎與題庫都依這套嚴格定義。
+        {t('活三的「真活性」是遞迴判定的：能延伸成活四的點若本身是禁手，該三不算活三——引擎與題庫都依這套嚴格定義。')}
       </p>
       <section className="rules-full">
-        <h2 id="full">完整規則</h2>
+        <h2 id="full">{t('完整規則')}</h2>
         <p className="muted small">
-          以下四節轉載自台灣連珠推廣站《規則》（經站方同意收錄，文字逐字照錄）。原站若有更新以{' '}
+          {t('以下四節轉載自台灣連珠推廣站《規則》（經站方同意收錄，文字逐字照錄）。原站若有更新以')}{' '}
           <a href={RULE_SOURCE} target="_blank" rel="noreferrer">
-            原站 ↗
+            {t('原站')} ↗
           </a>{' '}
-          為準。RIF 官方規則全文與更多外部資源見 <a href="#/resources">資源頁</a>。
+          {t('為準。RIF 官方規則全文與更多外部資源見')} <a href="#/resources">{t('資源頁')}</a>{t('。')}
         </p>
+        {lang !== 'zh' && <p className="msg ok">{t('（以下規則全文為中文原文引用）')}</p>}
         <nav className="rules-toc">
           {RULE_SECTIONS.map((sec) => (
             <a key={sec.title} href={`#/rules/${sec.title}`} className="badge">
-              {sec.title}
+              {t(sec.title)}
             </a>
           ))}
         </nav>
         {RULE_SECTIONS.map((sec) => (
           <section key={sec.title} className="rule-text" id={sec.title}>
-            <h3>{sec.title}</h3>
+            <h3>{t(sec.title)}</h3>
             {sec.lines.map((l, i) => {
               const kind = lineKind(l)
               if (kind === 'head') return <h4 key={i}>{l.slice(1)}</h4>
@@ -167,7 +169,7 @@ export default function Rules() {
               )
             })}
             <p className="muted small">
-              出處：
+              {t('出處：')}
               <a href={sec.source} target="_blank" rel="noreferrer">
                 {sec.source.replace('https://', '')} ↗
               </a>

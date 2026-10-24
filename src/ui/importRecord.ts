@@ -15,6 +15,7 @@ import { parseRecord, serializeRecord, type GameRecord } from '../engine/record.
 import { rifStateFromRecord } from '../rif/protocol.ts'
 import { SIZE, type Pos, type Rule } from '../engine/types.ts'
 import { coordName } from './coords.ts'
+import { t } from '../i18n/index.ts'
 
 export type ImportResult =
   | { ok: true; record: GameRecord; serialized: string }
@@ -29,8 +30,8 @@ function replayError(rec: GameRecord): string | null {
   for (let i = 0; i < rec.moves.length; i++) {
     const m = rec.moves[i]
     if (g.result.kind !== 'ongoing')
-      return `第 ${i + 1} 手 ${coordName(m)} 非法：對局已在前一手分出勝負，之後不應再有著手`
-    if (!g.play(m.x, m.y)) return `第 ${i + 1} 手 ${coordName(m)} 非法：該點已有棋子`
+      return t('第 {n} 手 {pos} 非法：對局已在前一手分出勝負，之後不應再有著手', { n: i + 1, pos: coordName(m) })
+    if (!g.play(m.x, m.y)) return t('第 {n} 手 {pos} 非法：該點已有棋子', { n: i + 1, pos: coordName(m) })
   }
   return null
 }
@@ -40,37 +41,37 @@ function replayError(rec: GameRecord): string | null {
  * 回傳的 serialized 是正規化棋譜字串，可直接進 `#/replay/`、`#/study/`。
  */
 export function parseImport(text: string, rule: Rule = 'renju'): ImportResult {
-  const t = text.trim()
-  if (!t) return { ok: false, error: '請先貼上棋譜或座標序列' }
+  const text0 = text.trim()
+  if (!text0) return { ok: false, error: t('請先貼上棋譜或座標序列') }
 
   // ---- 本站棋譜格式 ----
-  if (/^[rg][12]:/i.test(t)) {
-    const rec = parseRecord(t.toLowerCase())
+  if (/^[rg][12]:/i.test(text0)) {
+    const rec = parseRecord(text0.toLowerCase())
     if (!rec)
       return {
         ok: false,
-        error: '本站棋譜格式無效（格式錯誤、座標越界、重複落子或規約事件不合法）',
+        error: t('本站棋譜格式無效（格式錯誤、座標越界、重複落子或規約事件不合法）'),
       }
     if (rec.rif && !rifStateFromRecord(rec))
-      return { ok: false, error: '規約棋譜（r2）驗證失敗：開局珠型／換邊／兩打與手順不一致' }
+      return { ok: false, error: t('規約棋譜（r2）驗證失敗：開局珠型／換邊／兩打與手順不一致') }
     const err = replayError(rec)
     if (err) return { ok: false, error: err }
     return { ok: true, record: rec, serialized: serializeRecord(rec) }
   }
 
   // ---- 通用座標序列 ----
-  const tokens = t
+  const tokens = text0
     .toLowerCase()
     .split(/[\s,;，、；]+/u)
     .filter(Boolean)
-  if (tokens.length === 0) return { ok: false, error: '請先貼上棋譜或座標序列' }
+  if (tokens.length === 0) return { ok: false, error: t('請先貼上棋譜或座標序列') }
   const moves: Pos[] = []
   for (let i = 0; i < tokens.length; i++) {
     const m = TOKEN_RE.exec(tokens[i])
     if (!m)
       return {
         ok: false,
-        error: `第 ${i + 1} 手「${tokens[i]}」無法解析：座標格式為字母列＋數字行（如 h8，行 1 在最下）`,
+        error: t('第 {n} 手「{tok}」無法解析：座標格式為字母列＋數字行（如 h8，行 1 在最下）', { n: i + 1, tok: tokens[i] }),
       }
     moves.push({ x: m[1].charCodeAt(0) - 97, y: SIZE - Number(m[2]) })
   }

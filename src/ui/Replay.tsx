@@ -17,11 +17,13 @@ import { rifStateFromRecord } from '../rif/protocol.ts'
 import { getOpening } from '../content/openings.ts'
 import { BLACK, type Pos } from '../engine/types.ts'
 import { navigate } from '../router.ts'
+import { useT } from '../i18n/index.ts'
 
 // 舊匯入點相容：coordName 本體移到 coords.ts（Play/Study/Openings 由此取用）。
 export { coordName }
 
 export default function Replay({ record }: { record: string }) {
+  const t = useT()
   const clientRef = useRef<EngineClient | null>(null)
   if (!clientRef.current) clientRef.current = new EngineClient()
   const client = clientRef.current
@@ -75,20 +77,19 @@ export default function Replay({ record }: { record: string }) {
     return (
       <div className="page">
         <div className="page-head">
-          <h1>{record ? '棋譜重播' : '匯入棋譜'}</h1>
+          <h1>{record ? t('棋譜重播') : t('匯入棋譜')}</h1>
           {record ? (
-            <p className="msg err">棋譜連結無效（格式錯誤、座標越界或重複落子）。</p>
+            <p className="msg err">{t('棋譜連結無效（格式錯誤、座標越界或重複落子）。')}</p>
           ) : (
             <p className="muted">
-              貼上本站棋譜（r1:/g1:/r2:）或通用座標序列（如 h8 i9 g9），
-              驗證後進入重播與自由研棋。
+              {t('貼上本站棋譜（r1:/g1:/r2:）或通用座標序列（如 h8 i9 g9），驗證後進入重播與自由研棋。')}
             </p>
           )}
         </div>
         <ImportBox target="replay" />
         {record && (
           <button className="btn" onClick={() => navigate('')}>
-            回首頁
+            {t('回首頁')}
           </button>
         )}
       </div>
@@ -102,18 +103,21 @@ export default function Replay({ record }: { record: string }) {
   const result = game.result
   const winText = (r: typeof result) =>
     r.kind === 'win'
-      ? `${r.winner === BLACK ? '黑' : '白'}勝（${
-          { five: '五連', overline: '長連', forbidden: '對方踩禁手', resign: '認輸' }[
-            r.reason
-          ]
-        }）`
-      : '和局'
+      ? t('{c}勝（{reason}）', {
+          c: r.winner === BLACK ? t('黑') : t('白'),
+          reason: t(
+            { five: '五連', overline: '長連', forbidden: '對方踩禁手', resign: '認輸' }[r.reason] ??
+              r.reason,
+          ),
+        })
+      : t('和局')
   const resultText = inTrial
-    ? `研棋中：第 ${step} 手起變化 ${trial.length} 手${ongoing ? '' : `，${winText(result)}`}`
+    ? t('研棋中：第 {step} 手起變化 {n} 手', { step, n: trial.length }) +
+      (ongoing ? '' : `，${winText(result)}`)
     : step < total
-      ? `第 ${step} / ${total} 手`
+      ? t('第 {step} / {total} 手', { step, total })
       : result.kind === 'ongoing'
-        ? `第 ${step} / ${total} 手（未終局）`
+        ? t('第 {step} / {total} 手（未終局）', { step, total })
         : winText(result)
 
   const positionKey = `${parsed.rec.rule}|${Array.from(game.board).join('')}`
@@ -146,12 +150,12 @@ export default function Replay({ record }: { record: string }) {
         <p className={`status${thinking ? ' thinking' : ''}`}>
           <b>{resultText}</b>
           <span className="muted">
-            　{parsed.rec.rule === 'renju' ? '連珠' : '無禁手'}
-            {parsed.rec.rif ? '・正式規約' : ''}
+            　{parsed.rec.rule === 'renju' ? t('連珠') : t('無禁手')}
+            {parsed.rec.rif ? t('・正式規約') : ''}
             {parsed.rec.rif?.openingId
-              ? `・開局 ${getOpening(parsed.rec.rif.openingId)?.name ?? ''}`
+              ? t('・開局 {name}', { name: getOpening(parsed.rec.rif.openingId)?.name ?? '' })
               : ''}
-            {inTrial ? '　變化不影響原棋譜' : ''}
+            {inTrial ? `　${t('變化不影響原棋譜')}` : ''}
           </span>
         </p>
         <Board
@@ -173,7 +177,7 @@ export default function Replay({ record }: { record: string }) {
         />
       </div>
       <aside className="panel">
-        <h2>重播控制</h2>
+        <h2>{t('重播控制')}</h2>
         <div className="btn-row">
           <button className="btn" onClick={() => goStep(0)} disabled={step === 0 && !inTrial}>
             ⏮
@@ -197,24 +201,23 @@ export default function Replay({ record }: { record: string }) {
           </button>
         </div>
         <label>
-          跳到第 {step} 手
+          {t('跳到第 {step} 手', { step })}
           <input
             type="range"
             min={0}
             max={total}
             value={step}
             onChange={(e) => goStep(Number(e.target.value))}
-            aria-label="跳到任一手"
+            aria-label={t('跳到任一手')}
           />
         </label>
-        <h2>自由研棋</h2>
+        <h2>{t('自由研棋')}</h2>
         <p className="muted small">
-          停在任一手直接點棋盤就能試另一種下法（黑白輪替、可反悔），
-          不會改動原棋譜。
+          {t('停在任一手直接點棋盤就能試另一種下法（黑白輪替、可反悔），不會改動原棋譜。')}
         </p>
         <div className="btn-row">
           <button className="btn" onClick={suggest} disabled={!ongoing || thinking}>
-            {thinking ? 'AI 思考中…' : 'AI 建議'}
+            {thinking ? t('AI 思考中…') : t('AI 建議')}
           </button>
           <button
             className="btn"
@@ -224,7 +227,7 @@ export default function Replay({ record }: { record: string }) {
             }}
             disabled={!inTrial}
           >
-            悔一手
+            {t('悔一手')}
           </button>
           <button
             className="btn"
@@ -234,20 +237,20 @@ export default function Replay({ record }: { record: string }) {
             }}
             disabled={!inTrial}
           >
-            回到棋譜
+            {t('回到棋譜')}
           </button>
         </div>
         {hint && (
           <p className="msg ok hint-line">
-            AI 建議：<b>{coordName(hint)}</b>（{game.toMove === BLACK ? '黑' : '白'}）
-            ——點該處即照走
+            {t('AI 建議：')}<b>{coordName(hint)}</b>（{game.toMove === BLACK ? t('黑') : t('白')}）
+            {t('——點該處即照走')}
           </p>
         )}
         <RapfiPanel
           buildInput={() => ({ moves: shown })}
           rule={parsed.rec.rule}
           positionKey={pvLine.length > 0 && pvAnchor ? pvAnchor.key : positionKey}
-          toMoveLabel={game.toMove === BLACK ? '黑' : '白'}
+          toMoveLabel={game.toMove === BLACK ? t('黑') : t('白')}
           disabled={!ongoing}
           pvShow={pvShow}
           onPvShow={(n) => {
@@ -267,14 +270,14 @@ export default function Replay({ record }: { record: string }) {
                 .then(() => setCopied(true))
             }}
           >
-            {copied ? '已複製連結' : '複製分享連結'}
+            {copied ? t('已複製連結') : t('複製分享連結')}
           </button>
         </div>
         <p className="record-str muted small">
-          棋譜：<code data-record={serializeRecord(parsed.rec)}>{record}</code>
+          {t('棋譜：')}<code data-record={serializeRecord(parsed.rec)}>{record}</code>
         </p>
         <details className="import-details">
-          <summary>匯入其他棋譜</summary>
+          <summary>{t('匯入其他棋譜')}</summary>
           <ImportBox target="replay" />
         </details>
       </aside>

@@ -12,6 +12,7 @@
 //
 // 讀出來的樹存成扁平陣列（110 萬節點用物件太慢太胖）：節點 i 的子節點是
 // firstChild[i]、nextSibling[firstChild[i]]、…；根節點＝0。
+import { t } from '../i18n/index.ts'
 import type { Pos } from '../engine/types.ts'
 
 const DOWN = 0x80
@@ -51,7 +52,7 @@ export function isRenlib(buf: Uint8Array): boolean {
 /** 解析 .lib；文字預設以 Big5 解碼（台灣常見），也可傳 'gbk' 等；
  *  'raw'＝每個位元組原樣轉一個字元（build 腳本改寫檔案用，writeRenlib 可無損寫回）。 */
 export function parseRenlib(buf: Uint8Array, encoding = 'big5'): RenTree {
-  if (!isRenlib(buf)) throw new Error('不是 RenLib 檔案')
+  if (!isRenlib(buf)) throw new Error(t('不是 RenLib 檔案'))
   const dec = encoding === 'raw' ? null : new TextDecoder(encoding)
   // 節點數上限＝(檔長 − 檔頭) / 2
   const cap = Math.max(1, (buf.length - HEADER) >> 1) + 1

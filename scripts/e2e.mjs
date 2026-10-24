@@ -188,7 +188,8 @@ async function solvePuzzle(puzzle) {
 try {
   await waitServer()
   const browser = await chromium.launch()
-  page = await browser.newPage({ viewport: { width: 1280, height: 960 } })
+  // locale 固定 zh-TW：站台會依 navigator.language 自動切英/日文，選擇器都是中文
+  page = await browser.newPage({ viewport: { width: 1280, height: 960 }, locale: 'zh-TW' })
 
   // ---- 1. 首頁 -----------------------------------------------------------
   await step('首頁五入口', async () => {
@@ -748,7 +749,7 @@ try {
 
   await step('特訓：棋鐘走秒＋超時判負＋棋譜庫標示', async () => {
     // 獨立 page＋假時鐘（不污染共用 page 的計時器）：快轉 5 分鐘 → 人方超時判負
-    const p2 = await browser.newPage()
+    const p2 = await browser.newPage({ locale: 'zh-TW' })
     try {
       await p2.clock.install()
       await p2.goto(`${BASE}/#/tara`)

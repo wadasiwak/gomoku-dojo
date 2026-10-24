@@ -7,6 +7,7 @@
 //   明文＝gzip( 庫長度 u32 LE ｜ .lib 位元組 ｜ xuan-data.json 的 UTF-8 )
 // 解開後把金鑰原始位元組（不是密碼）存在 localStorage，下次免輸入；「鎖上」即清掉。
 // 加密在 scripts/build-xuan.mjs（node 端同一份程式），密碼從環境變數 XUAN_PASSWORD 給，不進 repo。
+import { t } from '../i18n/index.ts'
 import type { GuideItem } from '../guide/quiz.ts'
 
 const MAGIC = 'XUAN1'
@@ -55,12 +56,12 @@ export async function sealXuan(lib: Uint8Array, items: GuideItem[], password: st
 
 /** 用金鑰原始位元組解開；密碼錯（GCM 驗證失敗）丟 Error('密碼不對')。 */
 async function openWithKey(file: Uint8Array, raw: Uint8Array): Promise<XuanBundle> {
-  if (new TextDecoder().decode(file.subarray(0, 5)) !== MAGIC) throw new Error('玄庫檔案格式不對')
+  if (new TextDecoder().decode(file.subarray(0, 5)) !== MAGIC) throw new Error(t('玄庫檔案格式不對'))
   let gz: Uint8Array
   try {
     gz = new Uint8Array(await subtle().decrypt({ name: 'AES-GCM', iv: file.subarray(21, 33) as BufferSource }, await aesKey(raw), file.subarray(33) as BufferSource))
   } catch {
-    throw new Error('密碼不對')
+    throw new Error(t('密碼不對'))
   }
   const plain = await pipe(gz, new DecompressionStream('gzip'))
   const n = new DataView(plain.buffer, plain.byteOffset).getUint32(0, true)
@@ -81,7 +82,7 @@ let opened: XuanBundle | null = null
 
 function fetchVault(): Promise<Uint8Array> {
   fileP ??= fetch(`${import.meta.env.BASE_URL}xuan/xuan.vault`).then(async (r) => {
-    if (!r.ok) throw new Error(`玄庫下載失敗 HTTP ${r.status}`)
+    if (!r.ok) throw new Error(t('玄庫下載失敗 HTTP {status}', { status: r.status }))
     return new Uint8Array(await r.arrayBuffer())
   })
   fileP.catch(() => (fileP = null))

@@ -24,6 +24,7 @@ import {
 import { loadGuideProgress, saveGuideProgress, type GuideProgress } from '../storage.ts'
 import { xuanIfUnlocked } from '../renlib/vault.ts'
 import XuanUnlock from './XuanUnlock.tsx'
+import { useT } from '../i18n/index.ts'
 
 const COL = 'ABCDEFGHIJKLMNO'
 const nm = (x: number, y: number) => `${COL[x]}${15 - y}`
@@ -48,6 +49,7 @@ const GRADE_COLOR: Record<string, string> = {
 }
 
 export default function GuideQuiz() {
+  const t = useT()
   const [data, setData] = useState<GuideItem[] | null>(null)
   const [prog, setProg] = useState<GuideProgress>(loadGuideProgress)
   const cfg = prog.cfg
@@ -183,12 +185,12 @@ export default function GuideQuiz() {
             />
             <p>
               <button className="btn" onClick={() => setCfg({ src: '' })}>
-                改用漱星閣指南
+                {t('改用漱星閣指南')}
               </button>
             </p>
           </>
         ) : (
-          '載入指南資料中…'
+          t('載入指南資料中…')
         )}
       </div>
     )
@@ -204,7 +206,7 @@ export default function GuideQuiz() {
   const P = 32
   const c = (i: number) => P + i * S
   const board = (
-    <svg className="guide-board" viewBox="0 0 570 570" aria-label="打點棋盤">
+    <svg className="guide-board" viewBox="0 0 570 570" aria-label={t('打點棋盤')}>
       <rect width="570" height="570" rx="8" fill="var(--board)" />
       {Array.from({ length: 15 }, (_, i) => (
         <g key={i} stroke="var(--line)" strokeWidth="1.3">
@@ -260,22 +262,22 @@ export default function GuideQuiz() {
         />
       ))}
       {/* 標對／標反的圈畫在使用者標的那顆（可能是鏡像點），不是資料原本的那一邊 */}
-      {result?.hit.map(({ label: t }) => {
-        const m = item && matchedMark(item, marks, t)
-        const [x, y] = m ? [m.x, m.y] : [t[0], t[1]]
-        return <circle key={`h${t[0]},${t[1]}`} className="guide-hit" cx={c(x)} cy={c(y)} r="16" fill="none" stroke="#51cf66" strokeWidth="3.5" />
+      {result?.hit.map(({ label: lb }) => {
+        const m = item && matchedMark(item, marks, lb)
+        const [x, y] = m ? [m.x, m.y] : [lb[0], lb[1]]
+        return <circle key={`h${lb[0]},${lb[1]}`} className="guide-hit" cx={c(x)} cy={c(y)} r="16" fill="none" stroke="#51cf66" strokeWidth="3.5" />
       })}
-      {result?.swapped.map(({ label: t }) => {
-        const m = item && matchedMark(item, marks, t)
-        const [x, y] = m ? [m.x, m.y] : [t[0], t[1]]
-        return <circle key={`sw${t[0]},${t[1]}`} cx={c(x)} cy={c(y)} r="16" fill="none" stroke="#ff922b" strokeWidth="3.5" strokeDasharray="4 3" />
+      {result?.swapped.map(({ label: lb }) => {
+        const m = item && matchedMark(item, marks, lb)
+        const [x, y] = m ? [m.x, m.y] : [lb[0], lb[1]]
+        return <circle key={`sw${lb[0]},${lb[1]}`} cx={c(x)} cy={c(y)} r="16" fill="none" stroke="#ff922b" strokeWidth="3.5" strokeDasharray="4 3" />
       })}
-      {result?.miss.map(({ label: t, cat }) => (
+      {result?.miss.map(({ label: lb, cat }) => (
         <rect
-          key={`ms${t[0]},${t[1]}`}
+          key={`ms${lb[0]},${lb[1]}`}
           className="guide-miss"
-          x={c(t[0]) - 15}
-          y={c(t[1]) - 15}
+          x={c(lb[0]) - 15}
+          y={c(lb[1]) - 15}
           width="30"
           height="30"
           rx="5"
@@ -352,71 +354,72 @@ export default function GuideQuiz() {
     </svg>
   )
 
-  const opName = item ? (getOpening(item.opening)?.name ?? item.opening) : ''
+  const opName = item ? (t(getOpening(item.opening)?.name ?? item.opening)) : ''
 
   return (
     <div className="page guide-page">
       <div className="page-head">
-        <h1>打點複習</h1>
+        <h1>{t('打點複習')}</h1>
         <p className="muted">
           {xuan ? (
             <>
-              資料：《玄》棋譜庫（名人林書玄整理），共 {data.length} 個「開局＋白 4」變化；評等 A 黑必勝、B 黑大優、C 黑優、D 均勢、
-              E 白優、F 白大優、G 白必勝（A～C 算黑優點、D 算平衡點）。完整變化可到<a href="#/lib">玄庫看譜</a>一路點下去。
+              {t('資料：《玄》棋譜庫（名人林書玄整理），共 {n} 個「開局＋白 4」變化；評等 A 黑必勝、B 黑大優、C 黑優、D 均勢、E 白優、F 白大優、G 白必勝（A～C 算黑優點、D 算平衡點）。完整變化可到', { n: data.length })}
+              <a href="#/lib">{t('玄庫看譜')}</a>
+              {t('一路點下去。')}
             </>
           ) : (
-            <>資料：《漱星閣開局指南》2026.4.3 版（中國「漱星閣」群組整理），共 {data.length} 個「開局＋白 4」變化；棋盤照指南原方位。</>
+            <>{t('資料：《漱星閣開局指南》2026.4.3 版（中國「漱星閣」群組整理），共 {n} 個「開局＋白 4」變化；棋盤照指南原方位。', { n: data.length })}</>
           )}
-          標出指定的打點後對答案——白 4 之後該記的就是「哪幾打黑優」，其餘多半是白優。
+          {t('標出指定的打點後對答案——白 4 之後該記的就是「哪幾打黑優」，其餘多半是白優。')}
         </p>
       </div>
       <div className="guide-filters">
         <label>
-          資料
-          <select value={cfg.src ?? ''} onChange={(e) => setCfg({ src: e.target.value, opening: cfg.opening, scope: cfg.scope === 'wrong' ? 'all' : cfg.scope })} aria-label="資料來源">
-            <option value="">漱星閣指南（249）</option>
-            <option value="xuan">玄・林書玄（979，需密碼）</option>
+          {t('資料')}
+          <select value={cfg.src ?? ''} onChange={(e) => setCfg({ src: e.target.value, opening: cfg.opening, scope: cfg.scope === 'wrong' ? 'all' : cfg.scope })} aria-label={t('資料來源')}>
+            <option value="">{t('漱星閣指南（249）')}</option>
+            <option value="xuan">{t('玄・林書玄（979，需密碼）')}</option>
           </select>
         </label>
         <label>
-          開局
-          <select value={cfg.opening} onChange={(e) => setCfg({ opening: e.target.value })} aria-label="開局">
-            <option value="">全部</option>
+          {t('開局')}
+          <select value={cfg.opening} onChange={(e) => setCfg({ opening: e.target.value })} aria-label={t('開局')}>
+            <option value="">{t('全部')}</option>
             {OPENINGS.filter((o) => data.some((v) => v.opening === o.id)).map((o) => (
               <option key={o.id} value={o.id}>
-                {o.name}
+                {t(o.name)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          範圍
-          <select value={cfg.scope} onChange={(e) => setCfg({ scope: e.target.value })} aria-label="範圍">
-            <option value="all">全部變化</option>
-            <option value="viable">只看防十打（黑必勝 &lt; 10）</option>
-            <option value="hard">只看困難變化</option>
-            <option value="wrong">錯題本（{wrongTotal}）</option>
+          {t('範圍')}
+          <select value={cfg.scope} onChange={(e) => setCfg({ scope: e.target.value })} aria-label={t('範圍')}>
+            <option value="all">{t('全部變化')}</option>
+            <option value="viable">{t('只看防十打（黑必勝 < 10）')}</option>
+            <option value="hard">{t('只看困難變化')}</option>
+            <option value="wrong">{t('錯題本（{n}）', { n: wrongTotal })}</option>
           </select>
         </label>
         <label>
-          順序
-          <select value={cfg.order} onChange={(e) => setCfg({ order: e.target.value })} aria-label="順序">
-            <option value="page">{xuan ? '照開局順序' : '照指南頁序'}</option>
-            <option value="random">隨機</option>
+          {t('順序')}
+          <select value={cfg.order} onChange={(e) => setCfg({ order: e.target.value })} aria-label={t('順序')}>
+            <option value="page">{xuan ? t('照開局順序') : t('照指南頁序')}</option>
+            <option value="random">{t('隨機')}</option>
           </select>
         </label>
         <label>
-          要標的點
-          <select value={cfg.target} onChange={(e) => setCfg({ target: e.target.value })} aria-label="要標的點">
-            <option value="split">黑優＋平衡（分兩色標）</option>
-            <option value="black">只標黑優（必勝＋偏黑）</option>
-            <option value="win">只標黑必勝</option>
-            <option value="notlose">不輸（黑優＋平衡，不分色）</option>
+          {t('要標的點')}
+          <select value={cfg.target} onChange={(e) => setCfg({ target: e.target.value })} aria-label={t('要標的點')}>
+            <option value="split">{t('黑優＋平衡（分兩色標）')}</option>
+            <option value="black">{t('只標黑優（必勝＋偏黑）')}</option>
+            <option value="win">{t('只標黑必勝')}</option>
+            <option value="notlose">{t('不輸（黑優＋平衡，不分色）')}</option>
           </select>
         </label>
         <label className="row">
           <input type="checkbox" checked={cfg.askCount} onChange={(e) => setCfg({ askCount: e.target.checked })} />
-          困難模式（先答幾打黑勝）
+          {t('困難模式（先答幾打黑勝）')}
         </label>
       </div>
       <div className="guide-main">
@@ -424,111 +427,112 @@ export default function GuideQuiz() {
           {board}
           <p className="muted small">
             <span className="guide-legend">
-              <span style={{ color: MARK_COLOR.black }}>● 黑優標記</span>
-              {mode === 'split' && <span style={{ color: MARK_COLOR.equal }}>● 平衡標記（點兩下）</span>}
-              <span style={{ color: '#51cf66' }}>◎ 標對</span>
-              <span style={{ color: '#ff922b' }}>◌ 顏色標反</span>
-              <span>⬚ 漏標（框色＝該標的類別）</span>
-              <span style={{ color: '#ff6b6b' }}>✕ 標錯</span>
+              <span style={{ color: MARK_COLOR.black }}>{t('● 黑優標記')}</span>
+              {mode === 'split' && <span style={{ color: MARK_COLOR.equal }}>{t('● 平衡標記（點兩下）')}</span>}
+              <span style={{ color: '#51cf66' }}>{t('◎ 標對')}</span>
+              <span style={{ color: '#ff922b' }}>{t('◌ 顏色標反')}</span>
+              <span>{t('⬚ 漏標（框色＝該標的類別）')}</span>
+              <span style={{ color: '#ff6b6b' }}>{t('✕ 標錯')}</span>
             </span>
             {xuan
-              ? '對答案後攤開玄的評等：綠 A＝黑必勝、藍 B/C＝黑大優/黑優、灰 D＝均勢、橘 E/F＝白優/白大優、淡紅 G＝白必勝。'
-              : '對答案後攤開指南打點：綠 a＝黑必勝、藍＝偏黑、灰＝平衡／偏白、橘 c?＝白近勝、紅 c＝黑敗。'}
+              ? t('對答案後攤開玄的評等：綠 A＝黑必勝、藍 B/C＝黑大優/黑優、灰 D＝均勢、橘 E/F＝白優/白大優、淡紅 G＝白必勝。')
+              : t('對答案後攤開指南打點：綠 a＝黑必勝、藍＝偏黑、灰＝平衡／偏白、橘 c?＝白近勝、紅 c＝黑敗。')}
           </p>
         </div>
         <aside className="panel guide-side">
           {!item ? (
-            <p>{cfg.scope === 'wrong' ? '錯題本是空的，很棒！' : '這個範圍沒有題目。'}</p>
+            <p>{cfg.scope === 'wrong' ? t('錯題本是空的，很棒！') : t('這個範圍沒有題目。')}</p>
           ) : (
             <>
               <h2 className="guide-title">
                 {opName}・<b>{item.name}</b>
               </h2>
               <p className="muted small">
-                第 {idx + 1}/{list.length} 題{xuan ? '・玄' : `・指南第 ${item.page} 頁`}
-                {item.viable ? <span className="pill v">防十打</span> : <span className="pill x">可十打</span>}
-                {item.hard && <span className="pill h">困難</span>}
-                {rec && `　答過 ${rec.seen} 次・連對 ${rec.streak}${rec.wrong ? '・在錯題本' : ''}`}
+                {t('第 {i}/{n} 題', { i: idx + 1, n: list.length })}
+                {xuan ? t('・玄') : t('・指南第 {p} 頁', { p: item.page })}
+                {item.viable ? <span className="pill v">{t('防十打')}</span> : <span className="pill x">{t('可十打')}</span>}
+                {item.hard && <span className="pill h">{t('困難')}</span>}
+                {rec && `　${t('答過 {seen} 次・連對 {streak}', { seen: rec.seen, streak: rec.streak })}${rec.wrong ? t('・在錯題本') : ''}`}
               </p>
               {cfg.askCount && !asked ? (
                 <div className="btn-row">
-                  <span>這個白 4 是幾打黑勝？</span>
+                  <span>{t('這個白 4 是幾打黑勝？')}</span>
                   <input
                     type="number"
                     min={0}
                     max={20}
                     value={askInput}
                     onChange={(e) => setAskInput(e.target.value)}
-                    aria-label="幾打黑勝"
+                    aria-label={t('幾打黑勝')}
                     className="guide-ask"
                   />
                   <button className="btn" onClick={() => setAsked({ n: +askInput, ok: +askInput === item.win })}>
-                    確定
+                    {t('確定')}
                   </button>
                 </div>
               ) : (
                 <>
                   {asked && (
                     <p className={asked.ok ? 'msg ok' : 'msg err'}>
-                      {asked.ok ? '✓ 正確' : `✗ 是 ${item.win}`}：{item.win} 打黑勝
+                      {asked.ok ? t('✓ 正確') : t('✗ 是 {n}', { n: item.win })}：{t('{n} 打黑勝', { n: item.win })}
                     </p>
                   )}
                   {mode === 'split' ? (
                     <p className="guide-prompt">
-                      標出 <b style={{ color: MARK_COLOR.black }}>黑優點 {split.black.length} 個</b>（點一下）
-                      和 <b style={{ color: MARK_COLOR.equal }}>平衡點 {split.equal.length} 個</b>（點兩下）
-                      {!cfg.askCount && <span className="muted">（其中黑必勝 {item.win} 個）</span>}
+                      {t('標出')} <b style={{ color: MARK_COLOR.black }}>{t('黑優點 {n} 個', { n: split.black.length })}</b>{t('（點一下）')}
+                      {t(' 和 ')}<b style={{ color: MARK_COLOR.equal }}>{t('平衡點 {n} 個', { n: split.equal.length })}</b>{t('（點兩下）')}
+                      {!cfg.askCount && <span className="muted">{t('（其中黑必勝 {n} 個）', { n: item.win })}</span>}
                     </p>
                   ) : (
                     <p className="guide-prompt">
-                      標出所有<b>{TARGET_LABEL[mode]}</b>：共 <b className="guide-count">{targets.length}</b> 個
-                      {!cfg.askCount && <span className="muted">（黑必勝 {item.win} 個）</span>}
+                      {t('標出所有')}<b>{t(TARGET_LABEL[mode])}</b>{t('：共')} <b className="guide-count">{targets.length}</b> {t('個')}
+                      {!cfg.askCount && <span className="muted">{t('（黑必勝 {n} 個）', { n: item.win })}</span>}
                     </p>
                   )}
                 </>
               )}
               <div className="btn-row">
                 <button className="btn primary" onClick={() => check(false)} disabled={!!result || (cfg.askCount && !asked)}>
-                  對答案
+                  {t('對答案')}
                 </button>
                 <button className="btn" onClick={resetQ}>
-                  重來
+                  {t('重來')}
                 </button>
                 <button className="btn" onClick={() => check(true)} disabled={!!result}>
-                  看答案
+                  {t('看答案')}
                 </button>
               </div>
               <div className="btn-row">
                 <button className="btn" onClick={() => go(idx - 1)} disabled={idx === 0}>
-                  上一題
+                  {t('上一題')}
                 </button>
                 <button className="btn" onClick={() => go(idx + 1)} disabled={idx >= list.length - 1}>
-                  下一題
+                  {t('下一題')}
                 </button>
               </div>
               {result && (
                 <div className="guide-result">
                   {result.reveal ? (
-                    <b>答案</b>
+                    <b>{t('答案')}</b>
                   ) : perfect ? (
-                    <b className="ok-text">全對！</b>
+                    <b className="ok-text">{t('全對！')}</b>
                   ) : (
-                    <b className="err-text">再加油</b>
+                    <b className="err-text">{t('再加油')}</b>
                   )}
                   {!result.reveal && (
                     <span>
-                      　標對 {result.hit.length}／{targets.length}
+                      　{t('標對 {hit}／{total}', { hit: result.hit.length, total: targets.length })}
                       {result.miss.length > 0 && (
                         <span className="warn-text">
-                          ，漏 {result.miss.map(({ label: t, cat }) => `${nm(t[0], t[1])}${mode === 'split' ? (cat === 'black' ? '（黑優）' : '（平衡）') : ''}`).join('、')}
+                          {t('，漏 {list}', { list: result.miss.map(({ label: lb, cat }) => `${nm(lb[0], lb[1])}${mode === 'split' ? (cat === 'black' ? t('（黑優）') : t('（平衡）')) : ''}`).join(t('、')) })}
                         </span>
                       )}
                       {result.swapped.length > 0 && (
                         <span className="warn-text">
-                          ，顏色標反 {result.swapped.map(({ label: t, want }) => `${nm(t[0], t[1])}（應為${want === 'black' ? '黑優' : '平衡'}）`).join('、')}
+                          {t('，顏色標反 {list}', { list: result.swapped.map(({ label: lb, want }) => t('{pos}（應為{cat}）', { pos: nm(lb[0], lb[1]), cat: want === 'black' ? t('黑優') : t('平衡') })).join(t('、')) })}
                         </span>
                       )}
-                      {result.wrong.length > 0 && <span className="err-text">，多標 {result.wrong.map(([x, y]) => nm(x, y)).join('、')}</span>}
+                      {result.wrong.length > 0 && <span className="err-text">{t('，多標 {list}', { list: result.wrong.map(([x, y]) => nm(x, y)).join(t('、')) })}</span>}
                     </span>
                   )}
                   {item.grades && (
@@ -538,10 +542,10 @@ export default function GuideQuiz() {
                         .filter(([, n]) => n > 0)
                         .map(([g, n]) => (
                           <span key={g} style={{ color: GRADE_COLOR[g] }}>
-                            {g}（{GRADE_NAME[g]}）× {n}
+                            {g}（{t(GRADE_NAME[g])}）× {n}
                           </span>
                         ))}
-                      <a href={`#/lib/${item.stones.map(([x, y]) => String.fromCharCode(97 + x, 97 + y)).join('')}`}>在玄庫看後續變化 →</a>
+                      <a href={`#/lib/${item.stones.map(([x, y]) => String.fromCharCode(97 + x, 97 + y)).join('')}`}>{t('在玄庫看後續變化 →')}</a>
                     </div>
                   )}
                   <div className="guide-notes">
@@ -549,11 +553,11 @@ export default function GuideQuiz() {
                       .sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10) || a[0].length - b[0].length)
                       .map(([r, n]) => (
                         <span key={r} className={n.cat === 'black' ? 'ok-text' : n.cat === 'white' ? 'err-text' : ''}>
-                          {r} 打 {tradText(n.text)}
+                          {t('{r} 打', { r })} {tradText(n.text)}
                         </span>
                       ))}
                   </div>
-                  {syms.length > 1 && <p className="muted small">此盤面對稱：標在鏡像位置也算對。</p>}
+                  {syms.length > 1 && <p className="muted small">{t('此盤面對稱：標在鏡像位置也算對。')}</p>}
                 </div>
               )}
             </>

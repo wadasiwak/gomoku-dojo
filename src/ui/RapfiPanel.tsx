@@ -18,6 +18,7 @@ import {
 } from '../analysis/rapfi.ts'
 import type { Rule } from '../engine/types.ts'
 import { coordName } from './coords.ts'
+import { useT } from '../i18n/index.ts'
 import { loadRapfiThink, saveRapfiThink } from '../storage.ts'
 
 interface Props {
@@ -49,6 +50,7 @@ export default function RapfiPanel({
   pvShow,
   onPvShow,
 }: Props) {
+  const t = useT()
   const [phase, setPhase] = useState<Phase>('idle')
   const [thinkMs, setThinkMs] = useState(loadRapfiThink)
   const [progress, setProgress] = useState<RapfiLoadProgress | null>(null)
@@ -127,10 +129,10 @@ export default function RapfiPanel({
 
   return (
     <div className="rapfi-box">
-      <h2>Rapfi 分析</h2>
+      <h2>{t('Rapfi 分析')}</h2>
       <p className="muted small">
-        Gomocup 冠軍級引擎的第二意見（NNUE 評估）。
-        {!everLoaded && '首次使用需下載約 40MB 引擎資料，之後走瀏覽器快取。'}
+        {t('Gomocup 冠軍級引擎的第二意見（NNUE 評估）。')}
+        {!everLoaded && t('首次使用需下載約 40MB 引擎資料，之後走瀏覽器快取。')}
       </p>
       <div className="btn-row">
         <button
@@ -139,10 +141,10 @@ export default function RapfiPanel({
           disabled={disabled || phase !== 'idle'}
         >
           {phase === 'loading'
-            ? '載入引擎…'
+            ? t('載入引擎…')
             : phase === 'thinking'
-              ? `Rapfi 思考中… ${elapsed}/${Math.round(thinkMs / 1000)} 秒`
-              : 'Rapfi 分析'}
+              ? t('Rapfi 思考中… {a}/{b} 秒', { a: elapsed, b: Math.round(thinkMs / 1000) })
+              : t('Rapfi 分析')}
         </button>
         <select
           value={thinkMs}
@@ -150,28 +152,28 @@ export default function RapfiPanel({
             setThinkMs(Number(e.target.value))
             saveRapfiThink(Number(e.target.value))
           }}
-          aria-label="Rapfi 思考時間"
+          aria-label={t('Rapfi 思考時間')}
         >
-          <option value={1000}>想 1 秒</option>
-          <option value={3000}>想 3 秒</option>
-          <option value={10000}>想 10 秒</option>
-          <option value={30000}>想 30 秒（研究）</option>
-          <option value={60000}>想 1 分鐘（研究）</option>
-          <option value={120000}>想 2 分鐘（深入研究）</option>
+          <option value={1000}>{t('想 1 秒')}</option>
+          <option value={3000}>{t('想 3 秒')}</option>
+          <option value={10000}>{t('想 10 秒')}</option>
+          <option value={30000}>{t('想 30 秒（研究）')}</option>
+          <option value={60000}>{t('想 1 分鐘（研究）')}</option>
+          <option value={120000}>{t('想 2 分鐘（深入研究）')}</option>
         </select>
         <select
           value={pvShow}
           onChange={(e) => onPvShow(Number(e.target.value))}
-          aria-label="建議路線顯示手數"
+          aria-label={t('建議路線顯示手數')}
         >
-          <option value={1}>只顯示下一手</option>
-          <option value={6}>路線顯示 6 手</option>
-          <option value={10}>路線顯示 10 手</option>
-          <option value={0}>路線全部顯示</option>
+          <option value={1}>{t('只顯示下一手')}</option>
+          <option value={6}>{t('路線顯示 6 手')}</option>
+          <option value={10}>{t('路線顯示 10 手')}</option>
+          <option value={0}>{t('路線全部顯示')}</option>
         </select>
         {phase !== 'idle' && (
           <button className="btn" onClick={cancel}>
-            取消
+            {t('取消')}
           </button>
         )}
       </div>
@@ -186,26 +188,26 @@ export default function RapfiPanel({
           >
             <i style={{ width: `${pct}%` }} />
           </div>
-          <p className="muted small">下載引擎資料 {pct}%（首次約 40MB，之後走快取）</p>
+          <p className="muted small">{t('下載引擎資料 {p}%（首次約 40MB，之後走快取）', { p: pct })}</p>
         </div>
       )}
-      {error && <p className="msg err">Rapfi 分析失敗：{error}</p>}
+      {error && <p className="msg err">{t('Rapfi 分析失敗：{msg}', { msg: error })}</p>}
       {result && (
         <div className="rapfi-result msg ok">
           <p>
-            Rapfi 建議：<b>{coordName(result.move)}</b>（{toMoveLabel}）
-            {result.evalText !== undefined && <>　評分 <b>{result.evalText}</b></>}
+            {t('Rapfi 建議：')}<b>{coordName(result.move)}</b>（{toMoveLabel}）
+            {result.evalText !== undefined && <>　{t('評分')} <b>{result.evalText}</b></>}
             {result.winrate !== undefined &&
-              `　勝率 ${(result.winrate * 100).toFixed(1)}%`}
-            {result.depth !== undefined && `　深度 ${result.depth}`}
+              `　${t('勝率 {p}%', { p: (result.winrate * 100).toFixed(1) })}`}
+            {result.depth !== undefined && `　${t('深度 {d}', { d: result.depth })}`}
           </p>
           {result.pv.length > 1 && (
             <p className="rapfi-pv">
-              主變化：{result.pv.map(coordName).join(' → ')}
-              <span className="muted small">（棋盤上半透明子；照著下會接著顯示下一手，走別的就收掉）</span>
+              {t('主變化：')}{result.pv.map(coordName).join(' → ')}
+              <span className="muted small">{t('（棋盤上半透明子；照著下會接著顯示下一手，走別的就收掉）')}</span>
             </p>
           )}
-          <p className="rapfi-ms muted">實際思考 {(result.timeMs / 1000).toFixed(1)}s</p>
+          <p className="rapfi-ms muted">{t('實際思考 {s}s', { s: (result.timeMs / 1000).toFixed(1) })}</p>
         </div>
       )}
     </div>

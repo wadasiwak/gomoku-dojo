@@ -16,6 +16,7 @@ import Resources from './ui/Resources.tsx'
 import BookExplorer from './ui/BookExplorer.tsx'
 import { RAPFI_ATTRIBUTION } from './analysis/rapfi.ts'
 import { useRoute } from './router.ts'
+import { LANGS, setLang, useLang, t } from './i18n/index.ts'
 
 const NAV = [
   { hash: '', label: '首頁', match: ['home'] },
@@ -37,24 +38,39 @@ const [ATTR_TEXT] = RAPFI_ATTRIBUTION.split(RAPFI_URL)
 
 export default function App() {
   const route = useRoute()
+  const lang = useLang()
 
   return (
     <div className="app">
       <header className="topbar">
         <a className="brand" href="#/">
-          ⚫ 五子棋道場
+          ⚫ {t('五子棋道場')}
         </a>
-        <nav aria-label="主導覽">
+        <nav aria-label={t('主導覽')}>
           {NAV.map((n) => (
             <a
               key={n.hash}
               href={`#/${n.hash}`}
               className={n.match.includes(route.name) ? 'active' : ''}
             >
-              {n.label}
+              {t(n.label)}
             </a>
           ))}
         </nav>
+        <div className="lang-switch" role="group" aria-label="Language">
+          {LANGS.map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              lang={l.htmlLang}
+              className={l.code === lang ? 'active' : ''}
+              aria-pressed={l.code === lang}
+              onClick={() => void setLang(l.code)}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
       </header>
       <main>
         {route.name === 'home' && <Home />}
@@ -74,15 +90,14 @@ export default function App() {
       </main>
       <footer>
         <p>
-          © 2026 wadasiwak. All rights reserved.　引擎與題庫為本站原創；
-          連珠規則本身為公有領域。
+          © 2026 wadasiwak. All rights reserved.　{t('引擎與題庫為本站原創；連珠規則本身為公有領域。')}
         </p>
         <p className="foot-attr">
-          {ATTR_TEXT}
+          {t(ATTR_TEXT)}
           <a href={`https://${RAPFI_URL}`} target="_blank" rel="noreferrer">
             {RAPFI_URL}
           </a>
-          （未修改，獨立 WASM Worker 掛載）
+          {t('（未修改，獨立 WASM Worker 掛載）')}
         </p>
       </footer>
     </div>

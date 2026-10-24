@@ -59,6 +59,7 @@ import {
   type TaraSettings,
 } from '../storage.ts'
 import { navigate } from '../router.ts'
+import { t, useT } from '../i18n/index.ts'
 
 const KIND_LABEL: Record<string, string> = {
   overline: '長連',
@@ -77,8 +78,8 @@ interface Note {
 
 const fmtBlack = (v: number | null | undefined): string | undefined => {
   if (v === null || v === undefined) return undefined
-  if (Math.abs(v) > 20000) return v > 0 ? '黑方必勝' : '白方必勝'
-  return `黑方 ${v > 0 ? '+' : ''}${Math.round(v)}`
+  if (Math.abs(v) > 20000) return v > 0 ? t('黑方必勝') : t('白方必勝')
+  return t('黑方 {v}', { v: `${v > 0 ? '+' : ''}${Math.round(v)}` })
 }
 
 const fmtClock = (ms: number): string => {
@@ -91,6 +92,7 @@ const fmtClock = (ms: number): string => {
 type Who = 'human' | 'ai'
 
 export default function TaraPlay() {
+  const t = useT()
   const clientRef = useRef<EngineClient | null>(null)
   if (!clientRef.current) clientRef.current = new EngineClient()
   const client = clientRef.current
@@ -246,7 +248,7 @@ export default function TaraPlay() {
   useEffect(() => {
     if (!ongoing || actorWho !== 'ai') return
     if (!isRapfiSupported()) {
-      setAiError('這個瀏覽器不支援 WebAssembly SIMD，無法載入 Rapfi。請改用新版 Chrome／Safari／Firefox。')
+      setAiError(t('這個瀏覽器不支援 WebAssembly SIMD，無法載入 Rapfi。請改用新版 Chrome／Safari／Firefox。'))
       return
     }
     const key = `${gameId}:${phase}:${st.moves.length}:${st.meta.swaps.length}:${st.meta.branch}:${st.meta.offers ? 1 : 0}`
@@ -255,7 +257,7 @@ export default function TaraPlay() {
     const alive = () => pendingRef.current === key
     const guard = (label: string) => (done: number, total: number, stage?: string) => {
       if (!alive()) throw new Cancelled()
-      setProgress(`${stage === 'tenGuard' ? 'AI 檢查白 4 會不會被十打' : label} ${done}/${total}`)
+      setProgress(`${stage === 'tenGuard' ? t('AI 檢查白 4 會不會被十打') : label} ${done}/${total}`)
     }
     setThinking(true)
     setAiError(null)
@@ -273,17 +275,17 @@ export default function TaraPlay() {
       if (phase === 'place') {
         // 開局擺子（第 1～4 手、塔拉分支第 5 手）：下完對方可交換 → 取最均衡點。
         // 白 4 另外防十打（ai.ts guardWhite4），進度列會多一段「檢查十打」。
-        const r = await aiPlaceBalanced(s, oracle, Math.random, guard('AI 評估候選'))
+        const r = await aiPlaceBalanced(s, oracle, Math.random, guard(t('AI 評估候選')))
         if (!alive()) return
         if (act({ type: 'place', pos: r.move }))
           note(
             n === 0
-              ? 'AI 下第 1 手：天元 H8'
+              ? t('AI 下第 1 手：天元 H8')
               : n === 3
-                ? `AI 下白 4 ${coordName(r.move)}（取均衡點並防十打）`
-                : `AI 下第 ${n + 1} 手 ${coordName(r.move)}（取最均衡點）`,
+                ? t('AI 下白 4 {pos}（取均衡點並防十打）', { pos: coordName(r.move) })
+                : t('AI 下第 {n} 手 {pos}（取最均衡點）', { n: n + 1, pos: coordName(r.move) }),
             r.black,
-            r.tenValue != null ? `對方十打值 ${fmtBlack(r.tenValue)}` : undefined,
+            r.tenValue != null ? t('對方十打值 {v}', { v: fmtBlack(r.tenValue)! }) : undefined,
           )
         return
       }
@@ -303,11 +305,11 @@ export default function TaraPlay() {
         const r = await aiSwap(s, aiColor, oracle)
         if (!alive()) return
         if (act({ type: 'swap', swap: r.swap }))
-          note(r.swap ? 'AI 選擇交換（雙方互換執色）' : 'AI 不交換', r.black)
+          note(r.swap ? t('AI 選擇交換（雙方互換執色）') : t('AI 不交換'), r.black)
         return
       }
       if (phase === 'branch') {
-        setProgress('AI 計算十打值（多 PV）…')
+        setProgress(t('AI 計算十打值（多 PV）…'))
         const plan = await aiTenPlan(s, oracle)
         if (!alive()) return
         planRef.current = { key: `${gameId}:${s.moves.length}:${s.meta.swaps.length}`, plan }
@@ -315,8 +317,8 @@ export default function TaraPlay() {
         if (act({ type: 'branch', choice }))
           note(
             choice === 'ten'
-              ? 'AI 選①十打：持黑擺 10 個第 5 手'
-              : 'AI 選③持白（十打不利）：由你下黑 5，AI 最後選黑白',
+              ? t('AI 選①十打：持黑擺 10 個第 5 手')
+              : t('AI 選③持白（十打不利）：由你下黑 5，AI 最後選黑白'),
             plan.value,
           )
         return
@@ -329,14 +331,14 @@ export default function TaraPlay() {
             : await aiTenPlan(s, oracle)
         if (!alive()) return
         if (act({ type: 'offer', offers: plan.offers }))
-          note(`AI 十打：${plan.offers.map(coordName).join('、')}`, plan.value)
+          note(t('AI 十打：{list}', { list: plan.offers.map(coordName).join(t('、')) }), plan.value)
         return
       }
       if (phase === 'choose10') {
-        const r = await aiChooseOffer(s, oracle, guard('AI 評估十打'))
+        const r = await aiChooseOffer(s, oracle, guard(t('AI 評估十打')))
         if (!alive()) return
         if (act({ type: 'choose', pos: r.move }))
-          note(`AI 從十打中擇 ${coordName(r.move)}（對黑最不利的一點）`, r.black)
+          note(t('AI 從十打中擇 {pos}（對黑最不利的一點）', { pos: coordName(r.move) }), r.black)
         return
       }
     }
@@ -344,7 +346,7 @@ export default function TaraPlay() {
     run()
       .catch((e) => {
         if (e instanceof Cancelled || !alive()) return
-        setAiError(`AI 出錯：${e instanceof Error ? e.message : String(e)}。可按「重開」再試。`)
+        setAiError(t('AI 出錯：{msg}。可按「重開」再試。', { msg: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => {
         if (alive()) {
@@ -408,12 +410,12 @@ export default function TaraPlay() {
         return
       }
       if (offerPick.length >= TARA_OFFER_COUNT) {
-        setError(`已選滿 ${TARA_OFFER_COUNT} 個，點已選的點可取消`)
+        setError(t('已選滿 {n} 個，點已選的點可取消', { n: TARA_OFFER_COUNT }))
         return
       }
       const eq = offerEquivalentTo(st.moves, offerPick, p)
       if (eq) {
-        setError(`${coordName(p)} 與已選的 ${coordName(eq)} 對稱等價（白方挑起來是同一局面），換一點`)
+        setError(t('{a} 與已選的 {b} 對稱等價（白方挑起來是同一局面），換一點', { a: coordName(p), b: coordName(eq) }))
         return
       }
       setError(null)
@@ -442,47 +444,50 @@ export default function TaraPlay() {
   }
 
   // ---- 顯示 ---------------------------------------------------------------
-  const colorName = (c: Color) => (c === BLACK ? '黑' : '白')
+  const colorName = (c: Color) => (c === BLACK ? t('黑') : t('白'))
   const n = st.moves.length
   const limit = areaLimit(st, n + 1)
 
   const statusText = (): string => {
     if (outcome) {
       const reason: Record<string, string> = {
-        five: '五連',
-        overline: '長連',
-        forbidden: '黑踩禁手',
-        resign: '認輸',
-        time: '超時',
-        draw: '和局',
+        five: t('五連'),
+        overline: t('長連'),
+        forbidden: t('黑踩禁手'),
+        resign: t('認輸'),
+        time: t('超時'),
+        draw: t('和局'),
       }
-      if (outcome.winner === null) return '和局'
-      return `${outcome.winner === humanColor ? '你獲勝' : 'Rapfi 獲勝'}（${reason[outcome.reason] ?? outcome.reason}）`
+      if (outcome.winner === null) return t('和局')
+      return t('{who}（{reason}）', {
+        who: outcome.winner === humanColor ? t('你獲勝') : t('Rapfi 獲勝'),
+        reason: reason[outcome.reason] ?? outcome.reason,
+      })
     }
     if (thinking)
       return rapfiLoad !== null
-        ? `載入 Rapfi 中… ${rapfiLoad}%（首次約 40MB，之後走快取）`
-        : (progress ?? 'Rapfi 思考中…')
-    if (actorWho === 'ai') return '等待 Rapfi'
+        ? t('載入 Rapfi 中… {p}%（首次約 40MB，之後走快取）', { p: rapfiLoad })
+        : (progress ?? t('Rapfi 思考中…'))
+    if (actorWho === 'ai') return t('等待 Rapfi')
     switch (phase) {
       case 'place':
         return limit === null
-          ? `輪到你下第 ${n + 1} 手`
+          ? t('輪到你下第 {n} 手', { n: n + 1 })
           : limit === 0
-            ? '輪到你下第 1 手：天元（H8）'
-            : `輪到你下第 ${n + 1} 手：中央 ${areaSize(limit)}×${areaSize(limit)} 內`
+            ? t('輪到你下第 1 手：天元（H8）')
+            : t('輪到你下第 {n} 手：中央 {k}×{k} 內', { n: n + 1, k: areaSize(limit) })
       case 'swap':
         return n === 5
-          ? `黑 5 已下：你最後選黑白（目前你執${colorName(humanColor)}）`
-          : `你決定是否交換（目前你執${colorName(humanColor)}）`
+          ? t('黑 5 已下：你最後選黑白（目前你執{c}）', { c: colorName(humanColor) })
+          : t('你決定是否交換（目前你執{c}）', { c: colorName(humanColor) })
       case 'branch':
-        return '白 4 已下：你三選一（十打／持黑／持白）'
+        return t('白 4 已下：你三選一（十打／持黑／持白）')
       case 'offer10':
-        return `十打：點選 ${TARA_OFFER_COUNT} 個第 5 手候選（已選 ${offerPick.length}/${TARA_OFFER_COUNT}）`
+        return t('十打：點選 {n} 個第 5 手候選（已選 {k}/{n}）', { n: TARA_OFFER_COUNT, k: offerPick.length })
       case 'choose10':
-        return '從黑方的十個候選中點選一個當第 5 手'
+        return t('從黑方的十個候選中點選一個當第 5 手')
       default:
-        return '輪到你落子'
+        return t('輪到你落子')
     }
   }
 
@@ -500,20 +505,20 @@ export default function TaraPlay() {
     st.meta.offers && n >= 5 ? st.meta.offers.filter((p) => !posEq(p, st.moves[4])) : []
 
   return (
-    <div className="page play-page">
+    <div className="page play-page tara-page">
       <div className="board-col">
         <p className={`status${thinking ? ' thinking' : ''}${!ongoing ? ' final' : ''}`}>
           <b>{statusText()}</b>
-          <span className="muted">　第 {n} 手</span>
-          {forbidden.length > 0 && <span className="fb-note">　✕ 黑禁手點</span>}
+          <span className="muted">　{t('第 {n} 手', { n })}</span>
+          {forbidden.length > 0 && <span className="fb-note">　✕ {t('黑禁手點')}</span>}
         </p>
         {tc && (
-          <div className="clock-row" aria-label="棋鐘">
+          <div className="clock-row" aria-label={t('棋鐘')}>
             <span className={`clock${runRef.current.who === 'human' ? ' running' : ''}${remaining('human') < 60_000 ? ' low' : ''}`}>
-              你（{colorName(humanColor)}）<b>{fmtClock(remaining('human'))}</b>
+              {t('你（{c}）', { c: colorName(humanColor) })}<b>{fmtClock(remaining('human'))}</b>
             </span>
             <span className={`clock${runRef.current.who === 'ai' ? ' running' : ''}`}>
-              Rapfi（{colorName(aiColor)}）<b>{fmtClock(remaining('ai'))}</b>
+              {t('Rapfi（{c}）', { c: colorName(aiColor) })}<b>{fmtClock(remaining('ai'))}</b>
             </span>
           </div>
         )}
@@ -523,60 +528,40 @@ export default function TaraPlay() {
           forbidden={forbidden.map((f) => ({
             x: f.index % 15,
             y: Math.floor(f.index / 15),
-            kind: KIND_LABEL[f.kind] ?? f.kind,
+            kind: KIND_LABEL[f.kind] ? t(KIND_LABEL[f.kind]) : f.kind,
           }))}
           marks={marks}
           onCell={onCell}
           disabled={!humanTurn || phase === 'swap' || phase === 'branch'}
         />
-        {!ongoing && (
-          <div className="endgame-bar">
-            <button className="btn primary" onClick={() => newGame()}>
-              再來一局
-            </button>
-            <button className="btn" onClick={() => navigate(`replay/${recordStr}`)}>
-              重播＋Rapfi 分析
-            </button>
-            <span className="muted small">已自動存入棋譜庫</span>
-          </div>
-        )}
-      </div>
-      <aside className="panel">
-        <h2>名人賽特訓</h2>
-        <p className="rif-note">
-          塔拉山口-10 開局，對手 Rapfi（Gomocup 冠軍級引擎）。開局決策（擺子／交換／十打）
-          都由 Rapfi 評估。
-          {getRapfi().threads > 1
-            ? `（多執行緒：${getRapfi().threads} 緒）`
-            : multiThreadDisabledByCrashGuard()
-              ? '（單執行緒：上次多執行緒引擎在思考中中斷，本分頁改用穩定版；關掉分頁重開即恢復）'
-              : ''}
-        </p>
+        {/* 開局決策（交換／三選一／十打確定）緊貼棋盤下方：手機不必捲到側欄。 */}
         {humanTurn && phase === 'swap' && (
-          <div className="btn-row">
+          <div className="btn-row board-actions">
             <button className="btn primary" onClick={() => act({ type: 'swap', swap: true })}>
-              {n === 5 ? `我選執${colorName(aiColor)}` : `交換（改執${colorName(aiColor)}）`}
+              {n === 5
+                ? t('我選執{c}', { c: colorName(aiColor) })
+                : t('交換（改執{c}）', { c: colorName(aiColor) })}
             </button>
             <button className="btn" onClick={() => act({ type: 'swap', swap: false })}>
-              {n === 5 ? `我選執${colorName(humanColor)}` : '不交換'}
+              {n === 5 ? t('我選執{c}', { c: colorName(humanColor) }) : t('不交換')}
             </button>
           </div>
         )}
         {humanTurn && phase === 'branch' && (
-          <div className="btn-col">
+          <div className="btn-col board-actions">
             <button className="btn primary" onClick={() => act({ type: 'branch', choice: 'ten' })}>
-              ① 十打：持黑擺 10 個第 5 手，對方挑一
+              {t('① 十打：持黑擺 10 個第 5 手，對方挑一')}
             </button>
             <button className="btn" onClick={() => act({ type: 'branch', choice: 'black' })}>
-              ② 持黑：我下黑 5，對方最後選黑白
+              {t('② 持黑：我下黑 5，對方最後選黑白')}
             </button>
             <button className="btn" onClick={() => act({ type: 'branch', choice: 'white' })}>
-              ③ 持白：對方下黑 5，我最後選黑白
+              {t('③ 持白：對方下黑 5，我最後選黑白')}
             </button>
           </div>
         )}
         {humanTurn && phase === 'offer10' && (
-          <div className="btn-row">
+          <div className="btn-row board-actions">
             <button
               className="btn primary"
               disabled={offerPick.length !== TARA_OFFER_COUNT}
@@ -584,20 +569,61 @@ export default function TaraPlay() {
                 if (act({ type: 'offer', offers: offerPick })) setOfferPick([])
               }}
             >
-              確定十打（{offerPick.length}/{TARA_OFFER_COUNT}）
+              {t('確定十打（{k}/{n}）', { k: offerPick.length, n: TARA_OFFER_COUNT })}
             </button>
             <button className="btn" disabled={offerPick.length === 0} onClick={() => setOfferPick([])}>
-              重選
+              {t('重選')}
             </button>
           </div>
         )}
         {error && <p className="msg err">{error}</p>}
         {aiError && <p className="msg err">{aiError}</p>}
+        {!ongoing && (
+          <div className="endgame-bar">
+            <button className="btn primary" onClick={() => newGame()}>
+              {t('再來一局')}
+            </button>
+            <button className="btn" onClick={() => navigate(`replay/${recordStr}`)}>
+              {t('重播＋Rapfi 分析')}
+            </button>
+            <span className="muted small">{t('已自動存入棋譜庫')}</span>
+          </div>
+        )}
+        <div className="btn-row board-controls">
+          <button className="btn" onClick={undo} disabled={!canUndo}>
+            {t('悔棋')}
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              pendingRef.current = `${gameId}:resign`
+              setResigned(true)
+            }}
+            disabled={!ongoing || n === 0}
+          >
+            {t('認輸')}
+          </button>
+          <button className="btn" onClick={() => newGame()}>
+            {t('重開')}
+          </button>
+        </div>
+      </div>
+      <aside className="panel">
+        <h2>{t('名人賽特訓')}</h2>
+        <p className="rif-note">
+          {t('塔拉山口-10 開局，對手 Rapfi（Gomocup 冠軍級引擎）。開局決策（擺子／交換／十打）都由 Rapfi 評估。')}
+          {getRapfi().threads > 1
+            ? t('（多執行緒：{n} 緒）', { n: getRapfi().threads })
+            : multiThreadDisabledByCrashGuard()
+              ? t('（單執行緒：上次多執行緒引擎在思考中中斷，本分頁改用穩定版；關掉分頁重開即恢復）')
+              : ''}
+        </p>
         {(notes.length > 0 || rejected.length > 0) && (
           <div className="rif-info">
             {st.meta.offers && n >= 5 && (
               <p>
-                十打：第 5 手 <b>{coordName(st.moves[4])}</b>（其餘 {rejected.map(coordName).join('、')}）
+                {t('十打：第 5 手')} <b>{coordName(st.moves[4])}</b>
+                {t('（其餘 {list}）', { list: rejected.map(coordName).join(t('、')) })}
               </p>
             )}
             {notes.map((x, i) => (
@@ -608,64 +634,46 @@ export default function TaraPlay() {
             ))}
           </div>
         )}
-        <div className="btn-row">
-          <button className="btn" onClick={undo} disabled={!canUndo}>
-            悔棋
-          </button>
-          <button
-            className="btn"
-            onClick={() => {
-              pendingRef.current = `${gameId}:resign`
-              setResigned(true)
-            }}
-            disabled={!ongoing || n === 0}
-          >
-            認輸
-          </button>
-          <button className="btn" onClick={() => newGame()}>
-            重開
-          </button>
-        </div>
 
-        <h2>設定（變更會重開）</h2>
+        <h2>{t('設定（變更會重開）')}</h2>
         <label>
-          先後
+          {t('先後')}
           <select
             value={cfg.seat}
             onChange={(e) => updateCfg({ seat: e.target.value as TaraSettings['seat'] }, true)}
-            aria-label="先後"
+            aria-label={t('先後')}
           >
-            <option value="first">我下第 1 手（暫執黑）</option>
-            <option value="second">Rapfi 下第 1 手（我暫執白）</option>
+            <option value="first">{t('我下第 1 手（暫執黑）')}</option>
+            <option value="second">{t('Rapfi 下第 1 手（我暫執白）')}</option>
           </select>
         </label>
         <label>
-          Rapfi 強度（開局後）
+          {t('Rapfi 強度（開局後）')}
           <select
             value={cfg.strength}
             onChange={(e) => updateCfg({ strength: e.target.value as TaraSettings['strength'] }, false)}
-            aria-label="Rapfi 強度"
+            aria-label={t('Rapfi 強度')}
           >
             {Object.entries(RAPFI_STRENGTHS).map(([k, v]) => (
               <option key={k} value={k}>
-                {v.label}
+                {t(v.label)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          時制
+          {t('時制')}
           <select
             value={cfg.timeControl}
             onChange={(e) => updateCfg({ timeControl: e.target.value as TaraSettings['timeControl'] }, true)}
-            aria-label="時制"
+            aria-label={t('時制')}
           >
-            <option value="none">不計時（Rapfi 每手 5 秒）</option>
+            <option value="none">{t('不計時（Rapfi 每手 5 秒）')}</option>
             {Object.entries(TIME_CONTROLS)
               .filter(([, v]) => v)
               .map(([k, v]) => (
                 <option key={k} value={k}>
-                  {v!.label}
+                  {t(v!.label)}
                 </option>
               ))}
           </select>
@@ -676,7 +684,7 @@ export default function TaraPlay() {
             checked={cfg.showForbidden}
             onChange={(e) => updateCfg({ showForbidden: e.target.checked }, false)}
           />
-          顯示黑禁手點 ✕
+          {t('顯示黑禁手點 ✕')}
         </label>
         <label className="row">
           <input
@@ -684,11 +692,11 @@ export default function TaraPlay() {
             checked={cfg.showEval}
             onChange={(e) => updateCfg({ showEval: e.target.checked }, false)}
           />
-          對局中顯示 AI 評分（關閉＝終局才顯示）
+          {t('對局中顯示 AI 評分（關閉＝終局才顯示）')}
         </label>
-        <h2>本強度戰績</h2>
+        <h2>{t('本強度戰績')}</h2>
         <p className="stats-line" data-stats={taraStatKey(cfg.strength)}>
-          勝 <b>{stats.win}</b>　敗 <b>{stats.loss}</b>　和 <b>{stats.draw}</b>
+          {t('勝')} <b>{stats.win}</b>　{t('敗')} <b>{stats.loss}</b>　{t('和')} <b>{stats.draw}</b>
         </p>
       </aside>
     </div>

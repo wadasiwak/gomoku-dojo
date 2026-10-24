@@ -1,5 +1,6 @@
 // 共用 SVG 棋盤：對弈/題庫/重播/科普全站同一顆。
 // 石子落在「線交點」（不是格子中央）；座標標記照連珠慣例 A–O × 15..1（A1 左下）。
+import { useT } from '../i18n/index.ts'
 import { SIZE, BLACK, WHITE, idx, type Color, type Pos } from '../engine/types.ts'
 import type { Board as BoardData } from '../engine/board.ts'
 
@@ -70,8 +71,10 @@ export default function Board({
   disabled,
   crop,
   showCoords = true,
-  ariaLabel = '棋盤',
+  ariaLabel,
 }: Props) {
+  const t = useT()
+  const label = ariaLabel ?? t('棋盤')
   const view = crop
     ? {
         x: cx(crop.x0) - CELL * 0.55,
@@ -95,7 +98,7 @@ export default function Board({
       className="goban"
       viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
       role="grid"
-      aria-label={ariaLabel}
+      aria-label={label}
       onContextMenu={
         onRightClick
           ? (e) => {
@@ -183,7 +186,7 @@ export default function Board({
       })}
       {hint && (
         <g className="hint-mark" data-hint={`${hint.x},${hint.y}`} pointerEvents="none">
-          <title>AI 建議</title>
+          <title>{t('AI 建議')}</title>
           <circle
             cx={cx(hint.x)}
             cy={cx(hint.y)}
@@ -272,7 +275,7 @@ export default function Board({
           strokeWidth="3"
           strokeLinecap="round"
         >
-          <title>{`禁手${m.kind ? `：${m.kind}` : ''}`}</title>
+          <title>{m.kind ? t('禁手：{kind}', { kind: m.kind }) : t('禁手')}</title>
           <line x1={cx(m.x) - 8} y1={cx(m.y) - 8} x2={cx(m.x) + 8} y2={cx(m.y) + 8} />
           <line x1={cx(m.x) - 8} y1={cx(m.y) + 8} x2={cx(m.x) + 8} y2={cx(m.y) - 8} />
         </g>

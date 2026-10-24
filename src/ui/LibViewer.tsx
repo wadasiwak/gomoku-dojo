@@ -19,6 +19,7 @@ import { loadPvShow, savePvShow } from '../storage.ts'
 import { remainingPv, type PvAnchor } from './pvFollow.ts'
 import { lockXuan, xuanIfUnlocked, type XuanBundle } from '../renlib/vault.ts'
 import XuanUnlock from './XuanUnlock.tsx'
+import { useT } from '../i18n/index.ts'
 
 const A = 97
 const encodeMoves = (ms: readonly Pos[]) => ms.map((p) => String.fromCharCode(A + p.x, A + p.y)).join('')
@@ -92,6 +93,7 @@ function buildLib(buf: Uint8Array, name: string): Lib {
 }
 
 export default function LibViewer({ path }: { path: string }) {
+  const t = useT()
   const [lib, setLib] = useState<Lib | null>(cached)
   const [err, setErr] = useState('')
   const [locked, setLocked] = useState(false)
@@ -108,7 +110,7 @@ export default function LibViewer({ path }: { path: string }) {
     if (cached) return
     xuanIfUnlocked()
       .then((b) => (b ? openXuanLib(b) : setLocked(true)))
-      .catch((e) => setErr(`玄庫載入失敗：${e instanceof Error ? e.message : e}`))
+      .catch((e) => setErr(t('玄庫載入失敗：{msg}', { msg: e instanceof Error ? e.message : String(e) })))
   }, [])
 
   const moves = useMemo(() => decodeMoves(path), [path])
@@ -182,19 +184,19 @@ export default function LibViewer({ path }: { path: string }) {
       setErr('')
       go([])
     } catch (e) {
-      setErr(`無法讀取 ${f.name}：${e instanceof Error ? e.message : e}`)
+      setErr(t('無法讀取 {name}：{msg}', { name: f.name, msg: e instanceof Error ? e.message : String(e) }))
     }
   }
 
   const filePicker = (
     <details className="lib-legend" open={!lib}>
-      <summary>開啟自己的 .lib 檔</summary>
-      <p className="muted small">RenLib 格式（.lib）；只在瀏覽器裡解析，不會上傳。</p>
+      <summary>{t('開啟自己的 .lib 檔')}</summary>
+      <p className="muted small">{t('RenLib 格式（.lib）；只在瀏覽器裡解析，不會上傳。')}</p>
       <input
         type="file"
         accept=".lib,.LIB,.txt,.TXT"
         onChange={(e) => e.target.files?.[0] && openFile(e.target.files[0])}
-        aria-label="開啟 lib 檔"
+        aria-label={t('開啟 lib 檔')}
       />
     </details>
   )
@@ -202,7 +204,7 @@ export default function LibViewer({ path }: { path: string }) {
   if (!lib)
     return (
       <div className="page">
-        {locked ? <XuanUnlock onOpen={openXuanLib} /> : !err && <p>載入玄庫中…</p>}
+        {locked ? <XuanUnlock onOpen={openXuanLib} /> : !err && <p>{t('載入玄庫中…')}</p>}
         {err && <p className="msg err">{err}</p>}
         {locked && <div className="panel xuan-lock">{filePicker}</div>}
       </div>
@@ -226,12 +228,14 @@ export default function LibViewer({ path }: { path: string }) {
     <div className="page play-page lib-page">
       <div className="board-col">
         <p className="status">
-          {op ? `${op.name}・` : ''}第 {moves.length} 手{moves.length > 0 ? `（${coordName(moves[moves.length - 1])}）` : ''}
-          <span className="muted">　輪{toMove === BLACK ? '黑' : '白'}</span>
+          {op ? `${t(op.name)}・` : ''}
+          {t('第 {n} 手', { n: moves.length })}
+          {moves.length > 0 ? `（${coordName(moves[moves.length - 1])}）` : ''}
+          <span className="muted">　{t('輪{c}', { c: toMove === BLACK ? t('黑') : t('白') })}</span>
           {offLib ? (
-            <span className="warn-text">　庫外第 {moves.length - inLib} 手（自擺）</span>
+            <span className="warn-text">　{t('庫外第 {n} 手（自擺）', { n: moves.length - inLib })}</span>
           ) : (
-            <span className="muted">　庫內下一手 {nexts.length} 個</span>
+            <span className="muted">　{t('庫內下一手 {n} 個', { n: nexts.length })}</span>
           )}
         </p>
         <Board
@@ -243,21 +247,21 @@ export default function LibViewer({ path }: { path: string }) {
           pvStart={moves.length + 1}
           onCell={onCell}
           onRightClick={back}
-          ariaLabel="玄庫棋盤"
+          ariaLabel={t('玄庫棋盤')}
         />
         <p className="muted small">
-          點盤上的標記走下去（<b style={{ color: GRADE_COLOR.A }}>A 黑必勝</b>／
-          <b style={{ color: GRADE_COLOR.C }}>B・C 黑優</b>／<b style={{ color: GRADE_COLOR.D }}>D 均勢</b>／
-          <b style={{ color: GRADE_COLOR.F }}>E・F 白優</b>／<b style={{ color: GRADE_COLOR.G }}>G 白必勝</b>，
-          <span style={{ color: '#7048e8' }}>● 庫內沒標字的變化</span>）；右鍵或 ← 退一手、→ 走第一個變化。
+          {t('點盤上的標記走下去（')}<b style={{ color: GRADE_COLOR.A }}>{t('A 黑必勝')}</b>／
+          <b style={{ color: GRADE_COLOR.C }}>{t('B・C 黑優')}</b>／<b style={{ color: GRADE_COLOR.D }}>{t('D 均勢')}</b>／
+          <b style={{ color: GRADE_COLOR.F }}>{t('E・F 白優')}</b>／<b style={{ color: GRADE_COLOR.G }}>{t('G 白必勝')}</b>，
+          <span style={{ color: '#7048e8' }}>{t('● 庫內沒標字的變化')}</span>{t('）；右鍵或 ← 退一手、→ 走第一個變化。')}
         </p>
       </div>
       <aside className="panel lib-side">
-        <h2>玄庫看譜</h2>
+        <h2>{t('玄庫看譜')}</h2>
         <p className="muted small">
           {lib.name === XUAN_NAME ? (
             <>
-              《玄》棋譜庫，名人林書玄整理，共 {lib.tree.size.toLocaleString()} 個節點（限知道密碼的人使用，請勿外流）。{' '}
+              {t('《玄》棋譜庫，名人林書玄整理，共 {n} 個節點（限知道密碼的人使用，請勿外流）。', { n: lib.tree.size.toLocaleString() })}{' '}
               <button
                 className="linklike"
                 onClick={() => {
@@ -267,30 +271,30 @@ export default function LibViewer({ path }: { path: string }) {
                   setLocked(true)
                 }}
               >
-                🔒 鎖上
+                {t('🔒 鎖上')}
               </button>
             </>
           ) : (
             <>
-              本機檔案「{lib.name}」，{lib.tree.size.toLocaleString()} 個節點（只在你的瀏覽器裡讀，不會上傳）。
+              {t('本機檔案「{name}」，{n} 個節點（只在你的瀏覽器裡讀，不會上傳）。', { name: lib.name, n: lib.tree.size.toLocaleString() })}
             </>
           )}
         </p>
         <div className="btn-row">
           <label>
-            跳到開局{' '}
+            {t('跳到開局')}{' '}
             <select
               value={op?.id ?? ''}
               onChange={(e) => {
                 const n = lib.openings.get(e.target.value)
                 if (n !== undefined) go(movesTo(lib.tree, n))
               }}
-              aria-label="跳到開局"
+              aria-label={t('跳到開局')}
             >
               <option value="">—</option>
               {OPENINGS.filter((o) => lib.openings.has(o.id)).map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.name}
+                  {t(o.name)}
                 </option>
               ))}
             </select>
@@ -298,23 +302,23 @@ export default function LibViewer({ path }: { path: string }) {
         </div>
         <div className="btn-row">
           <button className="btn" onClick={() => go([])} disabled={moves.length === 0}>
-            ⏮ 開頭
+            {t('⏮ 開頭')}
           </button>
           <button className="btn" onClick={back} disabled={moves.length === 0}>
-            ◀ 上一手
+            {t('◀ 上一手')}
           </button>
           <button className="btn" onClick={forward} disabled={nexts.length === 0}>
-            第一變化 ▶
+            {t('第一變化 ▶')}
           </button>
           {offLib && (
             <button className="btn" onClick={() => go(moves.slice(0, inLib))}>
-              回庫內
+              {t('回庫內')}
             </button>
           )}
         </div>
         {comment && <p className="lib-comment">💬 {comment}</p>}
         {!offLib && nexts.length > 0 && (
-          <div className="lib-nexts" aria-label="庫內下一手">
+          <div className="lib-nexts" aria-label={t('庫內下一手')}>
             {(graded.length > 0 ? graded : nexts).slice(0, 60).map(({ p, text }) => (
               <button
                 key={`${p.x},${p.y}`}
@@ -326,18 +330,18 @@ export default function LibViewer({ path }: { path: string }) {
               </button>
             ))}
             {graded.length > 0 && nexts.length > graded.length && (
-              <span className="muted small">＋{nexts.length - graded.length} 個沒標字的變化（盤上紫點）</span>
+              <span className="muted small">{t('＋{n} 個沒標字的變化（盤上紫點）', { n: nexts.length - graded.length })}</span>
             )}
           </div>
         )}
-        {!offLib && nexts.length === 0 && moves.length > 0 && <p className="muted">這條變化在庫裡到此為止——可以繼續自擺，或交給 Rapfi。</p>}
+        {!offLib && nexts.length === 0 && moves.length > 0 && <p className="muted">{t('這條變化在庫裡到此為止——可以繼續自擺，或交給 Rapfi。')}</p>}
 
-        <h2>後續研究</h2>
+        <h2>{t('後續研究')}</h2>
         <RapfiPanel
           buildInput={() => ({ moves })}
           rule="renju"
           positionKey={pvAll.length > 0 && pvAnchor ? pvAnchor.key : path}
-          toMoveLabel={toMove === BLACK ? '黑' : '白'}
+          toMoveLabel={toMove === BLACK ? t('黑') : t('白')}
           pvShow={pvShow}
           onPvShow={(n) => {
             setPvShow(n)
@@ -347,13 +351,13 @@ export default function LibViewer({ path }: { path: string }) {
         />
         <p>
           <a className="btn" href={`#/study/${serializeRecord({ rule: 'renju', moves })}`}>
-            在擺譜開啟這個局面 →
+            {t('在擺譜開啟這個局面 →')}
           </a>
         </p>
 
         {legend && (
           <details className="lib-legend">
-            <summary>評等說明（庫內原註）</summary>
+            <summary>{t('評等說明（庫內原註）')}</summary>
             <pre>{legend}</pre>
           </details>
         )}

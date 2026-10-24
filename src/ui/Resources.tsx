@@ -1,6 +1,8 @@
 // 資源頁：自撰介紹三個外部權威站並外連（僅介紹與連結、不轉載內容），
 // 附「本站與外部資源的關係」聲明（開局書引擎自產、未使用 renju.net DB 內容上站、
 // Rapfi GPL-3.0 致謝）。
+import { useT } from '../i18n/index.ts'
+
 interface Site {
   name: string
   org: string
@@ -42,13 +44,13 @@ const SITES: Site[] = [
 ]
 
 export default function Resources() {
+  const t = useT()
   return (
     <div className="page">
       <div className="page-head">
-        <h1>連珠資源</h1>
+        <h1>{t('連珠資源')}</h1>
         <p className="muted">
-          想往下鑽研的三個外部站：官方規則與職業對局、台灣中文教學與賽事、線上引擎分析。
-          內容屬各站所有，本站僅介紹與連結（規則全文除外，見下方聲明）。
+          {t('想往下鑽研的三個外部站：官方規則與職業對局、台灣中文教學與賽事、線上引擎分析。內容屬各站所有，本站僅介紹與連結（規則全文除外，見下方聲明）。')}
         </p>
       </div>
       <div className="res-grid">
@@ -59,12 +61,12 @@ export default function Resources() {
                 {s.name} ↗
               </a>
             </h2>
-            <p className="res-org">{s.org}</p>
-            <p>{s.desc}</p>
+            <p className="res-org">{t(s.org)}</p>
+            <p>{t(s.desc)}</p>
             <div className="res-tags">
-              {s.tags.map((t) => (
-                <span key={t} className="badge">
-                  {t}
+              {s.tags.map((tag) => (
+                <span key={tag} className="badge">
+                  {t(tag)}
                 </span>
               ))}
             </div>
@@ -72,20 +74,18 @@ export default function Resources() {
         ))}
       </div>
       <section className="res-note">
-        <h2>本站與外部資源的關係</h2>
+        <h2>{t('本站與外部資源的關係')}</h2>
         <p>
-          本站的開局書與題庫皆由本站引擎自行計算產生，未使用 renju.net
-          對局資料庫的內容上站（該資料庫授權為非商業且僅限離線使用）；
-          外部網站的文章與棋譜屬原站所有，本站僅連結、不轉載；唯一例外是
-          <a href="#/rules/full">規則頁</a>的規則全文，經 587.renju.org.tw 站方同意收錄。
+          {t('本站的開局書與題庫皆由本站引擎自行計算產生，未使用 renju.net 對局資料庫的內容上站（該資料庫授權為非商業且僅限離線使用）；外部網站的文章與棋譜屬原站所有，本站僅連結、不轉載；唯一例外是')}
+          <a href="#/rules/full">{t('規則頁')}</a>
+          {t('的規則全文，經 587.renju.org.tw 站方同意收錄。')}
         </p>
         <p>
-          站內「Rapfi 分析」功能掛載未經修改的{' '}
+          {t('站內「Rapfi 分析」功能掛載未經修改的')}{' '}
           <a href="https://github.com/dhbloo/rapfi" target="_blank" rel="noreferrer">
             Rapfi
           </a>{' '}
-          引擎（© dhbloo，GPL-3.0，自行編譯為 WASM）；本站的規則引擎與對弈 AI
-          為獨立原創實作。
+          {t('引擎（© dhbloo，GPL-3.0，自行編譯為 WASM）；本站的規則引擎與對弈 AI 為獨立原創實作。')}
         </p>
       </section>
     </div>

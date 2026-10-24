@@ -18,6 +18,7 @@
 //
 // 純函式 reducer，形狀比照 rif/protocol.ts：moves 為單一真相，meta 只記事件，
 // phase 由（meta, moves.length）推導。盤面勝負仍由 UI 層 Game 重放判定。
+import { t } from '../i18n/index.ts'
 import { BLACK, WHITE, SIZE, idx, type Color, type Pos } from '../engine/types.ts'
 import { canonicalBoardKey } from '../engine/symmetry.ts'
 
@@ -145,25 +146,25 @@ export function taraReduce(
 
   switch (action.type) {
     case 'place': {
-      if (phase !== 'place' && phase !== 'normal') return err('現在不是落子階段')
+      if (phase !== 'place' && phase !== 'normal') return err(t('現在不是落子階段'))
       const p = action.pos
-      if (!inBoard(p)) return err('落子在盤外')
-      if (occupied(s.moves, p)) return err('該點已有棋子')
+      if (!inBoard(p)) return err(t('落子在盤外'))
+      if (occupied(s.moves, p)) return err(t('該點已有棋子'))
       const limit = areaLimit(s, n + 1)
       if (limit !== null && cheb(p, TARA_CENTER) > limit)
         return err(
           limit === 0
-            ? '第 1 手必須下在天元（H8）'
-            : `第 ${n + 1} 手須在中央 ${areaSize(limit)}×${areaSize(limit)} 範圍內`,
+            ? t('第 1 手必須下在天元（H8）')
+            : t('第 {n} 手須在中央 {k}×{k} 範圍內', { n: n + 1, k: areaSize(limit) }),
         )
       return { next: { ...s, moves: [...s.moves, p] }, error: null }
     }
     case 'swap': {
-      if (phase !== 'swap') return err('現在不是交換決定階段')
+      if (phase !== 'swap') return err(t('現在不是交換決定階段'))
       return { next: { ...s, meta: { ...s.meta, swaps: [...s.meta.swaps, action.swap] } }, error: null }
     }
     case 'branch': {
-      if (phase !== 'branch') return err('現在不是白 4 後的選擇階段')
+      if (phase !== 'branch') return err(t('現在不是白 4 後的選擇階段'))
       if (action.choice === 'ten')
         return { next: { ...s, meta: { ...s.meta, branch: 'ten' } }, error: null }
       // ②持黑＝不換、③持白＝換（下黑 5 的人＝換完的執黑者）
@@ -174,22 +175,22 @@ export function taraReduce(
       }
     }
     case 'offer': {
-      if (phase !== 'offer10') return err('現在不是黑方十打的階段')
+      if (phase !== 'offer10') return err(t('現在不是黑方十打的階段'))
       const offers = action.offers
-      if (offers.length !== TARA_OFFER_COUNT) return err(`必須剛好擺 ${TARA_OFFER_COUNT} 個候選`)
+      if (offers.length !== TARA_OFFER_COUNT) return err(t('必須剛好擺 {n} 個候選', { n: TARA_OFFER_COUNT }))
       for (let i = 0; i < offers.length; i++) {
         const p = offers[i]
-        if (!inBoard(p)) return err('候選在盤外')
-        if (occupied(s.moves, p)) return err('候選不可落在已有棋子的點')
-        if (offers.slice(0, i).some((q) => same(q, p))) return err('候選不可重複')
+        if (!inBoard(p)) return err(t('候選在盤外'))
+        if (occupied(s.moves, p)) return err(t('候選不可落在已有棋子的點'))
+        if (offers.slice(0, i).some((q) => same(q, p))) return err(t('候選不可重複'))
         const eq = offerEquivalentTo(s.moves, offers.slice(0, i), p)
-        if (eq) return err('有兩個候選對稱等價（白方挑起來是同一局面），規則不允許')
+        if (eq) return err(t('有兩個候選對稱等價（白方挑起來是同一局面），規則不允許'))
       }
       return { next: { ...s, meta: { ...s.meta, offers: [...offers] } }, error: null }
     }
     case 'choose': {
-      if (phase !== 'choose10') return err('現在不是白方擇一的階段')
-      if (!s.meta.offers!.some((p) => same(p, action.pos))) return err('第 5 手必須從十個候選中擇一')
+      if (phase !== 'choose10') return err(t('現在不是白方擇一的階段'))
+      if (!s.meta.offers!.some((p) => same(p, action.pos))) return err(t('第 5 手必須從十個候選中擇一'))
       return { next: { ...s, moves: [...s.moves, action.pos] }, error: null }
     }
   }

@@ -23,6 +23,7 @@ import {
   type SavedStudy,
 } from '../storage.ts'
 import { BLACK, type Pos, type Rule } from '../engine/types.ts'
+import { t, useT } from '../i18n/index.ts'
 
 const KIND_LABEL: Record<string, string> = {
   overline: '長連',
@@ -38,15 +39,18 @@ const RESULT_TEXT: Record<string, string> = {
 
 /** 預設存檔名：「研究 10/13 22:55」。 */
 const defaultName = (): string =>
-  `研究 ${new Date().toLocaleString('zh-TW', {
+  t('研究 {time}', {
+    time: new Date().toLocaleString('zh-TW', {
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
-  })}`
+      hour12: false,
+    }),
+  })
 
 export default function Study({ record }: { record?: string }) {
+  const t = useT()
   const clientRef = useRef<EngineClient | null>(null)
   if (!clientRef.current) clientRef.current = new EngineClient()
   const client = clientRef.current
@@ -117,7 +121,7 @@ export default function Study({ record }: { record?: string }) {
     setPvAnchor(null)
     setLoadedId(s.id)
     setSaveName(s.name)
-    setSaveMsg(`已開啟「${s.name}」`)
+    setSaveMsg(t('已開啟「{name}」', { name: s.name }))
   }
 
   const saveNew = () => {
@@ -126,7 +130,7 @@ export default function Study({ record }: { record?: string }) {
     setStudies(loadStudies())
     setLoadedId(item.id)
     setSaveName(name)
-    setSaveMsg(`已存檔「${name}」（${game.moves.length} 手）`)
+    setSaveMsg(t('已存檔「{name}」（{n} 手）', { name, n: game.moves.length }))
   }
 
   const saveOver = () => {
@@ -135,11 +139,11 @@ export default function Study({ record }: { record?: string }) {
     updateStudy(loadedId, name, recordStr)
     setStudies(loadStudies())
     setSaveName(name)
-    setSaveMsg(`已更新「${name}」（${game.moves.length} 手）`)
+    setSaveMsg(t('已更新「{name}」（{n} 手）', { name, n: game.moves.length }))
   }
 
   const remove = (s: SavedStudy) => {
-    if (!confirm(`刪除存檔「${s.name}」？`)) return
+    if (!confirm(t('刪除存檔「{name}」？', { name: s.name }))) return
     deleteStudy(s.id)
     setStudies(loadStudies())
     if (loadedId === s.id) setLoadedId(null)
@@ -147,10 +151,13 @@ export default function Study({ record }: { record?: string }) {
 
   const statusText =
     game.result.kind === 'win'
-      ? `${game.result.winner === BLACK ? '黑' : '白'}勝（${RESULT_TEXT[game.result.reason] ?? game.result.reason}）`
+      ? t('{c}勝（{reason}）', {
+          c: game.result.winner === BLACK ? t('黑') : t('白'),
+          reason: RESULT_TEXT[game.result.reason] ? t(RESULT_TEXT[game.result.reason]) : game.result.reason,
+        })
       : game.result.kind === 'draw'
-        ? '和局'
-        : `輪${game.toMove === BLACK ? '黑' : '白'}（第 ${game.moves.length + 1} 手）`
+        ? t('和局')
+        : t('輪{c}（第 {n} 手）', { c: game.toMove === BLACK ? t('黑') : t('白'), n: game.moves.length + 1 })
 
   const loaded = loadedId ? studies.find((s) => s.id === loadedId) : undefined
 
@@ -159,8 +166,8 @@ export default function Study({ record }: { record?: string }) {
       <div className="board-col">
         <p className={`status${ongoing ? '' : ' final'}`}>
           <b>{statusText}</b>
-          <span className="muted">　{rule === 'renju' ? '連珠' : '無禁手'}</span>
-          {forbidden.length > 0 && <span className="fb-note">　✕ 黑禁手點</span>}
+          <span className="muted">　{rule === 'renju' ? t('連珠') : t('無禁手')}</span>
+          {forbidden.length > 0 && <span className="fb-note">　✕ {t('黑禁手點')}</span>}
         </p>
         <Board
           board={game.board}
@@ -172,41 +179,39 @@ export default function Study({ record }: { record?: string }) {
           forbidden={forbidden.map((f) => ({
             x: f.index % 15,
             y: Math.floor(f.index / 15),
-            kind: KIND_LABEL[f.kind] ?? f.kind,
+            kind: KIND_LABEL[f.kind] ? t(KIND_LABEL[f.kind]) : f.kind,
           }))}
           onCell={onCell}
           disabled={!ongoing}
-          ariaLabel="擺譜棋盤"
+          ariaLabel={t('擺譜棋盤')}
         />
       </div>
       <aside className="panel">
-        <h2>擺譜</h2>
-        <p className="muted small">
-          點棋盤依序一黑一白落子，棋子編號＝手順；右鍵（或「退一手」）退回。
-        </p>
+        <h2>{t('擺譜')}</h2>
+        <p className="muted small">{t('點棋盤依序一黑一白落子，棋子編號＝手順；右鍵（或「退一手」）退回。')}</p>
         <label>
-          規則
+          {t('規則')}
           <select
             value={rule}
             onChange={(e) => {
               setRule(e.target.value as Rule)
               setPvAnchor(null) // 規則變了，建議路線不再適用
             }}
-            aria-label="規則模式"
+            aria-label={t('規則模式')}
           >
-            <option value="renju">連珠（黑有禁手）</option>
-            <option value="gomoku">無禁手五子棋</option>
+            <option value="renju">{t('連珠（黑有禁手）')}</option>
+            <option value="gomoku">{t('無禁手五子棋')}</option>
           </select>
         </label>
         {rule === 'renju' && (
           <label className="row">
             <input type="checkbox" checked={showFb} onChange={(e) => setShowFb(e.target.checked)} />
-            顯示黑禁手點 ✕
+            {t('顯示黑禁手點 ✕')}
           </label>
         )}
         <div className="btn-row">
           <button className="btn" onClick={stepBack} disabled={moves.length === 0}>
-            退一手
+            {t('退一手')}
           </button>
           <button
             className="btn"
@@ -218,7 +223,7 @@ export default function Study({ record }: { record?: string }) {
             }}
             disabled={moves.length === 0}
           >
-            清空盤面
+            {t('清空盤面')}
           </button>
         </div>
 
@@ -226,7 +231,7 @@ export default function Study({ record }: { record?: string }) {
           buildInput={() => ({ moves: game.moves })}
           rule={rule}
           positionKey={pvLine.length > 0 && pvAnchor ? pvAnchor.key : positionKey}
-          toMoveLabel={game.toMove === BLACK ? '黑' : '白'}
+          toMoveLabel={game.toMove === BLACK ? t('黑') : t('白')}
           disabled={!ongoing}
           pvShow={pvShow}
           onPvShow={(n) => {
@@ -238,36 +243,36 @@ export default function Study({ record }: { record?: string }) {
           }
         />
 
-        <h2>存檔</h2>
+        <h2>{t('存檔')}</h2>
         <div className="save-row">
           <input
             type="text"
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
             placeholder={defaultName()}
-            aria-label="存檔名稱"
+            aria-label={t('存檔名稱')}
             maxLength={40}
           />
         </div>
         <div className="btn-row">
           <button className="btn primary" onClick={saveNew} disabled={moves.length === 0}>
-            存成新檔
+            {t('存成新檔')}
           </button>
           {loaded && (
             <button className="btn" onClick={saveOver} disabled={moves.length === 0}>
-              更新「{loaded.name}」
+              {t('更新「{name}」', { name: loaded.name })}
             </button>
           )}
         </div>
         {saveMsg && <p className="msg ok">{saveMsg}</p>}
         {studies.length > 0 && (
-          <ul className="study-list" aria-label="已存的研究譜">
+          <ul className="study-list" aria-label={t('已存的研究譜')}>
             {studies.map((s) => (
               <li key={s.id} className={s.id === loadedId ? 'current' : ''}>
                 <button className="study-open" onClick={() => openStudy(s)}>
                   <span>{s.name}</span>
                   <span className="muted small">
-                    {Math.ceil((s.record.split(':')[1]?.length ?? 0) / 2)} 手 ·{' '}
+                    {t('{n} 手', { n: Math.ceil((s.record.split(':')[1]?.length ?? 0) / 2) })} ·{' '}
                     {new Date(s.ts).toLocaleString('zh-TW', {
                       month: 'numeric',
                       day: 'numeric',
@@ -277,16 +282,16 @@ export default function Study({ record }: { record?: string }) {
                     })}
                   </span>
                 </button>
-                <button className="btn small-btn" aria-label={`刪除 ${s.name}`} onClick={() => remove(s)}>
-                  刪除
+                <button className="btn small-btn" aria-label={t('刪除 {name}', { name: s.name })} onClick={() => remove(s)}>
+                  {t('刪除')}
                 </button>
               </li>
             ))}
           </ul>
         )}
 
-        <h2>匯入棋譜</h2>
-        <p className="muted small">貼上本站棋譜或座標序列（如 h8 i9 g9），驗證後鋪成擺譜手順。</p>
+        <h2>{t('匯入棋譜')}</h2>
+        <p className="muted small">{t('貼上本站棋譜或座標序列（如 h8 i9 g9），驗證後鋪成擺譜手順。')}</p>
         <ImportBox target="study" />
       </aside>
     </div>

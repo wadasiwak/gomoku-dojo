@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { loadSavedGames, deleteGame } from '../storage.ts'
 import { navigate } from '../router.ts'
+import { useT } from '../i18n/index.ts'
 
 const OUTCOME_LABEL = { win: '勝', loss: '敗', draw: '和' } as const
 const REASON_LABEL: Record<string, string> = {
@@ -14,27 +15,27 @@ const REASON_LABEL: Record<string, string> = {
 }
 
 export default function Records() {
+  const t = useT()
   const [list, setList] = useState(loadSavedGames)
 
   return (
     <div className="page">
       <div className="page-head">
-        <h1>棋譜庫</h1>
-        <p className="muted">對局結束會自動存檔（最多 60 局）；點開即重播，連結可分享。</p>
+        <h1>{t('棋譜庫')}</h1>
+        <p className="muted">{t('對局結束會自動存檔（最多 60 局）；點開即重播，連結可分享。')}</p>
       </div>
-      {list.length === 0 && <p className="muted">還沒有棋譜——去下一盤吧。</p>}
+      {list.length === 0 && <p className="muted">{t('還沒有棋譜——去下一盤吧。')}</p>}
       <ul className="record-list">
         {list.map((g) => (
           <li key={g.id} className="record-item">
             <button className="record-open" onClick={() => navigate(`replay/${g.record}`)}>
-              <span className={`badge ${g.outcome}`}>{OUTCOME_LABEL[g.outcome]}</span>
+              <span className={`badge ${g.outcome}`}>{t(OUTCOME_LABEL[g.outcome])}</span>
               <span>
                 {g.mode === 'tara'
-                  ? `塔拉山口-10 · Rapfi ${g.strength ?? ''}`
-                  : `${g.rule === 'renju' ? '連珠' : '無禁手'} · ${g.level === 5 ? 'Rapfi' : `L${g.level}`}`}{' '}
-                · 執
-                {g.player === 'black' ? '黑' : '白'} ·{' '}
-                {REASON_LABEL[g.reason] ?? g.reason}
+                  ? t('塔拉山口-10 · Rapfi {s}', { s: g.strength ? t(g.strength) : '' })
+                  : `${g.rule === 'renju' ? t('連珠') : t('無禁手')} · ${g.level === 5 ? 'Rapfi' : `L${g.level}`}`}{' '}
+                · {t('執{c}', { c: g.player === 'black' ? t('黑') : t('白') })} ·{' '}
+                {REASON_LABEL[g.reason] ? t(REASON_LABEL[g.reason]) : g.reason}
               </span>
               <span className="muted small">
                 {new Date(g.ts).toLocaleString('zh-TW', {
@@ -43,18 +44,18 @@ export default function Records() {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
-                　{Math.ceil(g.record.split(':')[1].length / 2)} 手
+                　{t('{n} 手', { n: Math.ceil(g.record.split(':')[1].length / 2) })}
               </span>
             </button>
             <button
               className="btn small-btn"
-              aria-label="刪除棋譜"
+              aria-label={t('刪除棋譜')}
               onClick={() => {
                 deleteGame(g.id)
                 setList(loadSavedGames())
               }}
             >
-              刪除
+              {t('刪除')}
             </button>
           </li>
         ))}

@@ -1166,3 +1166,121 @@ footer {
 .linklike { background: none; border: none; padding: 0; color: var(--accent, #e0a336); cursor: pointer; text-decoration: underline; font: inherit; }
 .xuan-lock { max-width: 520px; }
 .xuan-lock input[type='password'] { flex: 1; min-width: 10rem; padding: 0.4rem 0.6rem; }
+
+/* ---- 名人賽特訓：棋盤下方操作列（參考 playren 把動作放在棋盤視野內）---- */
+.board-actions {
+  width: min(100%, 600px);
+  margin: 10px 0 4px;
+}
+
+.board-actions .btn {
+  min-height: 44px; /* 手機觸控目標 */
+}
+
+.board-controls {
+  width: min(100%, 600px);
+  margin: 6px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.board-controls .btn {
+  flex: 1 1 0;
+  min-height: 40px;
+}
+
+@media (max-width: 760px) {
+  /* 手機：棋盤＋操作列要在一個畫面內，棋盤寬度以視窗高度為上限 */
+  .tara-page .goban {
+    width: min(100%, 600px, calc(100dvh - 300px));
+    min-width: 260px;
+    margin: 0 auto;
+  }
+  .tara-page .status {
+    margin: 0 0 4px;
+    font-size: 0.92rem;
+  }
+  .tara-page .clock-row {
+    margin: 0 auto 6px;
+    width: min(100%, 600px, calc(100dvh - 300px));
+    min-width: 260px;
+  }
+  .tara-page .clock {
+    padding: 4px 10px;
+  }
+  .tara-page .clock b {
+    font-size: 1.15rem;
+  }
+  .tara-page .board-actions,
+  .tara-page .board-controls {
+    width: 100%;
+  }
+  .tara-page .board-actions .btn {
+    flex: 1 1 0;
+  }
+  .tara-page .btn-col.board-actions .btn {
+    flex: none;
+  }
+  .tara-page .panel {
+    margin-top: 14px;
+  }
+}
+
+/* ---- 語言切換（頂欄）---- */
+.lang-switch {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.lang-switch button {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.lang-switch button.active {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+/* 手機：品牌＋語言同一列，導覽列單行橫向捲動（省一列高度，棋盤更早進視野） */
+@media (max-width: 520px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 8px;
+    padding: 8px 0 6px;
+  }
+  .topbar nav {
+    grid-column: 1 / -1;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 0 12px;
+  }
+  .topbar nav::-webkit-scrollbar {
+    display: none;
+  }
+  .topbar .brand {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .topbar .lang-switch {
+    grid-row: 1;
+    grid-column: 2;
+    margin-left: 0;
+  }
+  .topbar nav {
+    grid-row: 2;
+  }
+}

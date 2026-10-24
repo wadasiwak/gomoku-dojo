@@ -5,8 +5,10 @@ import { useState } from 'react'
 import { parseImport } from './importRecord.ts'
 import { navigate } from '../router.ts'
 import type { Rule } from '../engine/types.ts'
+import { useT } from '../i18n/index.ts'
 
 export default function ImportBox({ target }: { target: 'replay' | 'study' }) {
+  const t = useT()
   const [text, setText] = useState('')
   const [rule, setRule] = useState<Rule>('renju')
   const [error, setError] = useState<string | null>(null)
@@ -30,25 +32,24 @@ export default function ImportBox({ target }: { target: 'replay' | 'study' }) {
           setText(e.target.value)
           setError(null)
         }}
-        aria-label="貼上棋譜"
-        placeholder={'本站棋譜（r1:hhhgii… / r2:…）或座標序列（h8 i9 g9，行 1 在最下；\n逗號／空白／換行分隔、大小寫皆可）'}
+        aria-label={t('貼上棋譜')}
+        placeholder={t('本站棋譜（r1:hhhgii… / r2:…）或座標序列（h8 i9 g9，行 1 在最下；\n逗號／空白／換行分隔、大小寫皆可）')}
       />
       <div className="btn-row">
         <select
           value={rule}
           onChange={(e) => setRule(e.target.value as Rule)}
-          aria-label="匯入規則"
+          aria-label={t('匯入規則')}
         >
-          <option value="renju">連珠（黑有禁手）</option>
-          <option value="gomoku">無禁手五子棋</option>
+          <option value="renju">{t('連珠（黑有禁手）')}</option>
+          <option value="gomoku">{t('無禁手五子棋')}</option>
         </select>
         <button className="btn primary" onClick={submit}>
-          {target === 'replay' ? '匯入重播' : '載入擺譜'}
+          {target === 'replay' ? t('匯入重播') : t('載入擺譜')}
         </button>
       </div>
       <p className="muted small">
-        座標序列以上方規則逐手驗證（重複／越界／終局後多餘著手都會指出第幾手）；
-        本站棋譜自帶規則、忽略此選項。
+        {t('座標序列以上方規則逐手驗證（重複／越界／終局後多餘著手都會指出第幾手）；本站棋譜自帶規則、忽略此選項。')}
       </p>
       {error && (
         <p className="msg err import-err" role="alert">
