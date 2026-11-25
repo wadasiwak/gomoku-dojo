@@ -63,6 +63,15 @@ import {
   statKey,
   type Settings,
 } from '../storage.ts'
+import {
+  aiAcceptsDraw,
+  canOfferDraw,
+  DRAW_MIN_MOVES,
+  DRAW_RETRY_MOVES,
+  DRAW_THINK_MS,
+  DRAW_REFUSE_RAPFI,
+  DRAW_REFUSE_ENGINE,
+} from '../engine/drawOffer.ts'
 import { navigate } from '../router.ts'
 import { useT } from '../i18n/index.ts'
 
@@ -119,6 +128,10 @@ export default function Play({ record }: { record?: string }) {
   /** 規約 Rapfi 決策首次載入引擎（40MB）的文字進度（%）；非載入中＝null。 */
   const [rapfiLoad, setRapfiLoad] = useState<number | null>(null)
   const [resigned, setResigned] = useState(false)
+  /** 提和：AI 接受＝drawAgreed；被拒絕時記下手數（隔 DRAW_RETRY_MOVES 手才能再提）。 */
+  const [drawAgreed, setDrawAgreed] = useState(false)
+  const [drawRefusedAt, setDrawRefusedAt] = useState<number | null>(null)
+  const [drawMsg, setDrawMsg] = useState<string | null>(null)
   const [gameId, setGameId] = useState(1)
   const [forbidden, setForbidden] = useState<{ index: number; kind: string }[]>([])
   const [aiBook, setAiBook] = useState(false)
@@ -145,7 +158,9 @@ export default function Play({ record }: { record?: string }) {
 
   const result = resigned
     ? ({ kind: 'win', winner: aiColor, reason: 'resign' } as const)
-    : game.result
+    : drawAgreed
+      ? ({ kind: 'draw' } as const)
+      : game.result
   const ongoing = result.kind === 'ongoing'
 
   const opening = rifMeta.openingId ? getOpening(rifMeta.openingId) : undefined
@@ -164,6 +179,9 @@ export default function Play({ record }: { record?: string }) {
     setRifError(null)
     setAiNotes([])
     setResigned(false)
+    setDrawAgreed(false)
+    setDrawRefusedAt(null)
+    setDrawMsg(null)
     setThinking(false)
     setRapfiLoad(null)
     setCopied(false)
@@ -563,12 +581,12 @@ export default function Play({ record }: { record?: string }) {
       level,
       player: playerColor === BLACK ? 'black' : 'white',
       outcome,
-      reason: result.kind === 'win' ? result.reason : 'draw',
+      reason: result.kind === 'win' ? result.reason : drawAgreed ? 'agreed' : 'draw',
       record: recordStr,
       mode,
     })
     setStatsBump((n) => n + 1) // 戰績列即時刷新
-  }, [result, moves.length, rule, level, playerColor, recordStr, mode])
+  }, [result, moves.length, rule, level, playerColor, recordStr, mode, drawAgreed])
 
   /** 載入棋譜（#/play/<棋譜> 路由與 e2e hook 共用）：只用 setter、不讀 state。
    *  v2 棋譜先過 rifStateFromRecord 深度驗證並還原規約狀態＋切規約模式。 */
@@ -596,6 +614,9 @@ export default function Play({ record }: { record?: string }) {
     setRifError(null)
     setAiNotes([])
     setResigned(false)
+    setDrawAgreed(false)
+    setDrawRefusedAt(null)
+    setDrawMsg(null)
     setRapfiLoad(null)
     setAiBook(false)
     recordedRef.current = false
@@ -687,6 +708,53 @@ export default function Play({ record }: { record?: string }) {
     setResigned(true)
   }
 
+  /** 提和：自己手番、正常輪替、下滿手數才能提（條件見 engine/drawOffer.ts）。 */
+  const canDraw =
+    ongoing &&
+    !thinking &&
+    phase === 'normal' &&
+    game.toMove === playerColor &&
+    canOfferDraw(moves.length, drawRefusedAt)
+
+  /** AI 視角的局勢分數與該引擎的拒絕門檻。盤面是人方手番 → 引擎給人方視角，取負。 */
+  const evalForDraw = async (): Promise<{ aiScore: number | null; refuseAt: number }> => {
+    if (level === RAPFI_LEVEL && isRapfiSupported()) {
+      const r = await getRapfi().analyze({ moves }, rule, DRAW_THINK_MS)
+      const s = evalTextToScore(r.evalText)
+      return { aiScore: s === null ? null : -s, refuseAt: DRAW_REFUSE_RAPFI }
+    }
+    // 本站引擎一律用難度 3 的設定評估（與對弈難度無關）：難度 1 不算殺、時限又短，
+    // 子多的盤面可能連第一層都搜不完（depth 0、分數 0），會把必勝局面誤判成均勢。
+    const r = await client.search(game.board, playerColor, rule, 3)
+    const searched = r.viaVcf || r.depth > 0
+    return { aiScore: searched ? -r.score : null, refuseAt: DRAW_REFUSE_ENGINE }
+  }
+
+  const offerDraw = () => {
+    if (!canDraw) return
+    const at = moves.length
+    const key = `${gameId}:draw:${at}` // 重開/載譜會改 key，在途評估作廢
+    pendingRef.current = key
+    setThinking(true)
+    setDrawRefusedAt(null)
+    setDrawMsg(t('AI 考慮和棋提議中…'))
+    evalForDraw()
+      .catch(() => ({ aiScore: null, refuseAt: 0 }))
+      .then(({ aiScore, refuseAt }) => {
+        if (pendingRef.current !== key) return
+        if (aiAcceptsDraw(aiScore, refuseAt)) {
+          setDrawMsg(null)
+          setDrawAgreed(true)
+        } else {
+          setDrawRefusedAt(at)
+          setDrawMsg(t('AI 拒絕和棋，請繼續對局（再下 {n} 手後可再提）', { n: DRAW_RETRY_MOVES }))
+        }
+      })
+      .finally(() => {
+        if (pendingRef.current === key) setThinking(false)
+      })
+  }
+
   const confirmOffer = () => {
     if (offerPick.length !== 2) return
     if (dispatch({ type: 'offer', a: offerPick[0], b: offerPick[1] })) setOfferPick([])
@@ -719,7 +787,9 @@ export default function Play({ record }: { record?: string }) {
 
   const statusText = !ongoing
     ? result.kind === 'draw'
-      ? t('和局')
+      ? drawAgreed
+        ? t('和局（雙方同意）')
+        : t('和局')
       : t('{who}（{reason}）', {
           who: result.winner === playerColor ? t('你獲勝') : t('AI 獲勝'),
           reason: {
@@ -955,10 +1025,24 @@ export default function Play({ record }: { record?: string }) {
           <button className="btn" onClick={resign} disabled={!ongoing || moves.length === 0}>
             {t('認輸')}
           </button>
+          <button
+            className="btn"
+            onClick={offerDraw}
+            disabled={!canDraw}
+            title={t('下滿 {n} 手後，輪到你時可以提和', { n: DRAW_MIN_MOVES })}
+          >
+            {t('提和')}
+          </button>
           <button className="btn" onClick={newGame}>
             {t('重開')}
           </button>
         </div>
+        {ongoing && drawMsg && (drawRefusedAt === null || moves.length < drawRefusedAt + DRAW_RETRY_MOVES) && (
+          <p className="msg">{drawMsg}</p>
+        )}
+        {ongoing && !drawMsg && moves.length < DRAW_MIN_MOVES && (
+          <p className="muted small">{t('下滿 {n} 手後，輪到你時可以提和', { n: DRAW_MIN_MOVES })}</p>
+        )}
         <h2>{t('本模式戰績')}</h2>
         <p className="stats-line" data-stats={statKey(rule, level)}>
           {t('勝')} <b>{stats.win}</b>　{t('敗')} <b>{stats.loss}</b>　{t('和')} <b>{stats.draw}</b>

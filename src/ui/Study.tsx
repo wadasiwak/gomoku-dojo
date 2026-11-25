@@ -69,8 +69,13 @@ export default function Study({ record }: { record?: string }) {
   // 存檔
   const [studies, setStudies] = useState<SavedStudy[]>(loadStudies)
   /** 目前盤面是從哪份存檔開啟的（可覆蓋更新）；null＝新譜。 */
-  const [loadedId, setLoadedId] = useState<string | null>(null)
-  const [saveName, setSaveName] = useState('')
+  // 從棋譜頁點研究譜進來（#/study/<棋譜>）：棋譜字串對得上存檔就認回來，可直接覆蓋更新。
+  const [loadedId, setLoadedId] = useState<string | null>(
+    () => (record ? (loadStudies().find((s) => s.record === record)?.id ?? null) : null),
+  )
+  const [saveName, setSaveName] = useState(
+    () => (record ? (loadStudies().find((s) => s.record === record)?.name ?? '') : ''),
+  )
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
   // 逐手重放（非法手＝棋譜壞掉，只保留合法前綴）
@@ -265,6 +270,7 @@ export default function Study({ record }: { record?: string }) {
           )}
         </div>
         {saveMsg && <p className="msg ok">{saveMsg}</p>}
+        {studies.length > 0 && <p className="muted small">{t('存檔也會列在「棋譜」頁的研究譜區。')}</p>}
         {studies.length > 0 && (
           <ul className="study-list" aria-label={t('已存的研究譜')}>
             {studies.map((s) => (

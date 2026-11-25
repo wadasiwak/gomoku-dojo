@@ -58,6 +58,15 @@ import {
   saveGame,
   type TaraSettings,
 } from '../storage.ts'
+import {
+  aiAcceptsDraw,
+  canOfferDraw,
+  DRAW_MIN_MOVES,
+  DRAW_RETRY_MOVES,
+  DRAW_THINK_MS,
+  DRAW_REFUSE_RAPFI,
+} from '../engine/drawOffer.ts'
+import { evalTextToScore } from '../analysis/protocol.ts'
 import { navigate } from '../router.ts'
 import { t, useT } from '../i18n/index.ts'
 
@@ -103,6 +112,10 @@ export default function TaraPlay() {
   const [gameId, setGameId] = useState(1)
   const [resigned, setResigned] = useState(false)
   const [flagged, setFlagged] = useState(false)
+  /** 提和：Rapfi 接受＝drawAgreed；被拒絕時記下手數（隔 DRAW_RETRY_MOVES 手才能再提）。 */
+  const [drawAgreed, setDrawAgreed] = useState(false)
+  const [drawRefusedAt, setDrawRefusedAt] = useState<number | null>(null)
+  const [drawMsg, setDrawMsg] = useState<string | null>(null)
   const [thinking, setThinking] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
   const [rapfiLoad, setRapfiLoad] = useState<number | null>(null)
@@ -135,7 +148,7 @@ export default function TaraPlay() {
     return g
   }, [st.moves])
 
-  const ended = resigned || flagged || game.result.kind !== 'ongoing'
+  const ended = resigned || flagged || drawAgreed || game.result.kind !== 'ongoing'
   const ongoing = !ended
   /** 勝方與終局原因（顯示/存檔用）。 */
   const outcome: { winner: Color | null; reason: string } | null = !ended
@@ -144,6 +157,8 @@ export default function TaraPlay() {
       ? { winner: aiColor, reason: 'time' }
       : resigned
         ? { winner: aiColor, reason: 'resign' }
+        : drawAgreed
+          ? { winner: null, reason: 'agreed' }
         : game.result.kind === 'draw'
           ? { winner: null, reason: 'draw' }
           : game.result.kind === 'win'
@@ -178,6 +193,9 @@ export default function TaraPlay() {
     setSt(taraInitial())
     setResigned(false)
     setFlagged(false)
+    setDrawAgreed(false)
+    setDrawRefusedAt(null)
+    setDrawMsg(null)
     setThinking(false)
     setProgress(null)
     setRapfiLoad(null)
@@ -443,6 +461,39 @@ export default function TaraPlay() {
     setSt({ ...st, moves: st.moves.slice(0, undoTarget) })
   }
 
+  // ---- 提和 ---------------------------------------------------------------
+  // 自己手番、正常輪替、下滿手數才能提（條件見 engine/drawOffer.ts）。
+  // 評估一律用 Rapfi 全力（不受對弈強度的深度上限影響）；計時局照走人方的鐘。
+  const canDraw = humanTurn && phase === 'normal' && canOfferDraw(st.moves.length, drawRefusedAt)
+  const offerDraw = () => {
+    if (!canDraw) return
+    const at = st.moves.length
+    const key = `${gameId}:draw:${at}` // 重開/認輸/超時會改 key，在途評估作廢
+    pendingRef.current = key
+    setThinking(true)
+    setDrawRefusedAt(null)
+    setDrawMsg(t('Rapfi 考慮和棋提議中…'))
+    getRapfi()
+      .analyze({ moves: st.moves }, 'renju', DRAW_THINK_MS)
+      .then((r) => evalTextToScore(r.evalText))
+      .catch(() => null)
+      .then((humanScore) => {
+        if (pendingRef.current !== key) return
+        // 盤面是人方手番 → Rapfi 給人方視角，取負＝Rapfi 自己的局勢
+        const aiScore = humanScore === null ? null : -humanScore
+        if (aiAcceptsDraw(aiScore, DRAW_REFUSE_RAPFI)) {
+          setDrawMsg(null)
+          setDrawAgreed(true)
+        } else {
+          setDrawRefusedAt(at)
+          setDrawMsg(t('Rapfi 拒絕和棋，請繼續對局（再下 {n} 手後可再提）', { n: DRAW_RETRY_MOVES }))
+        }
+      })
+      .finally(() => {
+        if (pendingRef.current === key) setThinking(false)
+      })
+  }
+
   // ---- 顯示 ---------------------------------------------------------------
   const colorName = (c: Color) => (c === BLACK ? t('黑') : t('白'))
   const n = st.moves.length
@@ -458,12 +509,13 @@ export default function TaraPlay() {
         time: t('超時'),
         draw: t('和局'),
       }
-      if (outcome.winner === null) return t('和局')
+      if (outcome.winner === null) return outcome.reason === 'agreed' ? t('和局（雙方同意）') : t('和局')
       return t('{who}（{reason}）', {
         who: outcome.winner === humanColor ? t('你獲勝') : t('Rapfi 獲勝'),
         reason: reason[outcome.reason] ?? outcome.reason,
       })
     }
+    if (thinking && drawMsg) return drawMsg
     if (thinking)
       return rapfiLoad !== null
         ? t('載入 Rapfi 中… {p}%（首次約 40MB，之後走快取）', { p: rapfiLoad })
@@ -603,10 +655,21 @@ export default function TaraPlay() {
           >
             {t('認輸')}
           </button>
+          <button
+            className="btn"
+            onClick={offerDraw}
+            disabled={!canDraw}
+            title={t('下滿 {n} 手後，輪到你時可以提和', { n: DRAW_MIN_MOVES })}
+          >
+            {t('提和')}
+          </button>
           <button className="btn" onClick={() => newGame()}>
             {t('重開')}
           </button>
         </div>
+        {ongoing && !thinking && drawMsg && drawRefusedAt !== null && n < drawRefusedAt + DRAW_RETRY_MOVES && (
+          <p className="msg">{drawMsg}</p>
+        )}
       </div>
       <aside className="panel">
         <h2>{t('名人賽特訓')}</h2>

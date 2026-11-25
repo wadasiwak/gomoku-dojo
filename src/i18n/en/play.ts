@@ -130,5 +130,13 @@ const d: Dict = {
   'Rapfi 載入失敗：{msg}': 'Rapfi failed to load: {msg}',
   'Rapfi 思考逾時（>{ms}ms），worker 可能異常': 'Rapfi thinking timed out (>{ms}ms); the worker may be stuck',
   '引擎意外結束（exit {code}）': 'Engine exited unexpectedly (exit {code})',
+  // 提和
+  提和: 'Offer draw',
+  '下滿 {n} 手後，輪到你時可以提和': 'You can offer a draw on your turn after move {n}',
+  'AI 考慮和棋提議中…': 'AI is considering your draw offer…',
+  'AI 拒絕和棋，請繼續對局（再下 {n} 手後可再提）': 'AI declined the draw. Play on (you can offer again after {n} more moves)',
+  'Rapfi 考慮和棋提議中…': 'Rapfi is considering your draw offer…',
+  'Rapfi 拒絕和棋，請繼續對局（再下 {n} 手後可再提）': 'Rapfi declined the draw. Play on (you can offer again after {n} more moves)',
+  '和局（雙方同意）': 'Draw (by agreement)',
 }
 export default d

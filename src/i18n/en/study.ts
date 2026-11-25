@@ -153,5 +153,11 @@ const d: Dict = {
     'Official-rule record (r2) failed validation: opening / swap / two offers do not match the move sequence',
   '第 {n} 手「{tok}」無法解析：座標格式為字母列＋數字行（如 h8，行 1 在最下）':
     'Move {n} "{tok}" cannot be parsed: use letter column + number row (e.g. h8, row 1 at the bottom)',
+  // 棋譜頁的研究譜區
+  '研究譜（擺譜存檔）': 'Saved studies',
+  '在擺譜頁存的研究譜；點開回擺譜頁繼續研究。': 'Studies saved on the Study page; open one to continue there.',
+  對局棋譜: 'Game records',
+  雙方同意和局: 'draw by agreement',
+  '存檔也會列在「棋譜」頁的研究譜區。': 'Saved studies are also listed on the Records page.',
 }
 export default d
